@@ -22,7 +22,7 @@ public final class SchemaArtifactRenderer {
         output.append("# ProgressiveSkills Schema Reference v")
                 .append(schemaVersion(registry)).append("\n\n")
                 .append("> Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.\n\n")
-                .append("Phase 2 defines shared schema and immutable IR primitives only. Gameplay definition schemas arrive with their implementation phases.\n\n");
+                .append("Schema v2 includes the shared immutable IR contracts and the authoring schemas implemented through Phase 3. Gameplay definition schemas arrive with their implementation phases.\n\n");
 
         output.append("## Definition-kind catalog\n\n")
                 .append("| Kind ID | Source directory |\n")

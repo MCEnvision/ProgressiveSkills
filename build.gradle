@@ -348,9 +348,12 @@ def verifyPropertyTestResults = tasks.register('verifyPropertyTestResults', Veri
             ),
             layout.buildDirectory.file(
                     'test-results/test/TEST-com.envisione.progressiveskills.common.id.StableIdPropertyTest.xml'
+            ),
+            layout.buildDirectory.file(
+                    'test-results/test/TEST-com.envisione.progressiveskills.common.pack.PackDeterminismPropertyTest.xml'
             )
     )
-    minimumTries = 750
+    minimumTries = 1000
 }
 tasks.named('check').configure {
     dependsOn(verifyPropertyTestResults)

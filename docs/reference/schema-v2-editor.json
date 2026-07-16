@@ -540,6 +540,187 @@
       ]
     },
     {
+      "id": "progressiveskills:definition_layer",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Definition layer metadata",
+      "description": "Reserved top-level metadata controlling deterministic definition collisions.",
+      "fields": [
+        {
+          "path": "expected_old_digest",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional lowercase SHA-256 precondition for replace.",
+          "example": "7a9f3d3d2d7d30fc4ff59ef1dbacb9bcf1f0f198f7e0c5d618d66c5c8b112233",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 30,
+            "help": "Optional lowercase SHA-256 precondition for replace."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "merge_intent",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["add", "replace", "merge", "patch", "disable"],
+          "default": "add",
+          "description": "Explicit collision behavior for this source file.",
+          "example": "add",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Explicit collision behavior for this source file."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "patches",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Ordered explicit patches; valid only for patch intent.",
+          "example": "[{ op = \"set\", path = \"fallback\", value = \"Updated\" }]",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 40,
+            "help": "Ordered explicit patches; valid only for patch intent."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": true
+        },
+        {
+          "path": "schema_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": ["2"],
+          "default": null,
+          "description": "Definition authoring schema version.",
+          "example": "2",
+          "diagnostic": "PS-SCHEMA-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 10,
+            "help": "Definition authoring schema version."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+        {
+          "type": "requires",
+          "trigger": "expected_old_digest",
+          "fields": ["merge_intent"],
+          "diagnostic": "PS-PACK-006",
+          "description": "An old-digest precondition is meaningful only with replace intent."
+        }
+      ]
+    },
+    {
+      "id": "progressiveskills:definition_patch",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Definition patch operation",
+      "description": "One bounded path-addressed mutation applied before typed schema validation.",
+      "fields": [
+        {
+          "path": "op",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["set", "remove", "append", "prepend", "replace_by_id"],
+          "default": null,
+          "description": "Patch operation.",
+          "example": "set",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 10,
+            "help": "Patch operation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "path",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Dotted schema field path.",
+          "example": "style.color",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 20,
+            "help": "Dotted schema field path."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "target_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable nested id selected by replace_by_id.",
+          "example": "mypack:tree/node",
+          "diagnostic": "PS-ID-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 40,
+            "help": "Stable nested id selected by replace_by_id."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "value",
+          "type": "any",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed replacement or list value; forbidden for remove.",
+          "example": "red",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Typed replacement or list value; forbidden for remove."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:icon_spec",
       "version": 2,
       "audience": "authoring",
@@ -688,6 +869,587 @@
           "diagnostic": "PS-SCHEMA-006",
           "description": "Use value for a single/tag identity or values for composite badge layers."
         }
+      ]
+    },
+    {
+      "id": "progressiveskills:pack_manifest",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Content-pack manifest",
+      "description": "Identity, compatibility, dependencies, precedence, and fail-closed policy for one content pack.",
+      "fields": [
+        {
+          "path": "dependencies.incompatible_mods",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Loaded mod ids that make this pack invalid.",
+          "example": "[\"incompatible_mod\"]",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 150,
+            "help": "Loaded mod ids that make this pack invalid."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "dependencies.optional_mods",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Optional mod ids used only by explicitly guarded branches.",
+          "example": "[\"curios\"]",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 140,
+            "help": "Optional mod ids used only by explicitly guarded branches."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "dependencies.optional_packs",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Optional pack ids with optional @version constraints.",
+          "example": "[\"mypack:magic@>=1.0.0\"]",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 120,
+            "help": "Optional pack ids with optional @version constraints."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "dependencies.required_mods",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Mod ids that must be loaded for this pack.",
+          "example": "[\"examplemod\"]",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 130,
+            "help": "Mod ids that must be loaded for this pack."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "dependencies.required_packs",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Pack ids that must load first and satisfy optional @version constraints.",
+          "example": "[\"progressiveskills:base@>=1.0.0\"]",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 110,
+            "help": "Pack ids that must load first and satisfy optional @version constraints."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "pack.authors",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded author display names.",
+          "example": "[\"Pack Team\"]",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 60,
+            "help": "Bounded author display names."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": true
+        },
+        {
+          "path": "pack.changelog_url",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional bounded changelog location retained as pack metadata.",
+          "example": "https://example.invalid/mypack/changelog",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 135,
+            "help": "Optional bounded changelog location retained as pack metadata."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.content_version",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Strict SemVer content version used by pack dependencies.",
+          "example": "3.2.0",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 40,
+            "help": "Strict SemVer content version used by pack dependencies."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.default_layout",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional default layout definition used by later presentation phases.",
+          "example": "mypack:character_default",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 105,
+            "help": "Optional default layout definition used by later presentation phases."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.default_locale",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": "en_us",
+          "description": "Lowercase language_country fallback locale.",
+          "example": "en_us",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 90,
+            "help": "Lowercase language_country fallback locale."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "pack.default_theme",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional default theme definition used by later presentation phases.",
+          "example": "mypack:dark_rpg",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 100,
+            "help": "Optional default theme definition used by later presentation phases."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.description",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional bounded pack description retained as metadata.",
+          "example": "An example progression pack.",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "multi_line",
+            "group": "core",
+            "order": 125,
+            "help": "Optional bounded pack description retained as metadata."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.engine",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded engine SemVer range.",
+          "example": ">=1.0.0 <2.0.0",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 50,
+            "help": "Bounded engine SemVer range."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.exported_asset_pack_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional identity of a separately deployed client asset pack.",
+          "example": "mypack:client_assets",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 150,
+            "help": "Optional identity of a separately deployed client asset pack."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.feature_flags",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Declared feature labels retained for compatibility diagnostics.",
+          "example": "[\"core_progression\"]",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 140,
+            "help": "Declared feature labels retained for compatibility diagnostics."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "pack.homepage",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional bounded project homepage retained as pack metadata.",
+          "example": "https://example.invalid/mypack",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 115,
+            "help": "Optional bounded project homepage retained as pack metadata."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable content-pack identity whose namespace owns definitions.",
+          "example": "mypack:core",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Stable content-pack identity whose namespace owns definitions."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.license",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pack redistribution license label.",
+          "example": "All-Rights-Reserved",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 70,
+            "help": "Pack redistribution license label."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.name",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized pack display name with required fallback.",
+          "example": "{ key = \"pack.mypack.core\", fallback = \"My Pack\" }",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized pack display name with required fallback."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.namespace",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition namespace; must equal the pack id namespace.",
+          "example": "mypack",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 20,
+            "help": "Definition namespace; must equal the pack id namespace."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.priority",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Precedence within one root tier; larger values apply later.",
+          "example": "100",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 80,
+            "help": "Precedence within one root tier; larger values apply later."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "pack.source",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional bounded source repository location retained as pack metadata.",
+          "example": "https://example.invalid/mypack/source",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 120,
+            "help": "Optional bounded source repository location retained as pack metadata."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pack.trusted_scripts",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Declares that the pack contains trusted-script content; it never grants trust by itself.",
+          "example": "false",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 160,
+            "help": "Declares that the pack contains trusted-script content; it never grants trust by itself."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.duplicate_id",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["error"],
+          "default": "error",
+          "description": "Duplicate definition policy; Core fails closed.",
+          "example": "error",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 230,
+            "help": "Duplicate definition policy; Core fails closed."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.merge_conflict",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["error"],
+          "default": "error",
+          "description": "Ambiguous merge policy; Core fails closed.",
+          "example": "error",
+          "diagnostic": "PS-PACK-006",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 240,
+            "help": "Ambiguous merge policy; Core fails closed."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.missing_optional",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["skip_declared_branch"],
+          "default": "skip_declared_branch",
+          "description": "Behavior for declared optional branches.",
+          "example": "skip_declared_branch",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 210,
+            "help": "Behavior for declared optional branches."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.missing_required",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["reject_pack"],
+          "default": "reject_pack",
+          "description": "Behavior for missing required dependencies; Core rejects the pack.",
+          "example": "reject_pack",
+          "diagnostic": "PS-PACK-003",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 200,
+            "help": "Behavior for missing required dependencies; Core rejects the pack."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.secret_projection",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["redact"],
+          "default": "redact",
+          "description": "Server-only field handling for future client projections.",
+          "example": "redact",
+          "diagnostic": "PS-PACK-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 250,
+            "help": "Server-only field handling for future client projections."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "policies.unknown_field",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["error"],
+          "default": "error",
+          "description": "Unknown manifest/definition field handling.",
+          "example": "error",
+          "diagnostic": "PS-SCHEMA-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 220,
+            "help": "Unknown manifest/definition field handling."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "schema_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": ["2"],
+          "default": null,
+          "description": "Manifest authoring schema version.",
+          "example": "2",
+          "diagnostic": "PS-SCHEMA-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 0,
+            "help": "Manifest authoring schema version."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
       ]
     },
     {
@@ -959,6 +1721,105 @@
       "suppressible": false
     },
     {
+      "code": "PS-PACK-001",
+      "severity": "error",
+      "title": "Content-pack discovery failed",
+      "why": "A pack root or source path could not be inspected safely.",
+      "fix": "Use readable regular directories and files without symbolic links.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-002",
+      "severity": "error",
+      "title": "Invalid content-pack manifest",
+      "why": "Pack identity, compatibility, dependencies, and policy must be known before definitions load.",
+      "fix": "Correct pack.toml using the generated manifest schema.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-003",
+      "severity": "error",
+      "title": "Missing or incompatible pack dependency",
+      "why": "Loading without a required compatible pack would leave unresolved content.",
+      "fix": "Install a version matching the declared range or update the dependency declaration.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-004",
+      "severity": "error",
+      "title": "Content-pack dependency cycle",
+      "why": "A deterministic load order cannot be produced from a dependency cycle.",
+      "fix": "Remove one dependency edge and use explicit layered merge intent instead.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-005",
+      "severity": "error",
+      "title": "Content-pack identity collision",
+      "why": "Two discovered packs cannot own the same stable pack identity.",
+      "fix": "Assign one pack a distinct namespaced [pack].id.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-006",
+      "severity": "error",
+      "title": "Definition merge conflict",
+      "why": "A collision without compatible explicit merge semantics would make load order ambiguous.",
+      "fix": "Choose add, replace, merge, patch, or disable and satisfy that operation's preconditions.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-007",
+      "severity": "error",
+      "title": "Pack dependency contradicts precedence",
+      "why": "A dependency cannot safely load first when its root tier or explicit priority says it must load later.",
+      "fix": "Move the dependency to an equal/lower tier and priority, or raise the dependent pack's precedence.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-007",
+      "suppressible": false
+    },
+    {
+      "code": "PS-PACK-008",
+      "severity": "warning",
+      "title": "Definition id is shared across kinds",
+      "why": "Typed keys remain unambiguous, but identical ids across kinds make references and provenance harder to read.",
+      "fix": "Give one definition a distinct path/id unless the shared spelling is deliberate.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-pack-008",
+      "suppressible": true
+    },
+    {
+      "code": "PS-RELOAD-001",
+      "severity": "error",
+      "title": "No validated reload is staged",
+      "why": "Publishing must use the exact snapshot that was reviewed during dry-run.",
+      "fix": "Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-reload-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RELOAD-002",
+      "severity": "error",
+      "title": "Staged reload is blocked",
+      "why": "A snapshot containing structural errors cannot replace the live last-known-good registry.",
+      "fix": "Run /ps validate, correct every error, and stage again.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-reload-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RELOAD-003",
+      "severity": "error",
+      "title": "Last-known-good recovery failed",
+      "why": "Neither current content nor a verified recovery bundle could produce a safe live snapshot.",
+      "fix": "Restore a valid pack source or a complete world backup and validate again.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-reload-003",
+      "suppressible": false
+    },
+    {
       "code": "PS-SCHEMA-001",
       "severity": "error",
       "title": "Unsupported schema version",
@@ -1013,12 +1874,39 @@
       "suppressible": false
     },
     {
+      "code": "PS-SCHEMA-007",
+      "severity": "error",
+      "title": "Definition schema is not available",
+      "why": "Accepting a definition before its typed compiler exists would create false validation claims.",
+      "fix": "Use a definition kind implemented by this build or wait for its feature phase.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-007",
+      "suppressible": false
+    },
+    {
       "code": "PS-SEC-001",
       "severity": "error",
       "title": "Unsafe presentation content",
       "why": "Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.",
       "fix": "Use the bounded ComponentSpec subset only.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-sec-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TOML-001",
+      "severity": "error",
+      "title": "Malformed TOML source",
+      "why": "Invalid TOML cannot compile into deterministic canonical data.",
+      "fix": "Correct the reported file and field using a TOML-aware editor.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-toml-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TOML-002",
+      "severity": "error",
+      "title": "Content source exceeds a safety limit",
+      "why": "Unbounded file counts, nesting, or bytes can exhaust server resources during reload.",
+      "fix": "Split or reduce the pack so it stays within the documented hard ceilings.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-toml-002",
       "suppressible": false
     }
   ]

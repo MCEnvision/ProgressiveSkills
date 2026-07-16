@@ -2,7 +2,7 @@ package com.envisione.progressiveskills.common.diagnostic;
 
 import java.util.Locale;
 
-/** Phase 2 diagnostic metadata shared by validation, docs, and future editors. */
+/** Core diagnostic metadata shared by validation, docs, commands, and future editors. */
 public final class CoreDiagnostics {
     public static final DiagnosticCode INVALID_SCHEMA_VERSION = code("PS-SCHEMA-001");
     public static final DiagnosticCode UNKNOWN_FIELD = code("PS-SCHEMA-002");
@@ -17,6 +17,20 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode INVALID_PLACEHOLDER = code("PS-I18N-002");
     public static final DiagnosticCode MISSING_ALT_TEXT = code("PS-A11Y-001");
     public static final DiagnosticCode UNSAFE_PRESENTATION = code("PS-SEC-001");
+    public static final DiagnosticCode PACK_DISCOVERY_FAILED = code("PS-PACK-001");
+    public static final DiagnosticCode INVALID_PACK_MANIFEST = code("PS-PACK-002");
+    public static final DiagnosticCode MISSING_PACK_DEPENDENCY = code("PS-PACK-003");
+    public static final DiagnosticCode PACK_DEPENDENCY_CYCLE = code("PS-PACK-004");
+    public static final DiagnosticCode PACK_COLLISION = code("PS-PACK-005");
+    public static final DiagnosticCode MERGE_CONFLICT = code("PS-PACK-006");
+    public static final DiagnosticCode PACK_PRECEDENCE_CONFLICT = code("PS-PACK-007");
+    public static final DiagnosticCode CROSS_KIND_ID_WARNING = code("PS-PACK-008");
+    public static final DiagnosticCode INVALID_TOML = code("PS-TOML-001");
+    public static final DiagnosticCode SOURCE_LIMIT_EXCEEDED = code("PS-TOML-002");
+    public static final DiagnosticCode UNSUPPORTED_DEFINITION_SCHEMA = code("PS-SCHEMA-007");
+    public static final DiagnosticCode RELOAD_NOT_STAGED = code("PS-RELOAD-001");
+    public static final DiagnosticCode RELOAD_BLOCKED = code("PS-RELOAD-002");
+    public static final DiagnosticCode LAST_KNOWN_GOOD_FAILED = code("PS-RELOAD-003");
 
     private CoreDiagnostics() {
     }
@@ -75,6 +89,62 @@ public final class CoreDiagnostics {
                         "Unsafe presentation content",
                         "Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.",
                         "Use the bounded ComponentSpec subset only.", false))
+                .register(descriptor(PACK_DISCOVERY_FAILED, DiagnosticSeverity.ERROR,
+                        "Content-pack discovery failed",
+                        "A pack root or source path could not be inspected safely.",
+                        "Use readable regular directories and files without symbolic links.", false))
+                .register(descriptor(INVALID_PACK_MANIFEST, DiagnosticSeverity.ERROR,
+                        "Invalid content-pack manifest",
+                        "Pack identity, compatibility, dependencies, and policy must be known before definitions load.",
+                        "Correct pack.toml using the generated manifest schema.", false))
+                .register(descriptor(MISSING_PACK_DEPENDENCY, DiagnosticSeverity.ERROR,
+                        "Missing or incompatible pack dependency",
+                        "Loading without a required compatible pack would leave unresolved content.",
+                        "Install a version matching the declared range or update the dependency declaration.", false))
+                .register(descriptor(PACK_DEPENDENCY_CYCLE, DiagnosticSeverity.ERROR,
+                        "Content-pack dependency cycle",
+                        "A deterministic load order cannot be produced from a dependency cycle.",
+                        "Remove one dependency edge and use explicit layered merge intent instead.", false))
+                .register(descriptor(PACK_COLLISION, DiagnosticSeverity.ERROR,
+                        "Content-pack identity collision",
+                        "Two discovered packs cannot own the same stable pack identity.",
+                        "Assign one pack a distinct namespaced [pack].id.", false))
+                .register(descriptor(MERGE_CONFLICT, DiagnosticSeverity.ERROR,
+                        "Definition merge conflict",
+                        "A collision without compatible explicit merge semantics would make load order ambiguous.",
+                        "Choose add, replace, merge, patch, or disable and satisfy that operation's preconditions.", false))
+                .register(descriptor(PACK_PRECEDENCE_CONFLICT, DiagnosticSeverity.ERROR,
+                        "Pack dependency contradicts precedence",
+                        "A dependency cannot safely load first when its root tier or explicit priority says it must load later.",
+                        "Move the dependency to an equal/lower tier and priority, or raise the dependent pack's precedence.", false))
+                .register(descriptor(CROSS_KIND_ID_WARNING, DiagnosticSeverity.WARNING,
+                        "Definition id is shared across kinds",
+                        "Typed keys remain unambiguous, but identical ids across kinds make references and provenance harder to read.",
+                        "Give one definition a distinct path/id unless the shared spelling is deliberate.", true))
+                .register(descriptor(INVALID_TOML, DiagnosticSeverity.ERROR,
+                        "Malformed TOML source",
+                        "Invalid TOML cannot compile into deterministic canonical data.",
+                        "Correct the reported file and field using a TOML-aware editor.", false))
+                .register(descriptor(SOURCE_LIMIT_EXCEEDED, DiagnosticSeverity.ERROR,
+                        "Content source exceeds a safety limit",
+                        "Unbounded file counts, nesting, or bytes can exhaust server resources during reload.",
+                        "Split or reduce the pack so it stays within the documented hard ceilings.", false))
+                .register(descriptor(UNSUPPORTED_DEFINITION_SCHEMA, DiagnosticSeverity.ERROR,
+                        "Definition schema is not available",
+                        "Accepting a definition before its typed compiler exists would create false validation claims.",
+                        "Use a definition kind implemented by this build or wait for its feature phase.", false))
+                .register(descriptor(RELOAD_NOT_STAGED, DiagnosticSeverity.ERROR,
+                        "No validated reload is staged",
+                        "Publishing must use the exact snapshot that was reviewed during dry-run.",
+                        "Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.", false))
+                .register(descriptor(RELOAD_BLOCKED, DiagnosticSeverity.ERROR,
+                        "Staged reload is blocked",
+                        "A snapshot containing structural errors cannot replace the live last-known-good registry.",
+                        "Run /ps validate, correct every error, and stage again.", false))
+                .register(descriptor(LAST_KNOWN_GOOD_FAILED, DiagnosticSeverity.ERROR,
+                        "Last-known-good recovery failed",
+                        "Neither current content nor a verified recovery bundle could produce a safe live snapshot.",
+                        "Restore a valid pack source or a complete world backup and validate again.", false))
                 .build();
     }
 

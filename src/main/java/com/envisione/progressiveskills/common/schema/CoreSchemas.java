@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Arrays;
 import java.util.List;
 
-/** The Phase 2 schema metadata source used by every generated artifact. */
+/** The schema-v2 metadata source used by every generated artifact. */
 public final class CoreSchemas {
     public static final int CURRENT_SCHEMA_VERSION = SchemaVersion.CURRENT.value();
     private static final String NAMESPACE = "progressiveskills";
@@ -28,6 +28,9 @@ public final class CoreSchemas {
         builder.register(iconSpec());
         builder.register(sourceSpan());
         builder.register(canonicalDefinition());
+        builder.register(packManifest());
+        builder.register(definitionLayer());
+        builder.register(definitionPatch());
         return builder.build();
     }
 
@@ -291,6 +294,193 @@ public final class CoreSchemas {
                                 .projection(ProjectionPolicy.SERVER_ONLY)
                                 .diff(DiffPolicy.MERGE_BY_KEY)
                                 .build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor packManifest() {
+        return schema(
+                "pack_manifest",
+                SchemaAudience.AUTHORING,
+                "Content-pack manifest",
+                "Identity, compatibility, dependencies, precedence, and fail-closed policy for one content pack.",
+                List.of(
+                        field("dependencies.incompatible_mods", SchemaValueType.LIST, false,
+                                "Loaded mod ids that make this pack invalid.", "[\"incompatible_mod\"]",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.LIST, 150)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("dependencies.optional_mods", SchemaValueType.LIST, false,
+                                "Optional mod ids used only by explicitly guarded branches.", "[\"curios\"]",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.LIST, 140)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("dependencies.optional_packs", SchemaValueType.LIST, false,
+                                "Optional pack ids with optional @version constraints.", "[\"mypack:magic@>=1.0.0\"]",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.LIST, 120)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("dependencies.required_mods", SchemaValueType.LIST, false,
+                                "Mod ids that must be loaded for this pack.", "[\"examplemod\"]",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.LIST, 130)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("dependencies.required_packs", SchemaValueType.LIST, false,
+                                "Pack ids that must load first and satisfy optional @version constraints.",
+                                "[\"progressiveskills:base@>=1.0.0\"]",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.LIST, 110)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("pack.authors", SchemaValueType.LIST, false,
+                                "Bounded author display names.", "[\"Pack Team\"]",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.LIST, 60)
+                                .defaultEmptyList().diff(DiffPolicy.ORDERED).omitWhenDefault().build(),
+                        field("pack.content_version", SchemaValueType.STRING, true,
+                                "Strict SemVer content version used by pack dependencies.", "3.2.0",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 40).build(),
+                        field("pack.changelog_url", SchemaValueType.STRING, false,
+                                "Optional bounded changelog location retained as pack metadata.",
+                                "https://example.invalid/mypack/changelog",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 135).build(),
+                        field("pack.default_locale", SchemaValueType.STRING, false,
+                                "Lowercase language_country fallback locale.", "en_us",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 90)
+                                .defaultString("en_us").omitWhenDefault().build(),
+                        field("pack.default_layout", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Optional default layout definition used by later presentation phases.",
+                                "mypack:character_default",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.RESOURCE_LOCATION, 105).build(),
+                        field("pack.default_theme", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Optional default theme definition used by later presentation phases.",
+                                "mypack:dark_rpg",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.RESOURCE_LOCATION, 100).build(),
+                        field("pack.description", SchemaValueType.STRING, false,
+                                "Optional bounded pack description retained as metadata.",
+                                "An example progression pack.",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.MULTI_LINE, 125).build(),
+                        field("pack.engine", SchemaValueType.STRING, true,
+                                "Bounded engine SemVer range.", ">=1.0.0 <2.0.0",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 50).build(),
+                        field("pack.exported_asset_pack_id", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Optional identity of a separately deployed client asset pack.",
+                                "mypack:client_assets",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.RESOURCE_LOCATION, 150).build(),
+                        field("pack.feature_flags", SchemaValueType.LIST, false,
+                                "Declared feature labels retained for compatibility diagnostics.",
+                                "[\"core_progression\"]",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.LIST, 140)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("pack.homepage", SchemaValueType.STRING, false,
+                                "Optional bounded project homepage retained as pack metadata.",
+                                "https://example.invalid/mypack",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 115).build(),
+                        field("pack.id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable content-pack identity whose namespace owns definitions.", "mypack:core",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("pack.license", SchemaValueType.STRING, true,
+                                "Pack redistribution license label.", "All-Rights-Reserved",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 70).build(),
+                        field("pack.name", SchemaValueType.COMPONENT, true,
+                                "Localized pack display name with required fallback.",
+                                "{ key = \"pack.mypack.core\", fallback = \"My Pack\" }",
+                                CoreDiagnostics.INVALID_COMPONENT, EditorWidget.COMPONENT, 30).build(),
+                        field("pack.namespace", SchemaValueType.STRING, true,
+                                "Definition namespace; must equal the pack id namespace.", "mypack",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 20).build(),
+                        field("pack.priority", SchemaValueType.INTEGER, false,
+                                "Precedence within one root tier; larger values apply later.", "100",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.INTEGER, 80)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("pack.source", SchemaValueType.STRING, false,
+                                "Optional bounded source repository location retained as pack metadata.",
+                                "https://example.invalid/mypack/source",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SINGLE_LINE, 120).build(),
+                        field("pack.trusted_scripts", SchemaValueType.BOOLEAN, false,
+                                "Declares that the pack contains trusted-script content; it never grants trust by itself.",
+                                "false",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.CHECKBOX, 160)
+                                .defaultBoolean(false).omitWhenDefault().build(),
+                        field("policies.duplicate_id", SchemaValueType.ENUM, false,
+                                "Duplicate definition policy; Core fails closed.", "error",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SELECT, 230)
+                                .allowedValues("error").defaultString("error").omitWhenDefault().build(),
+                        field("policies.merge_conflict", SchemaValueType.ENUM, false,
+                                "Ambiguous merge policy; Core fails closed.", "error",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SELECT, 240)
+                                .allowedValues("error").defaultString("error").omitWhenDefault().build(),
+                        field("policies.missing_optional", SchemaValueType.ENUM, false,
+                                "Behavior for declared optional branches.", "skip_declared_branch",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.SELECT, 210)
+                                .allowedValues("skip_declared_branch")
+                                .defaultString("skip_declared_branch").omitWhenDefault().build(),
+                        field("policies.missing_required", SchemaValueType.ENUM, false,
+                                "Behavior for missing required dependencies; Core rejects the pack.", "reject_pack",
+                                CoreDiagnostics.MISSING_PACK_DEPENDENCY, EditorWidget.SELECT, 200)
+                                .allowedValues("reject_pack").defaultString("reject_pack").omitWhenDefault().build(),
+                        field("policies.secret_projection", SchemaValueType.ENUM, false,
+                                "Server-only field handling for future client projections.", "redact",
+                                CoreDiagnostics.INVALID_PACK_MANIFEST, EditorWidget.SELECT, 250)
+                                .allowedValues("redact").defaultString("redact").omitWhenDefault().build(),
+                        field("policies.unknown_field", SchemaValueType.ENUM, false,
+                                "Unknown manifest/definition field handling.", "error",
+                                CoreDiagnostics.UNKNOWN_FIELD, EditorWidget.SELECT, 220)
+                                .allowedValues("error").defaultString("error").omitWhenDefault().build(),
+                        field("schema_version", SchemaValueType.INTEGER, true,
+                                "Manifest authoring schema version.", Integer.toString(CURRENT_SCHEMA_VERSION),
+                                CoreDiagnostics.INVALID_SCHEMA_VERSION, EditorWidget.INTEGER, 0)
+                                .allowedValues(Integer.toString(CURRENT_SCHEMA_VERSION)).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor definitionLayer() {
+        return schema(
+                "definition_layer",
+                SchemaAudience.AUTHORING,
+                "Definition layer metadata",
+                "Reserved top-level metadata controlling deterministic definition collisions.",
+                List.of(
+                        field("expected_old_digest", SchemaValueType.STRING, false,
+                                "Optional lowercase SHA-256 precondition for replace.",
+                                "7a9f3d3d2d7d30fc4ff59ef1dbacb9bcf1f0f198f7e0c5d618d66c5c8b112233",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SINGLE_LINE, 30).build(),
+                        field("merge_intent", SchemaValueType.ENUM, false,
+                                "Explicit collision behavior for this source file.", "add",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SELECT, 20)
+                                .allowedValues("add", "replace", "merge", "patch", "disable")
+                                .defaultString("add").omitWhenDefault().build(),
+                        field("patches", SchemaValueType.LIST, false,
+                                "Ordered explicit patches; valid only for patch intent.",
+                                "[{ op = \"set\", path = \"fallback\", value = \"Updated\" }]",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.LIST, 40)
+                                .defaultEmptyList().diff(DiffPolicy.ORDERED).omitWhenDefault().build(),
+                        field("schema_version", SchemaValueType.INTEGER, true,
+                                "Definition authoring schema version.", Integer.toString(CURRENT_SCHEMA_VERSION),
+                                CoreDiagnostics.INVALID_SCHEMA_VERSION, EditorWidget.INTEGER, 10)
+                                .allowedValues(Integer.toString(CURRENT_SCHEMA_VERSION)).build()
+                ),
+                List.of(SchemaConstraint.requires(
+                        "expected_old_digest", CoreDiagnostics.MERGE_CONFLICT,
+                        "An old-digest precondition is meaningful only with replace intent.", "merge_intent"
+                ))
+        );
+    }
+
+    private static SchemaDescriptor definitionPatch() {
+        return schema(
+                "definition_patch",
+                SchemaAudience.AUTHORING,
+                "Definition patch operation",
+                "One bounded path-addressed mutation applied before typed schema validation.",
+                List.of(
+                        field("op", SchemaValueType.ENUM, true,
+                                "Patch operation.", "set",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SELECT, 10)
+                                .allowedValues("set", "remove", "append", "prepend", "replace_by_id").build(),
+                        field("path", SchemaValueType.STRING, true,
+                                "Dotted schema field path.", "style.color",
+                                CoreDiagnostics.MERGE_CONFLICT, EditorWidget.SINGLE_LINE, 20).build(),
+                        field("target_id", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Stable nested id selected by replace_by_id.", "mypack:tree/node",
+                                CoreDiagnostics.INVALID_ID, EditorWidget.RESOURCE_LOCATION, 40).build(),
+                        field("value", SchemaValueType.ANY, false,
+                                "Typed replacement or list value; forbidden for remove.", "red",
+                                CoreDiagnostics.INVALID_CANONICAL_VALUE, EditorWidget.OBJECT, 30).build()
                 )
         );
     }

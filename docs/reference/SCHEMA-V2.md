@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Phase 2 defines shared schema and immutable IR primitives only. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR contracts and the authoring schemas implemented through Phase 3. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -109,6 +109,40 @@ Cross-field constraints:
 - `requires` from `description` → `display`, `icon` (`PS-I18N-001`): A description is presentation metadata and requires display plus icon.
 - `requires` from `search_aliases` → `display`, `icon` (`PS-I18N-001`): Non-default search aliases require display plus icon.
 
+## Definition layer metadata
+
+- Schema ID: `progressiveskills:definition_layer`
+- Version: `2`
+- Audience: `authoring`
+
+Reserved top-level metadata controlling deterministic definition collisions.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `expected_old_digest` | `string` | — | — | Optional lowercase SHA-256 precondition for replace. | `7a9f3d3d2d7d30fc4ff59ef1dbacb9bcf1f0f198f7e0c5d618d66c5c8b112233` | `PS-PACK-006` | `single_line` | `client_visible` | `replace` |
+| `merge_intent` | `enum` | `add \| replace \| merge \| patch \| disable` | `"add"` | Explicit collision behavior for this source file. | `add` | `PS-PACK-006` | `select` | `client_visible` | `replace` |
+| `patches` | `list` | — | `[]` | Ordered explicit patches; valid only for patch intent. | `[{ op = "set", path = "fallback", value = "Updated" }]` | `PS-PACK-006` | `list` | `client_visible` | `ordered` |
+| `schema_version` (required) | `integer` | `2` | — | Definition authoring schema version. | `2` | `PS-SCHEMA-001` | `integer` | `client_visible` | `replace` |
+
+Cross-field constraints:
+
+- `requires` from `expected_old_digest` → `merge_intent` (`PS-PACK-006`): An old-digest precondition is meaningful only with replace intent.
+
+## Definition patch operation
+
+- Schema ID: `progressiveskills:definition_patch`
+- Version: `2`
+- Audience: `authoring`
+
+One bounded path-addressed mutation applied before typed schema validation.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `op` (required) | `enum` | `set \| remove \| append \| prepend \| replace_by_id` | — | Patch operation. | `set` | `PS-PACK-006` | `select` | `client_visible` | `replace` |
+| `path` (required) | `string` | — | — | Dotted schema field path. | `style.color` | `PS-PACK-006` | `single_line` | `client_visible` | `replace` |
+| `target_id` | `resource_location` | — | — | Stable nested id selected by replace_by_id. | `mypack:tree/node` | `PS-ID-001` | `resource_location` | `client_visible` | `replace` |
+| `value` | `any` | — | — | Typed replacement or list value; forbidden for remove. | `red` | `PS-SCHEMA-005` | `object` | `client_visible` | `replace` |
+
 ## Icon specification
 
 - Schema ID: `progressiveskills:icon_spec`
@@ -130,6 +164,47 @@ Registry-neutral visual descriptor resolved only at a later presentation boundar
 Cross-field constraints:
 
 - `exactly_one` → `value`, `values` (`PS-SCHEMA-006`): Use value for a single/tag identity or values for composite badge layers.
+
+## Content-pack manifest
+
+- Schema ID: `progressiveskills:pack_manifest`
+- Version: `2`
+- Audience: `authoring`
+
+Identity, compatibility, dependencies, precedence, and fail-closed policy for one content pack.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `dependencies.incompatible_mods` | `list` | — | `[]` | Loaded mod ids that make this pack invalid. | `["incompatible_mod"]` | `PS-PACK-003` | `list` | `client_visible` | `set` |
+| `dependencies.optional_mods` | `list` | — | `[]` | Optional mod ids used only by explicitly guarded branches. | `["curios"]` | `PS-PACK-003` | `list` | `client_visible` | `set` |
+| `dependencies.optional_packs` | `list` | — | `[]` | Optional pack ids with optional @version constraints. | `["mypack:magic@>=1.0.0"]` | `PS-PACK-003` | `list` | `client_visible` | `set` |
+| `dependencies.required_mods` | `list` | — | `[]` | Mod ids that must be loaded for this pack. | `["examplemod"]` | `PS-PACK-003` | `list` | `client_visible` | `set` |
+| `dependencies.required_packs` | `list` | — | `[]` | Pack ids that must load first and satisfy optional @version constraints. | `["progressiveskills:base@>=1.0.0"]` | `PS-PACK-003` | `list` | `client_visible` | `set` |
+| `pack.authors` | `list` | — | `[]` | Bounded author display names. | `["Pack Team"]` | `PS-PACK-002` | `list` | `client_visible` | `ordered` |
+| `pack.changelog_url` | `string` | — | — | Optional bounded changelog location retained as pack metadata. | `https://example.invalid/mypack/changelog` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.content_version` (required) | `string` | — | — | Strict SemVer content version used by pack dependencies. | `3.2.0` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.default_layout` | `resource_location` | — | — | Optional default layout definition used by later presentation phases. | `mypack:character_default` | `PS-PACK-002` | `resource_location` | `client_visible` | `replace` |
+| `pack.default_locale` | `string` | — | `"en_us"` | Lowercase language_country fallback locale. | `en_us` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.default_theme` | `resource_location` | — | — | Optional default theme definition used by later presentation phases. | `mypack:dark_rpg` | `PS-PACK-002` | `resource_location` | `client_visible` | `replace` |
+| `pack.description` | `string` | — | — | Optional bounded pack description retained as metadata. | `An example progression pack.` | `PS-PACK-002` | `multi_line` | `client_visible` | `replace` |
+| `pack.engine` (required) | `string` | — | — | Bounded engine SemVer range. | `>=1.0.0 <2.0.0` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.exported_asset_pack_id` | `resource_location` | — | — | Optional identity of a separately deployed client asset pack. | `mypack:client_assets` | `PS-PACK-002` | `resource_location` | `client_visible` | `replace` |
+| `pack.feature_flags` | `list` | — | `[]` | Declared feature labels retained for compatibility diagnostics. | `["core_progression"]` | `PS-PACK-002` | `list` | `client_visible` | `set` |
+| `pack.homepage` | `string` | — | — | Optional bounded project homepage retained as pack metadata. | `https://example.invalid/mypack` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.id` (required) | `resource_location` | — | — | Stable content-pack identity whose namespace owns definitions. | `mypack:core` | `PS-PACK-002` | `resource_location` | `client_visible` | `replace` |
+| `pack.license` (required) | `string` | — | — | Pack redistribution license label. | `All-Rights-Reserved` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.name` (required) | `component` | — | — | Localized pack display name with required fallback. | `{ key = "pack.mypack.core", fallback = "My Pack" }` | `PS-I18N-001` | `component` | `client_visible` | `replace` |
+| `pack.namespace` (required) | `string` | — | — | Definition namespace; must equal the pack id namespace. | `mypack` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.priority` | `integer` | — | `0` | Precedence within one root tier; larger values apply later. | `100` | `PS-PACK-002` | `integer` | `client_visible` | `replace` |
+| `pack.source` | `string` | — | — | Optional bounded source repository location retained as pack metadata. | `https://example.invalid/mypack/source` | `PS-PACK-002` | `single_line` | `client_visible` | `replace` |
+| `pack.trusted_scripts` | `boolean` | — | `false` | Declares that the pack contains trusted-script content; it never grants trust by itself. | `false` | `PS-PACK-002` | `checkbox` | `client_visible` | `replace` |
+| `policies.duplicate_id` | `enum` | `error` | `"error"` | Duplicate definition policy; Core fails closed. | `error` | `PS-PACK-006` | `select` | `client_visible` | `replace` |
+| `policies.merge_conflict` | `enum` | `error` | `"error"` | Ambiguous merge policy; Core fails closed. | `error` | `PS-PACK-006` | `select` | `client_visible` | `replace` |
+| `policies.missing_optional` | `enum` | `skip_declared_branch` | `"skip_declared_branch"` | Behavior for declared optional branches. | `skip_declared_branch` | `PS-PACK-003` | `select` | `client_visible` | `replace` |
+| `policies.missing_required` | `enum` | `reject_pack` | `"reject_pack"` | Behavior for missing required dependencies; Core rejects the pack. | `reject_pack` | `PS-PACK-003` | `select` | `client_visible` | `replace` |
+| `policies.secret_projection` | `enum` | `redact` | `"redact"` | Server-only field handling for future client projections. | `redact` | `PS-PACK-002` | `select` | `client_visible` | `replace` |
+| `policies.unknown_field` | `enum` | `error` | `"error"` | Unknown manifest/definition field handling. | `error` | `PS-SCHEMA-002` | `select` | `client_visible` | `replace` |
+| `schema_version` (required) | `integer` | `2` | — | Manifest authoring schema version. | `2` | `PS-SCHEMA-001` | `integer` | `client_visible` | `replace` |
 
 ## Source span
 
@@ -219,6 +294,105 @@ Allowlisted visual styling with no click actions, selectors, NBT, or URLs.
 - Why it matters: Ambiguous, cyclic, or cross-kind aliases can corrupt reference migration.
 - Suggested fix: Use one acyclic same-kind old-id to new-id mapping.
 
+<a id="ps-pack-001"></a>
+
+### PS-PACK-001 — Content-pack discovery failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A pack root or source path could not be inspected safely.
+- Suggested fix: Use readable regular directories and files without symbolic links.
+
+<a id="ps-pack-002"></a>
+
+### PS-PACK-002 — Invalid content-pack manifest
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Pack identity, compatibility, dependencies, and policy must be known before definitions load.
+- Suggested fix: Correct pack.toml using the generated manifest schema.
+
+<a id="ps-pack-003"></a>
+
+### PS-PACK-003 — Missing or incompatible pack dependency
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Loading without a required compatible pack would leave unresolved content.
+- Suggested fix: Install a version matching the declared range or update the dependency declaration.
+
+<a id="ps-pack-004"></a>
+
+### PS-PACK-004 — Content-pack dependency cycle
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A deterministic load order cannot be produced from a dependency cycle.
+- Suggested fix: Remove one dependency edge and use explicit layered merge intent instead.
+
+<a id="ps-pack-005"></a>
+
+### PS-PACK-005 — Content-pack identity collision
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Two discovered packs cannot own the same stable pack identity.
+- Suggested fix: Assign one pack a distinct namespaced [pack].id.
+
+<a id="ps-pack-006"></a>
+
+### PS-PACK-006 — Definition merge conflict
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A collision without compatible explicit merge semantics would make load order ambiguous.
+- Suggested fix: Choose add, replace, merge, patch, or disable and satisfy that operation's preconditions.
+
+<a id="ps-pack-007"></a>
+
+### PS-PACK-007 — Pack dependency contradicts precedence
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A dependency cannot safely load first when its root tier or explicit priority says it must load later.
+- Suggested fix: Move the dependency to an equal/lower tier and priority, or raise the dependent pack's precedence.
+
+<a id="ps-pack-008"></a>
+
+### PS-PACK-008 — Definition id is shared across kinds
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Typed keys remain unambiguous, but identical ids across kinds make references and provenance harder to read.
+- Suggested fix: Give one definition a distinct path/id unless the shared spelling is deliberate.
+
+<a id="ps-reload-001"></a>
+
+### PS-RELOAD-001 — No validated reload is staged
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Publishing must use the exact snapshot that was reviewed during dry-run.
+- Suggested fix: Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.
+
+<a id="ps-reload-002"></a>
+
+### PS-RELOAD-002 — Staged reload is blocked
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A snapshot containing structural errors cannot replace the live last-known-good registry.
+- Suggested fix: Run /ps validate, correct every error, and stage again.
+
+<a id="ps-reload-003"></a>
+
+### PS-RELOAD-003 — Last-known-good recovery failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Neither current content nor a verified recovery bundle could produce a safe live snapshot.
+- Suggested fix: Restore a valid pack source or a complete world backup and validate again.
+
 <a id="ps-schema-001"></a>
 
 ### PS-SCHEMA-001 — Unsupported schema version
@@ -273,6 +447,15 @@ Allowlisted visual styling with no click actions, selectors, NBT, or URLs.
 - Why it matters: Icon kinds, references, fallbacks, and preview policy must form one bounded descriptor.
 - Suggested fix: Use a documented icon kind with the required namespaced references and fallback.
 
+<a id="ps-schema-007"></a>
+
+### PS-SCHEMA-007 — Definition schema is not available
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Accepting a definition before its typed compiler exists would create false validation claims.
+- Suggested fix: Use a definition kind implemented by this build or wait for its feature phase.
+
 <a id="ps-sec-001"></a>
 
 ### PS-SEC-001 — Unsafe presentation content
@@ -281,3 +464,21 @@ Allowlisted visual styling with no click actions, selectors, NBT, or URLs.
 - Suppressible: `false`
 - Why it matters: Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.
 - Suggested fix: Use the bounded ComponentSpec subset only.
+
+<a id="ps-toml-001"></a>
+
+### PS-TOML-001 — Malformed TOML source
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Invalid TOML cannot compile into deterministic canonical data.
+- Suggested fix: Correct the reported file and field using a TOML-aware editor.
+
+<a id="ps-toml-002"></a>
+
+### PS-TOML-002 — Content source exceeds a safety limit
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Unbounded file counts, nesting, or bytes can exhaust server resources during reload.
+- Suggested fix: Split or reduce the pack so it stays within the documented hard ceilings.

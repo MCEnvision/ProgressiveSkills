@@ -100,7 +100,7 @@ public final class StableId {
         return derived;
     }
 
-    static String requireNamespace(String namespace) {
+    public static String requireNamespace(String namespace) {
         Objects.requireNonNull(namespace, "namespace");
         if (namespace.isEmpty() || namespace.length() > MAX_NAMESPACE_LENGTH || namespace.equals(".") || namespace.equals("..")) {
             throw new IllegalArgumentException("Stable-id namespace length must be 1.." + MAX_NAMESPACE_LENGTH + ": " + namespace);

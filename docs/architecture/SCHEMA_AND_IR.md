@@ -1,20 +1,20 @@
 # Schema Registry and Canonical IR
 
-Status: Phase 2 foundation implemented. No gameplay or content-pack loading is included.
+Status: Phase 2 foundation implemented and consumed by the Phase 3 TOML pack compiler. No gameplay schemas are included.
 
 ## Boundary
 
 Phase 2 establishes the vocabulary that later authoring adapters compile into:
 
 ```text
-authoring source (Phase 3+)
+authoring source (Phase 3 TOML; later adapters follow)
   -> strict typed identity + field source map
   -> schema-guided compilation
   -> immutable CanonicalDefinition
   -> semanticProjection() without provenance
 ```
 
-TOML discovery/parsing, pack manifests, inheritance, merge/patch, staging/live publication, `/ps` commands, persistence, networking, and gameplay remain outside this phase. Concrete `Skill`, `Tree`, `Class`, and other gameplay records arrive with their feature phases; Phase 2 does not publish incomplete versions of them.
+The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 now supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Networking, player persistence, and gameplay remain outside this document; concrete `Skill`, `Tree`, `Class`, and other gameplay records arrive with their feature phases.
 
 ## Delivery boundary against plan §§33.4–33.5
 
@@ -26,11 +26,11 @@ Phase 2 supplies a data-only schema/IR foundation and two deterministic referenc
 | Bounded safe JSON Component subset | The IR record can represent only the foundation's non-interpreting component structure | A bounded JSON decoder/sanitizer, hover-text policy, and any allowlisted trusted server-generated interactions |
 | `SoundSpec`, `ParticleSpec`, and `VisibilitySpec` | Not implemented | Add their typed records, schemas, validation, projections, and consumers with the feature phases that first need them |
 | Locale fallback, plural/select, localized numbers, RTL metadata, and glyph/overflow checks | Locale key, required fallback, typed placeholder declarations, definition-level search aliases, and safe text bounds only | `PsLocaleResolver`, pack locale loading, bounded plural/select evaluation, locale fallback chains, missing/unused key checks, RTL handling, glyph checks, and layout overflow validation |
-| Generated parsers/codecs and validation constraints | Foundation records enforce local invariants; schema fields and declarative presentation relationships link to stable diagnostics | Generate executable parsers/codecs and constraint enforcement as the Phase 3 authoring compiler and later typed definitions arrive |
+| Generated parsers/codecs and validation constraints | Foundation records enforce local invariants; Phase 3 adds a strict hand-written TOML adapter for manifests/layers and the two shared definition kinds | Generate broader executable codecs/constraints alongside later typed definitions; other adapters remain deferred |
 | Reference documentation | Deterministic Markdown reference tables and diagnostic help are generated | Expand generated reference coverage alongside each concrete definition type |
 | Native encyclopedia and editor help | Machine-readable field descriptions, ordering, examples, and widget hints are generated | Native encyclopedia UI/search/reverse references and an editor/Studio consumer |
 | Studio fields/widgets | Widget metadata exists | Studio forms, validation UX, and editing workflows |
-| Command suggestions | Not implemented | Generate suggestions when `/ps` commands and typed registries exist |
+| Command suggestions | Phase 3 suggestions use the live kind/pack/definition registries | Generate richer field/value suggestions as concrete typed schemas arrive |
 | TOML/JSON editor schemas and snippets | Not implemented; the editor catalog is not a TOML schema, JSON Schema, or snippet bundle | Generate format-specific schemas/snippets from the registry after adapter grammar is fixed |
 | Diff/default behavior | Diff policy and default-elision metadata exist | Executable semantic diff/default-elision engine |
 | Client projection/redaction | Per-field projection policy metadata exists | Sanitized projection construction, redaction enforcement, networking, and secrecy tests |
@@ -58,18 +58,18 @@ Replacement aliases are same-kind, direct old-to-terminal mappings. Self aliases
 
 ## Phase 3 compiler normalization contract
 
-Phase 2 validates and stores the target data shapes; it does not parse TOML/JSON/builder input and does not claim parity between raw adapter objects. Phase 3 owns a single normalization step before a definition enters canonical IR. Every authoring adapter must:
+Phase 2 validates and stores the target data shapes. Phase 3 now parses TOML for manifests, layers, components, and icons and owns the single normalization step before a supported definition enters canonical IR. Future JSON/builder adapters must follow the same contract:
 
 - normalize syntax-specific component maps, defaults, escaping, and allowed `&` shorthand into one canonical `ComponentSpec` representation before semantic comparison; conversion to vanilla text/style objects remains a later trusted-boundary operation;
 - translate icon authoring fields such as `type`, `value`, `values`, `fallback`, `alt`, `narration`, and entity-preview opt-in into the tagged `IconSpec` reference model, including the documented alt/narration default;
 - derive stable identity from the source path and compare an optional authored `id` with that result; and
 - emit the same typed canonical fields for equivalent TOML, future JSON, and builder fixtures, while retaining adapter-specific provenance and source spans separately.
 
-Adapter parity is accepted only when Phase 3 tests prove equal semantic projections (and later equal semantic digests) after provenance/source maps are excluded. Raw parsed maps, source text, and sourced records are neither expected nor claimed to be equal in Phase 2.
+The TOML fixtures prove that source comments and field order do not alter semantic digests while source digests still detect review-time changes. Cross-adapter parity remains deferred until a second adapter exists; it will compare semantic projections/digests after provenance and source maps are excluded.
 
 ## Immutable canonical values
 
-The generic envelope accepts only the closed `CanonicalValue` vocabulary: booleans, checked integers, normalized decimals, bounded text, strict IDs, typed references, safe components/icons, bounded lists, and deterministically ordered objects. Collections are defensively copied and exposed through unmodifiable views. Definition-level depth, node, and aggregate text-cost limits prevent repeated bounded values from creating an effectively unbounded canonical payload. Phase 3 adds source/envelope byte and pack-wide quotas before decoding.
+The generic envelope accepts only the closed `CanonicalValue` vocabulary: booleans, checked integers, normalized decimals, bounded text, strict IDs, typed references, safe components/icons, bounded lists, and deterministically ordered objects. Collections are defensively copied and exposed through unmodifiable views. Definition-level depth, node, and aggregate text-cost limits prevent repeated bounded values from creating an effectively unbounded canonical payload. Phase 3 adds source/envelope byte and pack-wide quotas before decoding; see [CONTENT_PACKS.md](CONTENT_PACKS.md).
 
 This envelope is the shared foundation, not a substitute for concrete typed gameplay records. A feature phase registers its schema and compiler, then emits its typed definition and/or canonical values through the same immutable header/provenance contract.
 

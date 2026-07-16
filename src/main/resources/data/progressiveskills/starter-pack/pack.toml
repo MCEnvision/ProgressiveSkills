@@ -1,0 +1,28 @@
+schema_version = 2
+
+[pack]
+id = "progressiveskills:core"
+namespace = "progressiveskills"
+name = { key = "pack.progressiveskills.core", fallback = "ProgressiveSkills Core" }
+description = "Dependency-free starter content for the ProgressiveSkills engine."
+content_version = "1.0.0"
+engine = ">=1.0.0 <2.0.0"
+authors = ["ProgressiveSkills"]
+license = "All-Rights-Reserved"
+priority = 0
+default_locale = "en_us"
+
+[dependencies]
+required_packs = []
+optional_packs = []
+required_mods = []
+optional_mods = []
+incompatible_mods = []
+
+[policies]
+missing_required = "reject_pack"
+missing_optional = "skip_declared_branch"
+unknown_field = "error"
+duplicate_id = "error"
+merge_conflict = "error"
+secret_projection = "redact"

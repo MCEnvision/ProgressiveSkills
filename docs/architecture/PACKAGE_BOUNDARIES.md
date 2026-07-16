@@ -1,6 +1,6 @@
 # Package Boundary Policy
 
-Status: locked through Phase 2.
+Status: locked through Phase 3.
 
 The canonical root package is `com.envisione.progressiveskills`.
 
@@ -25,6 +25,6 @@ The canonical root package is `com.envisione.progressiveskills`.
 
 The JUnit architecture suite checks bytecode dependencies without initializing the inspected classes. Dedicated-server and client smoke runs then verify actual classloading on both physical sides.
 
-Phase 2 further locks `common.id`, `common.source`, `common.ir`, `common.presentation`, `common.schema`, and `common.diagnostic` away from client/server classes, registries/holders, NBT, network protocol/chat types, NeoForge runtime types, vanilla Components, ItemStacks, entities, worlds, and levels. These packages store data-only descriptors and unresolved `ResourceLocation`s. Registry lookup and rendering occur at later injected boundaries.
+The canonical foundation rule locks `common.id`, `common.source`, `common.ir`, `common.presentation`, `common.schema`, `common.diagnostic`, and Phase 3's `common.pack` compiler/persistence model away from client/server classes, registries/holders, NBT, network protocol/chat types, NeoForge runtime types, vanilla Components, ItemStacks, entities, worlds, and levels. These packages store data-only descriptors and unresolved `ResourceLocation`s. Filesystem/runtime lifecycle wiring and commands live under `server`.
 
 When an optional adapter is introduced, its common-facing factory must check mod ID and supported version before the implementation class is loaded. Reflection does not excuse leaking foreign types into shared signatures.

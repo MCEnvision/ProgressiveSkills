@@ -1,0 +1,6 @@
+schema_version = 2
+
+[component_spec]
+id = "progressiveskills:engine_name"
+key = "text.progressiveskills.engine_name"
+fallback = "ProgressiveSkills"

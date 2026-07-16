@@ -2,6 +2,7 @@ package com.envisione.progressiveskills.common.schema;
 
 /** Canonical authoring/IR value shapes understood by schema metadata. */
 public enum SchemaValueType {
+    ANY("any"),
     BOOLEAN("boolean"),
     INTEGER("integer"),
     DECIMAL("decimal"),

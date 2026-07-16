@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(7, ids.size());
+        assertEquals(10, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(
@@ -80,6 +80,25 @@ class SchemaRegistryTest {
         );
         assertTrue(canonicalFields.get("provenance").required());
         assertTrue(canonicalFields.get("source_map").required());
+        var manifest = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "pack_manifest"));
+        assertTrue(manifest.fields().stream().anyMatch(field -> field.path().equals("pack.engine")));
+        var manifestPaths = manifest.fields().stream().map(FieldDescriptor::path).collect(Collectors.toSet());
+        assertTrue(manifestPaths.containsAll(List.of(
+                "pack.default_theme", "pack.default_layout", "pack.homepage", "pack.source",
+                "pack.description", "pack.changelog_url", "pack.feature_flags",
+                "pack.exported_asset_pack_id", "pack.trusted_scripts"
+        )));
+        assertEquals(
+                List.of("error"),
+                manifest.fields().stream().filter(field -> field.path().equals("policies.unknown_field"))
+                        .findFirst().orElseThrow().allowedValues()
+        );
+        var layer = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "definition_layer"));
+        assertEquals(
+                List.of("add", "replace", "merge", "patch", "disable"),
+                layer.fields().stream().filter(field -> field.path().equals("merge_intent"))
+                        .findFirst().orElseThrow().allowedValues()
+        );
     }
 
     @Test

@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-/** Immutable Phase 2 IR snapshot; staging and live publication arrive in Phase 3. */
+/** Immutable canonical IR snapshot consumed by Phase 3 staging and live publication. */
 public final class CanonicalIr {
     private final Map<DefinitionKey, CanonicalDefinition> definitions;
     private final AliasMap aliases;

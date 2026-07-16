@@ -22,6 +22,7 @@ class ArchitectureBoundaryTest {
     private static final String PRESENTATION_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.presentation..";
     private static final String SCHEMA_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.schema..";
     private static final String DIAGNOSTIC_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.diagnostic..";
+    private static final String PACK_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.pack..";
 
     private static JavaClasses productionClasses;
 
@@ -149,7 +150,8 @@ class ArchitectureBoundaryTest {
                         IR_PACKAGE,
                         PRESENTATION_PACKAGE,
                         SCHEMA_PACKAGE,
-                        DIAGNOSTIC_PACKAGE
+                        DIAGNOSTIC_PACKAGE,
+                        PACK_PACKAGE
                 )
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "net.minecraft.client..",
