@@ -57,7 +57,7 @@ Verified 2026-07-16 at 01:07 CDT on Linux `6.12.63+deb13-amd64` x86-64. Gradle a
 | NeoForge GameTest | local pass | 1 required bootstrap test passed; success marker independently verified |
 | Dedicated server | local pass | Production-only server reached ready state without optional mods |
 | Client | local pass | Production-only client reached the title screen with common/client/title-screen markers |
-| Release JAR | local pass | 161,607 bytes; test-output intersection empty; SHA-256 `98d68b3472ccdfbf7f6f77983d5a4ede3e9d14c06fb12f4b05d6ff1f86b96cf1` |
+| Release JAR | local pass | 161,650 bytes; test-output intersection empty; SHA-256 `f25e7027231c566173a2a4f0efca248b114495f18ad1796f07848370d73030d3` |
 | Runtime logs | local pass | Current GameTest, dedicated-server, and client logs contain no error, fatal, exception, or crash entries |
 | GitHub Actions | remote pass | Branch [run 29476549095](https://github.com/EnVisione/ProgressiveSkills/actions/runs/29476549095) and pull-request [run 29476550889](https://github.com/EnVisione/ProgressiveSkills/actions/runs/29476550889) passed the complete foundation workflow for commit `3fbbe2ea29dcd4363db5155066a3cbefcfa402ca` |
 
