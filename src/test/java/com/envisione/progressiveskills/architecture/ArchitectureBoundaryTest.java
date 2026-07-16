@@ -16,6 +16,12 @@ class ArchitectureBoundaryTest {
     private static final String CLIENT_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".client..";
     private static final String COMPAT_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".compat..";
     private static final String MIXIN_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".mixin..";
+    private static final String ID_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.id..";
+    private static final String SOURCE_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.source..";
+    private static final String IR_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.ir..";
+    private static final String PRESENTATION_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.presentation..";
+    private static final String SCHEMA_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.schema..";
+    private static final String DIAGNOSTIC_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.diagnostic..";
 
     private static JavaClasses productionClasses;
 
@@ -131,6 +137,33 @@ class ArchitectureBoundaryTest {
                         "com.klikli_dev.modonomicon.."
                 )
                 .because("optional integrations must not break base-mod classloading when absent")
+                .check(productionClasses);
+    }
+
+    @Test
+    void canonicalFoundationDoesNotCaptureRuntimeOrMutablePresentationTypes() {
+        noClasses()
+                .that().resideInAnyPackage(
+                        ID_PACKAGE,
+                        SOURCE_PACKAGE,
+                        IR_PACKAGE,
+                        PRESENTATION_PACKAGE,
+                        SCHEMA_PACKAGE,
+                        DIAGNOSTIC_PACKAGE
+                )
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "net.minecraft.client..",
+                        "net.minecraft.core..",
+                        "net.minecraft.nbt..",
+                        "net.minecraft.network.chat..",
+                        "net.minecraft.network.protocol..",
+                        "net.minecraft.server..",
+                        "net.minecraft.world.entity..",
+                        "net.minecraft.world.item..",
+                        "net.minecraft.world.level..",
+                        "net.neoforged.."
+                )
+                .because("schema compilation and canonical IR must remain data-only and physical-side-neutral")
                 .check(productionClasses);
     }
 }

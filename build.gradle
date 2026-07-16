@@ -82,6 +82,91 @@ abstract class VerifyTextFileContains extends DefaultTask {
     }
 }
 
+abstract class VerifyTextFileExcludes extends DefaultTask {
+    @InputFile
+    @PathSensitive(PathSensitivity.NONE)
+    abstract RegularFileProperty getTextFile()
+
+    @Input
+    abstract Property<String> getForbiddenPattern()
+
+    @TaskAction
+    void verifyText() {
+        def contents = textFile.get().asFile.getText('UTF-8')
+        if (java.util.regex.Pattern.compile(forbiddenPattern.get()).matcher(contents).find()) {
+            throw new GradleException(
+                    "${textFile.get().asFile} contains a forbidden runtime error marker"
+            )
+        }
+    }
+}
+
+abstract class VerifyPropertyTestResults extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getResultFiles()
+
+    @Input
+    abstract Property<Integer> getMinimumTries()
+
+    @TaskAction
+    void verifyResults() {
+        int tries = 0
+        def pattern = java.util.regex.Pattern.compile('(?m)^tries =\\s+([0-9]+)')
+        resultFiles.files.each { resultFile ->
+            def matcher = pattern.matcher(resultFile.getText('UTF-8'))
+            while (matcher.find()) {
+                tries += Integer.parseInt(matcher.group(1))
+            }
+        }
+        if (tries < minimumTries.get()) {
+            throw new GradleException(
+                    "Property-test discovery produced ${tries} tries; expected at least ${minimumTries.get()}"
+            )
+        }
+    }
+}
+
+abstract class VerifyMatchingDirectory extends DefaultTask {
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract DirectoryProperty getExpectedDirectory()
+
+    @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract DirectoryProperty getActualDirectory()
+
+    @TaskAction
+    void verifyDirectoriesMatch() {
+        def expectedRoot = expectedDirectory.get().asFile.toPath()
+        def actualRoot = actualDirectory.get().asFile.toPath()
+        def relativeFiles = { root ->
+            def result = []
+            java.nio.file.Files.walk(root).withCloseable { paths ->
+                paths.filter { java.nio.file.Files.isRegularFile(it) }
+                        .forEach { result.add(root.relativize(it).toString().replace('\\', '/')) }
+            }
+            result.sort()
+        }
+        def expectedFiles = relativeFiles(expectedRoot)
+        def actualFiles = relativeFiles(actualRoot)
+        if (expectedFiles != actualFiles) {
+            throw new GradleException(
+                    "Generated schema artifact files differ. Expected ${expectedFiles}, generated ${actualFiles}"
+            )
+        }
+        expectedFiles.each { relativePath ->
+            def expected = expectedRoot.resolve(relativePath)
+            def actual = actualRoot.resolve(relativePath)
+            if (java.nio.file.Files.mismatch(expected, actual) != -1L) {
+                throw new GradleException(
+                        "${relativePath} is stale; run ./gradlew generateSchemaArtifacts and commit the result"
+                )
+            }
+        }
+    }
+}
+
 def generateGameTestStructures = tasks.register('generateGameTestStructures', DecodeBase64File) {
     encodedFile = layout.projectDirectory.file('src/gameTestFixtures/empty.nbt.b64')
     decodedFile = layout.buildDirectory.file("generated/gameTestResources/data/${mod_id}/structure/empty.nbt")
@@ -228,7 +313,7 @@ tasks.withType(Test).configureEach {
     }
     afterSuite { descriptor, result ->
         if (descriptor.parent == null && result.testCount == 0) {
-            throw new GradleException("${path} did not discover any tests")
+            throw new GradleException('The configured test task did not discover any tests')
         }
     }
 }
@@ -240,24 +325,84 @@ tasks.named('test').configure {
     dependsOn(verifyTestHarnessSources)
 }
 
+def verifyPropertyTestResults = tasks.register('verifyPropertyTestResults', VerifyPropertyTestResults) {
+    dependsOn(tasks.named('test'))
+    resultFiles.from(
+            layout.buildDirectory.file(
+                    'test-results/test/TEST-com.envisione.progressiveskills.PropertyHarnessTest.xml'
+            ),
+            layout.buildDirectory.file(
+                    'test-results/test/TEST-com.envisione.progressiveskills.common.id.StableIdPropertyTest.xml'
+            )
+    )
+    minimumTries = 750
+}
+tasks.named('check').configure {
+    dependsOn(verifyPropertyTestResults)
+}
+
 def gameTestLog = layout.projectDirectory.file('run/gameTestServer/logs/latest.log')
 def cleanGameTestLog = tasks.register('cleanGameTestLog', Delete) {
     delete(gameTestLog)
 }
 def verifyGameTestResults = tasks.register('verifyGameTestResults', VerifyTextFileContains) {
     textFile = gameTestLog
-    requiredText = 'required tests passed :)'
+    requiredText = 'All 1 required tests passed :)'
+}
+def verifyGameTestLogClean = tasks.register('verifyGameTestLogClean', VerifyTextFileExcludes) {
+    textFile = gameTestLog
+    forbiddenPattern = '(?i)/(?:error|fatal)\\]|exception|crash report'
 }
 tasks.named('runGameTestServer').configure {
     dependsOn(cleanGameTestLog)
-    finalizedBy(verifyGameTestResults)
+    finalizedBy(verifyGameTestResults, verifyGameTestLogClean)
 }
 verifyGameTestResults.configure {
+    mustRunAfter(tasks.named('runGameTestServer'))
+}
+verifyGameTestLogClean.configure {
     mustRunAfter(tasks.named('runGameTestServer'))
 }
 
 tasks.named('check').configure {
     dependsOn(tasks.named('gameTestClasses'))
+}
+
+def checkedSchemaArtifacts = layout.projectDirectory.dir('docs/reference')
+def generatedSchemaArtifacts = layout.buildDirectory.dir('generated/schema-artifacts')
+
+tasks.register('generateSchemaArtifacts', JavaExec) {
+    group = 'documentation'
+    description = 'Regenerates checked-in schema reference and editor metadata.'
+    dependsOn(tasks.named('classes'))
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.envisione.progressiveskills.common.schema.render.SchemaArtifactGenerator'
+    workingDir(layout.buildDirectory.get().asFile)
+    args(checkedSchemaArtifacts.asFile.absolutePath)
+    doNotTrackState('This explicit maintenance task rewrites checked-in documentation artifacts.')
+}
+
+def cleanGeneratedSchemaArtifacts = tasks.register('cleanGeneratedSchemaArtifacts', Delete) {
+    delete(generatedSchemaArtifacts)
+}
+
+def generateSchemaArtifactsForVerification = tasks.register('generateSchemaArtifactsForVerification', JavaExec) {
+    dependsOn(tasks.named('classes'), cleanGeneratedSchemaArtifacts)
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.envisione.progressiveskills.common.schema.render.SchemaArtifactGenerator'
+    workingDir(layout.buildDirectory.get().asFile)
+    args(generatedSchemaArtifacts.get().asFile.absolutePath)
+    outputs.dir(generatedSchemaArtifacts)
+}
+
+def verifySchemaArtifacts = tasks.register('verifySchemaArtifacts', VerifyMatchingDirectory) {
+    dependsOn(generateSchemaArtifactsForVerification)
+    expectedDirectory = checkedSchemaArtifacts
+    actualDirectory = generatedSchemaArtifacts
+}
+
+tasks.named('check').configure {
+    dependsOn(verifySchemaArtifacts)
 }
 
 tasks.withType(AbstractArchiveTask).configureEach {

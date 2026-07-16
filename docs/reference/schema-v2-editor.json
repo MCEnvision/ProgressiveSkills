@@ -1,0 +1,1025 @@
+{
+  "catalog_format_version": 1,
+  "schema_version": 2,
+  "definition_kinds": [
+    {
+      "id": "progressiveskills:ability",
+      "source_directory": "abilities"
+    },
+    {
+      "id": "progressiveskills:anti_exploit_profile",
+      "source_directory": "anti_exploit_profiles"
+    },
+    {
+      "id": "progressiveskills:category",
+      "source_directory": "categories"
+    },
+    {
+      "id": "progressiveskills:challenge",
+      "source_directory": "challenges"
+    },
+    {
+      "id": "progressiveskills:class",
+      "source_directory": "classes"
+    },
+    {
+      "id": "progressiveskills:class_slot",
+      "source_directory": "class_slots"
+    },
+    {
+      "id": "progressiveskills:component_spec",
+      "source_directory": "component_specs"
+    },
+    {
+      "id": "progressiveskills:conversion",
+      "source_directory": "conversions"
+    },
+    {
+      "id": "progressiveskills:cost_bundle",
+      "source_directory": "cost_bundles"
+    },
+    {
+      "id": "progressiveskills:currency",
+      "source_directory": "currencies"
+    },
+    {
+      "id": "progressiveskills:curve",
+      "source_directory": "curves"
+    },
+    {
+      "id": "progressiveskills:global_level",
+      "source_directory": "global_levels"
+    },
+    {
+      "id": "progressiveskills:grant_bundle",
+      "source_directory": "grant_bundles"
+    },
+    {
+      "id": "progressiveskills:icon_spec",
+      "source_directory": "icon_specs"
+    },
+    {
+      "id": "progressiveskills:item",
+      "source_directory": "items"
+    },
+    {
+      "id": "progressiveskills:item_stack_spec",
+      "source_directory": "item_stack_specs"
+    },
+    {
+      "id": "progressiveskills:layout",
+      "source_directory": "layouts"
+    },
+    {
+      "id": "progressiveskills:notification_profile",
+      "source_directory": "notification_profiles"
+    },
+    {
+      "id": "progressiveskills:predicate",
+      "source_directory": "predicates"
+    },
+    {
+      "id": "progressiveskills:prestige",
+      "source_directory": "prestige"
+    },
+    {
+      "id": "progressiveskills:profile",
+      "source_directory": "profiles"
+    },
+    {
+      "id": "progressiveskills:requirement",
+      "source_directory": "requirements"
+    },
+    {
+      "id": "progressiveskills:resource",
+      "source_directory": "resources"
+    },
+    {
+      "id": "progressiveskills:rule",
+      "source_directory": "rules"
+    },
+    {
+      "id": "progressiveskills:season",
+      "source_directory": "seasons"
+    },
+    {
+      "id": "progressiveskills:skill",
+      "source_directory": "skills"
+    },
+    {
+      "id": "progressiveskills:station",
+      "source_directory": "stations"
+    },
+    {
+      "id": "progressiveskills:targeting_profile",
+      "source_directory": "targeting_profiles"
+    },
+    {
+      "id": "progressiveskills:template",
+      "source_directory": "templates"
+    },
+    {
+      "id": "progressiveskills:theme",
+      "source_directory": "themes"
+    },
+    {
+      "id": "progressiveskills:tree",
+      "source_directory": "trees"
+    },
+    {
+      "id": "progressiveskills:variable",
+      "source_directory": "variables"
+    }
+  ],
+  "schemas": [
+    {
+      "id": "progressiveskills:alias",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Definition alias",
+      "description": "A same-kind old identity mapped to one canonical replacement identity.",
+      "fields": [
+        {
+          "path": "kind",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition kind shared by the old and replacement identities.",
+          "example": "progressiveskills:skill",
+          "diagnostic": "PS-ID-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Definition kind shared by the old and replacement identities."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "new_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Canonical replacement identity.",
+          "example": "mypack:combat/physique",
+          "diagnostic": "PS-ID-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Canonical replacement identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "old_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Retired identity retained for migration and reference resolution.",
+          "example": "mypack:combat/strength",
+          "diagnostic": "PS-ID-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 20,
+            "help": "Retired identity retained for migration and reference resolution."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:canonical_definition",
+      "version": 2,
+      "audience": "internal",
+      "title": "Canonical definition envelope",
+      "description": "Immutable typed semantic fields paired with source maps and provenance.",
+      "fields": [
+        {
+          "path": "fields",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Deterministically ordered typed canonical values.",
+          "example": "{ max_level = 100 }",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Deterministically ordered typed canonical values."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "header",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Schema version, typed stable key, and safe presentation.",
+          "example": "{ schema_version = 2, id = \"mypack:physique\" }",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Schema version, typed stable key, and safe presentation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "provenance",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Adapter and source metadata excluded from semantic projection.",
+          "example": "{ adapter = \"toml\" }",
+          "diagnostic": "PS-SCHEMA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Adapter and source metadata excluded from semantic projection."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "source_map",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Field path to source-span mapping excluded from semantic projection.",
+          "example": "{ max_level = { source = \"skills/physique.toml\" } }",
+          "diagnostic": "PS-SCHEMA-004",
+          "editor": {
+            "widget": "key_value",
+            "group": "core",
+            "order": 40,
+            "help": "Field path to source-span mapping excluded from semantic projection."
+          },
+          "projection": "server_only",
+          "diff": "merge_by_key",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:component_spec",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Component specification",
+      "description": "Safe localized text descriptor stored in IR instead of a mutable vanilla Component.",
+      "fields": [
+        {
+          "path": "children",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded child component specifications rendered in order.",
+          "example": "[{ fallback = \"!\", style = { color = \"gold\" } }]",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 50,
+            "help": "Bounded child component specifications rendered in order."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": true
+        },
+        {
+          "path": "fallback",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded text used when a locale key cannot be resolved.",
+          "example": "Physique",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "multi_line",
+            "group": "core",
+            "order": 20,
+            "help": "Bounded text used when a locale key cannot be resolved."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "key",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pack locale key; omission creates a literal safe component.",
+          "example": "skill.mypack.physique",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 10,
+            "help": "Pack locale key; omission creates a literal safe component."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "placeholders",
+          "type": "map",
+          "required": false,
+          "allowed_values": [],
+          "default": {},
+          "description": "Stable placeholder names mapped to declared value types.",
+          "example": "{ level = \"integer\", skill = \"component\" }",
+          "diagnostic": "PS-I18N-002",
+          "editor": {
+            "widget": "key_value",
+            "group": "core",
+            "order": 30,
+            "help": "Stable placeholder names mapped to declared value types."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "style",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": {},
+          "description": "Allowlisted, non-interpreting text style.",
+          "example": "{ color = \"red\", bold = true }",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Allowlisted, non-interpreting text style."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:definition_header",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Definition header",
+      "description": "Versioned identity and presentation fields shared by every definition.",
+      "fields": [
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized long-form description.",
+          "example": "{ key = \"skill.mypack.physique.desc\", fallback = \"Raw power.\" }",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 40,
+            "help": "Localized long-form description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized player-facing display name.",
+          "example": "{ key = \"skill.mypack.physique\", fallback = \"Physique\" }",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized player-facing display name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed icon descriptor with required fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:iron_chestplate\", fallback = \"minecraft:barrier\", alt = \"Iron chestplate\" }",
+          "diagnostic": "PS-A11Y-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 50,
+            "help": "Typed icon descriptor with required fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable typed identity; when written explicitly it must match the source-derived id.",
+          "example": "mypack:combat/physique",
+          "diagnostic": "PS-ID-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 20,
+            "help": "Stable typed identity; when written explicitly it must match the source-derived id."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "schema_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": ["2"],
+          "default": null,
+          "description": "Authoring schema version compiled into the canonical IR.",
+          "example": "2",
+          "diagnostic": "PS-SCHEMA-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 10,
+            "help": "Authoring schema version compiled into the canonical IR."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded, normalized alternate terms used by presentation search.",
+          "example": "[\"Strength\", \"Might\"]",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 60,
+            "help": "Bounded, normalized alternate terms used by presentation search."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+        {
+          "type": "required_together",
+          "trigger": null,
+          "fields": ["display", "icon"],
+          "diagnostic": "PS-I18N-001",
+          "description": "Display and icon are either both present or both omitted."
+        },
+        {
+          "type": "requires",
+          "trigger": "description",
+          "fields": ["display", "icon"],
+          "diagnostic": "PS-I18N-001",
+          "description": "A description is presentation metadata and requires display plus icon."
+        },
+        {
+          "type": "requires",
+          "trigger": "search_aliases",
+          "fields": ["display", "icon"],
+          "diagnostic": "PS-I18N-001",
+          "description": "Non-default search aliases require display plus icon."
+        }
+      ]
+    },
+    {
+      "id": "progressiveskills:icon_spec",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Icon specification",
+      "description": "Registry-neutral visual descriptor resolved only at a later presentation boundary.",
+      "fields": [
+        {
+          "path": "alt",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required narration and nonvisual equivalent.",
+          "example": "Iron chestplate",
+          "diagnostic": "PS-A11Y-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 40,
+            "help": "Required narration and nonvisual equivalent."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "entity_preview_opt_in",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Explicitly permits an entity preview descriptor.",
+          "example": "false",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 60,
+            "help": "Explicitly permits an entity preview descriptor."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "fallback",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Safe fallback reference used when the preferred icon cannot resolve.",
+          "example": "minecraft:barrier",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Safe fallback reference used when the preferred icon cannot resolve."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "narration",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": {"$field": "alt"},
+          "description": "Optional narration text; defaults to the alt component.",
+          "example": "Physique skill icon",
+          "diagnostic": "PS-A11Y-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 50,
+            "help": "Optional narration text; defaults to the alt component."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["item", "block", "texture", "atlas_sprite", "player_head", "entity_preview", "cycling_tag", "composite_badge"],
+          "default": null,
+          "description": "Tagged icon descriptor kind.",
+          "example": "item",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 10,
+            "help": "Tagged icon descriptor kind."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "value",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Single namespaced registry, texture, tag, or typed pack-spec identity.",
+          "example": "minecraft:iron_chestplate",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 20,
+            "help": "Single namespaced registry, texture, tag, or typed pack-spec identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "values",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ordered layer references used only by composite badges.",
+          "example": "[\"mypack:base\", \"mypack:badge\"]",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 25,
+            "help": "Ordered layer references used only by composite badges."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+        {
+          "type": "exactly_one",
+          "trigger": null,
+          "fields": ["value", "values"],
+          "diagnostic": "PS-SCHEMA-006",
+          "description": "Use value for a single/tag identity or values for composite badge layers."
+        }
+      ]
+    },
+    {
+      "id": "progressiveskills:source_span",
+      "version": 2,
+      "audience": "internal",
+      "title": "Source span",
+      "description": "Normalized field provenance kept outside semantic equality and future digests.",
+      "fields": [
+        {
+          "path": "end",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exclusive one-based ending position.",
+          "example": "{ line = 4, column = 8 }",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Exclusive one-based ending position."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "source",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "POSIX relative source identifier without a host path.",
+          "example": "skills/combat/physique.toml",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "POSIX relative source identifier without a host path."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "start",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Inclusive one-based starting position.",
+          "example": "{ line = 4, column = 1 }",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Inclusive one-based starting position."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:style_spec",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Safe style specification",
+      "description": "Allowlisted visual styling with no click actions, selectors, NBT, or URLs.",
+      "fields": [
+        {
+          "path": "bold",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Render text with bold emphasis.",
+          "example": "true",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 20,
+            "help": "Render text with bold emphasis."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "color",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Named vanilla color or six-digit RGB color.",
+          "example": "red",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 10,
+            "help": "Named vanilla color or six-digit RGB color."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "font",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional namespaced font reference.",
+          "example": "minecraft:default",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 70,
+            "help": "Optional namespaced font reference."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "italic",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Render text with italic emphasis.",
+          "example": "false",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 30,
+            "help": "Render text with italic emphasis."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "obfuscated",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Render text with vanilla obfuscation.",
+          "example": "false",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 60,
+            "help": "Render text with vanilla obfuscation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "strikethrough",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Render text with a strike line.",
+          "example": "false",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 50,
+            "help": "Render text with a strike line."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "underlined",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Render text with an underline.",
+          "example": "false",
+          "diagnostic": "PS-SEC-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 40,
+            "help": "Render text with an underline."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "PS-A11Y-001",
+      "severity": "error",
+      "title": "Missing icon alternative text",
+      "why": "Icons require a textual equivalent for narration and nonvisual use.",
+      "fix": "Add a short, meaningful alt component.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-a11y-001",
+      "suppressible": true
+    },
+    {
+      "code": "PS-I18N-001",
+      "severity": "error",
+      "title": "Invalid component specification",
+      "why": "Unbounded or malformed presentation data is unsafe to render or synchronize.",
+      "fix": "Provide a bounded localization key and fallback text.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-i18n-001",
+      "suppressible": true
+    },
+    {
+      "code": "PS-I18N-002",
+      "severity": "error",
+      "title": "Invalid component placeholder",
+      "why": "Placeholder names and types must agree across locales and call sites.",
+      "fix": "Declare each placeholder once with its canonical type.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-i18n-002",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ID-001",
+      "severity": "error",
+      "title": "Invalid stable identity",
+      "why": "Persistence and references require an explicit, normalized namespaced id.",
+      "fix": "Use a lowercase namespace:path id derived from the definition path.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-id-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-ID-002",
+      "severity": "error",
+      "title": "Explicit id does not match its source path",
+      "why": "A mismatch makes file renames and persisted identity ambiguous.",
+      "fix": "Remove the explicit id or make it equal the path-derived id.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-id-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-ID-003",
+      "severity": "error",
+      "title": "Invalid identity alias",
+      "why": "Ambiguous, cyclic, or cross-kind aliases can corrupt reference migration.",
+      "fix": "Use one acyclic same-kind old-id to new-id mapping.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-id-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-001",
+      "severity": "error",
+      "title": "Unsupported schema version",
+      "why": "Definitions must compile through a known, versioned contract.",
+      "fix": "Use schema_version = 2 or run an available migration.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-002",
+      "severity": "error",
+      "title": "Unknown schema field",
+      "why": "Misspelled or future fields cannot be interpreted deterministically.",
+      "fix": "Use a documented field name for this schema version.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-003",
+      "severity": "error",
+      "title": "Duplicate schema registration",
+      "why": "Two owners cannot define the same schema identity safely.",
+      "fix": "Keep one registration or assign a distinct namespaced id.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-004",
+      "severity": "error",
+      "title": "Invalid source span",
+      "why": "Diagnostics and provenance must point to a valid bounded source range.",
+      "fix": "Use a normalized relative source and a valid half-open line/column range.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-005",
+      "severity": "error",
+      "title": "Invalid canonical value",
+      "why": "Canonical IR accepts only bounded typed values and immutable collections.",
+      "fix": "Compile the field to its declared canonical value shape.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SCHEMA-006",
+      "severity": "error",
+      "title": "Invalid icon specification",
+      "why": "Icon kinds, references, fallbacks, and preview policy must form one bounded descriptor.",
+      "fix": "Use a documented icon kind with the required namespaced references and fallback.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-schema-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SEC-001",
+      "severity": "error",
+      "title": "Unsafe presentation content",
+      "why": "Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.",
+      "fix": "Use the bounded ComponentSpec subset only.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-sec-001",
+      "suppressible": false
+    }
+  ]
+}

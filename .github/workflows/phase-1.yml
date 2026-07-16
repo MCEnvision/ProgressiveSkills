@@ -1,4 +1,4 @@
-name: Phase 1 Verification
+name: Foundation Verification
 
 on:
   push:
@@ -34,6 +34,9 @@ jobs:
       - name: Build and run unit/property/architecture tests
         run: ./gradlew --no-daemon --stacktrace clean build
 
+      - name: Verify generated schema reference and editor metadata
+        run: ./gradlew --no-daemon --stacktrace verifySchemaArtifacts
+
       - name: Run NeoForge GameTests
         run: ./gradlew --no-daemon --stacktrace runGameTestServer
 
@@ -50,7 +53,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase-1-evidence
+          name: foundation-evidence
           if-no-files-found: warn
           path: |
             build/libs/*.jar

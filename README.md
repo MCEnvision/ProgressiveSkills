@@ -1,6 +1,6 @@
 # ProgressiveSkills
 
-ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. Phase 1 of the master plan is implemented and verified locally: a reproducible, side-safe, tested foundation with no hardcoded gameplay content. The first remote CI run remains the merge gate.
+ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. Phases 1 and 2 of the master plan provide a reproducible, side-safe foundation plus the versioned schema registry and immutable canonical IR. Gameplay content is intentionally not implemented yet.
 
 ## Locked baseline
 
@@ -19,6 +19,7 @@ ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on Ne
 
 ```text
 ./gradlew clean build
+./gradlew verifySchemaArtifacts
 ./gradlew runGameTestServer
 bash .ci/smoke-server.sh
 bash .ci/smoke-client.sh
@@ -27,6 +28,6 @@ bash .ci/smoke-client.sh
 
 The client smoke requires `xvfb-run` on headless Linux. Test reports are written below `build/reports/`; runtime logs are isolated below `run/<configuration>/logs/`.
 
-See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and testing, [the package boundary policy](docs/architecture/PACKAGE_BOUNDARIES.md), [the compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), [PERF-001](docs/performance/PERF-001.md), and [Phase 1 evidence](docs/verification/PHASE-1.md).
+See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and testing, [the schema/IR architecture](docs/architecture/SCHEMA_AND_IR.md), [the generated schema reference](docs/reference/SCHEMA-V2.md), [the package boundary policy](docs/architecture/PACKAGE_BOUNDARIES.md), [the compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), [PERF-001](docs/performance/PERF-001.md), and the [Phase 1](docs/verification/PHASE-1.md) and [Phase 2](docs/verification/PHASE-2.md) evidence records.
 
-Phase 2 will introduce the schema registry and immutable canonical IR. Gameplay, packs, persistence, and networking intentionally do not begin in this scaffold milestone.
+Phase 3 will introduce content-pack manifests, deterministic load roots/precedence, staging, validation, semantic diffs, and dry-run reloads. Gameplay, persistence, and networking remain deferred to their planned phases.

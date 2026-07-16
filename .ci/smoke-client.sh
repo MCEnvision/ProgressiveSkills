@@ -31,8 +31,14 @@ trap stop_process_group EXIT
 deadline=$((SECONDS + timeout_seconds))
 while (( SECONDS < deadline )); do
     if [[ -f "$game_log" ]] \
+        && grep -Fq 'ProgressiveSkills common bootstrap ready' "$game_log" \
         && grep -Fq 'ProgressiveSkills client bootstrap ready' "$game_log" \
         && grep -Fq 'ProgressiveSkills title screen ready' "$game_log"; then
+        if grep -Eiq '/(ERROR|FATAL)\]|exception|crash report' "$game_log"; then
+            printf 'Client log contains an error, exception, or crash marker.\n' >&2
+            tail -n 120 "$game_log" >&2 || true
+            exit 1
+        fi
         if grep -Eq 'build/(classes/java|resources)/gameTest' "$console_log"; then
             printf 'Client smoke loaded GameTest output.\n' >&2
             exit 1

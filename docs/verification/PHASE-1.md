@@ -44,9 +44,9 @@ Verified 2026-07-15 at 22:12 CDT on Linux `6.12.63+deb13-amd64` x86-64 with an I
 | Release JAR surface and digest | local pass | 3.9 KiB; test-output intersection empty; locked metadata present; SHA-256 `20d444bbf032a3424fde1b24b2a26cce7da849a8697157a8c2445261c2e23ec3` |
 | Project/folder identity | local pass | Working project is `/home/envy/projects/ProgressiveSkills`; the retired `/home/envy/projects/UnrealSkills` directory is absent |
 | PERF-001 evidence lock | local pass | Numeric gates plus machine-readable `docs/performance/fixtures/perf-001-v1.toml` lock seeds, counts, schedules, event ratios, reload timing, JVM flags, and capture outputs |
-| GitHub Actions | workflow added; remote run pending | `.github/workflows/phase-1.yml` |
+| GitHub Actions | remote pass | Run `29472464120` passed on commit `fb66ac99ae254d9787b29a537597767b8c424abd`: https://github.com/EnVisione/ProgressiveSkills/actions/runs/29472464120 |
 
-Local Phase 1 acceptance is green. The merge gate remains pending until the first remote GitHub Actions run passes; local evidence does not substitute for that run. CI artifacts retain test reports, run logs, smoke consoles, and the release JAR even when a later step fails.
+Phase 1 acceptance is green locally and in the first remote GitHub Actions run. CI artifacts retain test reports, run logs, smoke consoles, and the release JAR even when a later step fails.
 
 ## Manual review checklist
 
@@ -57,4 +57,4 @@ Local Phase 1 acceptance is green. The merge gate remains pending until the firs
 - [x] The project compiles with deprecations and other Java warnings treated as errors.
 - [x] No retired ProgressiveSkills-owned package declaration, resource namespace, NeoForge `21.1.238`, or cross-version Parchment pin remains. Negative regression assertions and the external ProgressiveStages namespace are intentional.
 - [x] Phase 2 schema/IR and later gameplay code have not leaked into Phase 1.
-- [ ] First remote GitHub Actions run passes.
+- [x] First remote GitHub Actions run passes.
