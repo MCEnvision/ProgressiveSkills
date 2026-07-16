@@ -50,6 +50,21 @@ abstract class DecodeBase64File extends DefaultTask {
     }
 }
 
+abstract class WriteTextFile extends DefaultTask {
+    @OutputFile
+    abstract RegularFileProperty getOutputFile()
+
+    @Input
+    abstract Property<String> getContents()
+
+    @TaskAction
+    void writeFile() {
+        def output = outputFile.get().asFile
+        output.parentFile.mkdirs()
+        output.setText(contents.get(), 'UTF-8')
+    }
+}
+
 abstract class RequireFiles extends DefaultTask {
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
@@ -345,6 +360,10 @@ def gameTestLog = layout.projectDirectory.file('run/gameTestServer/logs/latest.l
 def cleanGameTestLog = tasks.register('cleanGameTestLog', Delete) {
     delete(gameTestLog)
 }
+def prepareGameTestServerProperties = tasks.register('prepareGameTestServerProperties', WriteTextFile) {
+    outputFile = layout.projectDirectory.file('run/gameTestServer/server.properties')
+    contents = '# Deterministic GameTest server settings\nonline-mode=false\n'
+}
 def verifyGameTestResults = tasks.register('verifyGameTestResults', VerifyTextFileContains) {
     textFile = gameTestLog
     requiredText = 'All 1 required tests passed :)'
@@ -354,7 +373,7 @@ def verifyGameTestLogClean = tasks.register('verifyGameTestLogClean', VerifyText
     forbiddenPattern = '(?i)/(?:error|fatal)\\]|exception|crash report'
 }
 tasks.named('runGameTestServer').configure {
-    dependsOn(cleanGameTestLog)
+    dependsOn(cleanGameTestLog, prepareGameTestServerProperties)
     finalizedBy(verifyGameTestResults, verifyGameTestLogClean)
 }
 verifyGameTestResults.configure {
