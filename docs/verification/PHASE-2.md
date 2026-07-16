@@ -1,6 +1,6 @@
 # Phase 2 Verification Record
 
-Status: local acceptance complete; remote GitHub Actions pending.
+Status: local and remote acceptance complete.
 
 This file records reproducible evidence for “Schema registry and canonical IR.” It covers the data foundation only; no gameplay behavior is expected.
 
@@ -59,7 +59,7 @@ Verified 2026-07-16 at 01:07 CDT on Linux `6.12.63+deb13-amd64` x86-64. Gradle a
 | Client | local pass | Production-only client reached the title screen with common/client/title-screen markers |
 | Release JAR | local pass | 161,607 bytes; test-output intersection empty; SHA-256 `98d68b3472ccdfbf7f6f77983d5a4ede3e9d14c06fb12f4b05d6ff1f86b96cf1` |
 | Runtime logs | local pass | Current GameTest, dedicated-server, and client logs contain no error, fatal, exception, or crash entries |
-| GitHub Actions | pending | Phase 2 branch must be pushed after local review |
+| GitHub Actions | remote pass | Branch [run 29476549095](https://github.com/EnVisione/ProgressiveSkills/actions/runs/29476549095) and pull-request [run 29476550889](https://github.com/EnVisione/ProgressiveSkills/actions/runs/29476550889) passed the complete foundation workflow for commit `3fbbe2ea29dcd4363db5155066a3cbefcfa402ca` |
 
 ## Acceptance checklist
 
@@ -72,7 +72,7 @@ Verified 2026-07-16 at 01:07 CDT on Linux `6.12.63+deb13-amd64` x86-64. Gradle a
 - [x] Schema metadata generates documentation, diagnostic help, and editor/projection/diff metadata.
 - [x] Checked-in generated artifacts are verified byte-for-byte.
 - [x] Final clean local build, GameTest, server/client smoke, and release-JAR checks pass.
-- [ ] Phase 2 branch GitHub Actions run passes.
+- [x] Phase 2 branch GitHub Actions run passes.
 
 ## Expected in-game result
 
