@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 /**
  * ProgressiveSkills loader entry point.
  *
- * <p>Content and gameplay systems are intentionally absent from this Phase 1
- * bootstrap. Later phases attach their startup listeners through explicit
- * common, server, client, and compatibility boundaries.</p>
+ * <p>The root remains a side-safe bootstrap. Content-pack and transaction
+ * lifecycles attach through explicit server subscribers while the shared
+ * schema, IR, pack, and transaction engines remain physical-side neutral.</p>
  */
 @Mod(ProjectIdentity.MOD_ID)
 public final class ProgressiveSkills {

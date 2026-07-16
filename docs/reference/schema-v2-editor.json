@@ -201,6 +201,188 @@
       ]
     },
     {
+      "id": "progressiveskills:audit_record",
+      "version": 2,
+      "audience": "internal",
+      "title": "Transaction audit record",
+      "description": "Bounded terminal mutation evidence retaining provenance, revisions, outputs, and rollback classification.",
+      "fields": [
+        {
+          "path": "action_results",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ordered transition dispositions and delivery details.",
+          "example": "[]",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Ordered transition dispositions and delivery details."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "after_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic committed revision or unchanged rejection revision.",
+          "example": "13",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Monotonic committed revision or unchanged rejection revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "before_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Captured target revision.",
+          "example": "12",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Captured target revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "completed_at",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative server completion instant.",
+          "example": "2026-07-16T12:00:00Z",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Authoritative server completion instant."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_revision",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Generation and semantic digest used by the plan.",
+          "example": "{ generation = 7 }",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Generation and semantic digest used by the plan."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "projection_changes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Source-resolved persistent diff.",
+          "example": "[]",
+          "diagnostic": "PS-TX-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Source-resolved persistent diff."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "reversible",
+          "type": "boolean",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Whether this retained action-free boundary can still be rolled back.",
+          "example": "false",
+          "diagnostic": "PS-TX-008",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Whether this retained action-free boundary can still be rolled back."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "status",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["committed", "committed_with_action_failures", "rejected"],
+          "default": null,
+          "description": "Terminal transaction state.",
+          "example": "committed",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Terminal transaction state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "transaction_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable transaction UUID derived from the target and idempotency key.",
+          "example": "00000000-0000-0000-0000-000000000004",
+          "diagnostic": "PS-TX-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable transaction UUID derived from the target and idempotency key."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:canonical_definition",
       "version": 2,
       "audience": "internal",
@@ -713,6 +895,93 @@
             "help": "Typed replacement or list value; forbidden for remove."
           },
           "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:entitlement_contribution",
+      "version": 2,
+      "audience": "internal",
+      "title": "Persistent entitlement contribution",
+      "description": "One source-owned long value resolved with every co-owner before physical projection.",
+      "fields": [
+        {
+          "path": "key",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed persistent target.",
+          "example": "{ target_type = \"progressiveskills:attribute\", target_id = \"minecraft:generic.max_health\" }",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Typed persistent target."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "resolver",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["additive", "highest", "lowest", "boolean_union"],
+          "default": null,
+          "description": "Shared deterministic co-owner resolver.",
+          "example": "highest",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Shared deterministic co-owner resolver."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "source",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed grant source whose revocation removes only its contribution.",
+          "example": "{ owner_kind = \"progressiveskills:class\", owner_id = \"mypack:warrior\" }",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Typed grant source whose revocation removes only its contribution."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "value",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Checked contribution value.",
+          "example": "4",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Checked contribution value."
+          },
+          "projection": "server_only",
           "diff": "replace",
           "omit_when_default": false
         }
@@ -1663,6 +1932,351 @@
       ],
       "constraints": [
       ]
+    },
+    {
+      "id": "progressiveskills:transaction_plan",
+      "version": 2,
+      "audience": "internal",
+      "title": "Progression transaction plan",
+      "description": "Bounded, revision- and definition-pinned root plan validated before any mutation.",
+      "fields": [
+        {
+          "path": "actor_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative actor UUID.",
+          "example": "00000000-0000-0000-0000-000000000001",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Authoritative actor UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "cause",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["gameplay", "character_creation", "admin", "migration", "reload", "reconcile"],
+          "default": null,
+          "description": "Typed progression origin.",
+          "example": "gameplay",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Typed progression origin."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned live definition generation.",
+          "example": "7",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Pinned live definition generation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "expected_state_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Compare-and-swap target revision.",
+          "example": "12",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Compare-and-swap target revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "idempotency_key",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded stable request identity.",
+          "example": "packet/session-1/request-42",
+          "diagnostic": "PS-TX-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Bounded stable request identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "queued_children",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Fully expanded bounded child steps in deterministic order.",
+          "example": "[]",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Fully expanded bounded child steps in deterministic order."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "reason",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded audit reason.",
+          "example": "Award gameplay XP",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Bounded audit reason."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "root_step",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Root balance, ownership, and transition mutations.",
+          "example": "{ origin = \"mypack:rule\" }",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Root balance, ownership, and transition mutations."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned lowercase SHA-256 definition digest.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Pinned lowercase SHA-256 definition digest."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "target_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative target UUID.",
+          "example": "00000000-0000-0000-0000-000000000002",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 15,
+            "help": "Authoritative target UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:transition_action",
+      "version": 2,
+      "audience": "internal",
+      "title": "Transition action",
+      "description": "Typed edge-only action with explicit repeat, delivery, and failure contracts.",
+      "fields": [
+        {
+          "path": "amount",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive bounded action quantity.",
+          "example": "1",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Positive bounded action quantity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "delivery_contract",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["effectively_once", "at_least_once", "best_effort"],
+          "default": null,
+          "description": "Honest external delivery guarantee.",
+          "example": "effectively_once",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Honest external delivery guarantee."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "failure_policy",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["continue", "stop"],
+          "default": null,
+          "description": "Whether later actions continue after post-commit failure.",
+          "example": "stop",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Whether later actions continue after post-commit failure."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "payload",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded adapter-specific typed payload.",
+          "example": "minecraft:gold_ingot",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Bounded adapter-specific typed payload."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "repeat_policy",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["always", "once_per_transaction", "once_per_character"],
+          "default": null,
+          "description": "Exact receipt scope or explicit always-repeat behavior.",
+          "example": "once_per_character",
+          "diagnostic": "PS-TX-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Exact receipt scope or explicit always-repeat behavior."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "source",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed owner, definition, and nested grant identity.",
+          "example": "{ owner_kind = \"progressiveskills:skill\", owner_id = \"mypack:physique\" }",
+          "diagnostic": "PS-TX-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Typed owner, definition, and nested grant identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "type",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Registered physical action adapter type.",
+          "example": "progressiveskills:item",
+          "diagnostic": "PS-TX-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Registered physical action adapter type."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
     }
   ],
   "diagnostics": [
@@ -1907,6 +2521,78 @@
       "why": "Unbounded file counts, nesting, or bytes can exhaust server resources during reload.",
       "fix": "Split or reduce the pack so it stays within the documented hard ceilings.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-toml-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-001",
+      "severity": "error",
+      "title": "Transaction state revision is stale",
+      "why": "Applying a plan to a different state revision could duplicate costs, rewards, or ownership changes.",
+      "fix": "Refresh the target state, rebuild the plan, and submit it with a new idempotency key.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-002",
+      "severity": "error",
+      "title": "Checked balance mutation was rejected",
+      "why": "A debit, credit, bound, or checked-arithmetic operation could not commit safely.",
+      "fix": "Correct the amount or affordability condition and rebuild the complete transaction plan.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-003",
+      "severity": "error",
+      "title": "Transaction definition generation is stale",
+      "why": "A plan cannot execute after its pinned gameplay definitions or semantic digest change.",
+      "fix": "Rebuild the plan against the current live definition generation.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-004",
+      "severity": "error",
+      "title": "Persistent lifecycle ownership is invalid",
+      "why": "Conflicting resolvers or malformed ownership would make effective values nondeterministic.",
+      "fix": "Use one registered resolver for every source contributing to the same entitlement.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-005",
+      "severity": "error",
+      "title": "Transition action was rejected or failed",
+      "why": "Transition actions run only on explicit edges and must pass bounded physical-adapter validation.",
+      "fix": "Correct the target, payload, delivery policy, or capacity issue and submit a fresh transaction.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-006",
+      "severity": "error",
+      "title": "Exact transaction ledger is full",
+      "why": "A transaction cannot proceed without durable idempotency or receipt truth.",
+      "fix": "Increase the configured hard capacity or complete the planned persistence/archive maintenance.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-007",
+      "severity": "error",
+      "title": "Persistent projection failed",
+      "why": "The source-resolved value could not be applied atomically to its physical target.",
+      "fix": "Inspect the target adapter and retry only with a newly validated transaction plan.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-007",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TX-008",
+      "severity": "error",
+      "title": "Transaction rollback is unavailable",
+      "why": "Transition actions or later mutations cross the safe reversible boundary.",
+      "fix": "Rollback only the latest retained action-free transaction or apply an explicit compensation.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tx-008",
       "suppressible": false
     }
   ]

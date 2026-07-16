@@ -31,6 +31,14 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode RELOAD_NOT_STAGED = code("PS-RELOAD-001");
     public static final DiagnosticCode RELOAD_BLOCKED = code("PS-RELOAD-002");
     public static final DiagnosticCode LAST_KNOWN_GOOD_FAILED = code("PS-RELOAD-003");
+    public static final DiagnosticCode STALE_TRANSACTION_STATE = code("PS-TX-001");
+    public static final DiagnosticCode BALANCE_TRANSACTION_REJECTED = code("PS-TX-002");
+    public static final DiagnosticCode STALE_TRANSACTION_DEFINITION = code("PS-TX-003");
+    public static final DiagnosticCode INVALID_LIFECYCLE_OWNERSHIP = code("PS-TX-004");
+    public static final DiagnosticCode TRANSITION_ACTION_REJECTED = code("PS-TX-005");
+    public static final DiagnosticCode TRANSACTION_LEDGER_FULL = code("PS-TX-006");
+    public static final DiagnosticCode PERSISTENT_PROJECTION_FAILED = code("PS-TX-007");
+    public static final DiagnosticCode TRANSACTION_ROLLBACK_REJECTED = code("PS-TX-008");
 
     private CoreDiagnostics() {
     }
@@ -145,6 +153,38 @@ public final class CoreDiagnostics {
                         "Last-known-good recovery failed",
                         "Neither current content nor a verified recovery bundle could produce a safe live snapshot.",
                         "Restore a valid pack source or a complete world backup and validate again.", false))
+                .register(descriptor(STALE_TRANSACTION_STATE, DiagnosticSeverity.ERROR,
+                        "Transaction state revision is stale",
+                        "Applying a plan to a different state revision could duplicate costs, rewards, or ownership changes.",
+                        "Refresh the target state, rebuild the plan, and submit it with a new idempotency key.", false))
+                .register(descriptor(BALANCE_TRANSACTION_REJECTED, DiagnosticSeverity.ERROR,
+                        "Checked balance mutation was rejected",
+                        "A debit, credit, bound, or checked-arithmetic operation could not commit safely.",
+                        "Correct the amount or affordability condition and rebuild the complete transaction plan.", false))
+                .register(descriptor(STALE_TRANSACTION_DEFINITION, DiagnosticSeverity.ERROR,
+                        "Transaction definition generation is stale",
+                        "A plan cannot execute after its pinned gameplay definitions or semantic digest change.",
+                        "Rebuild the plan against the current live definition generation.", false))
+                .register(descriptor(INVALID_LIFECYCLE_OWNERSHIP, DiagnosticSeverity.ERROR,
+                        "Persistent lifecycle ownership is invalid",
+                        "Conflicting resolvers or malformed ownership would make effective values nondeterministic.",
+                        "Use one registered resolver for every source contributing to the same entitlement.", false))
+                .register(descriptor(TRANSITION_ACTION_REJECTED, DiagnosticSeverity.ERROR,
+                        "Transition action was rejected or failed",
+                        "Transition actions run only on explicit edges and must pass bounded physical-adapter validation.",
+                        "Correct the target, payload, delivery policy, or capacity issue and submit a fresh transaction.", false))
+                .register(descriptor(TRANSACTION_LEDGER_FULL, DiagnosticSeverity.ERROR,
+                        "Exact transaction ledger is full",
+                        "A transaction cannot proceed without durable idempotency or receipt truth.",
+                        "Increase the configured hard capacity or complete the planned persistence/archive maintenance.", false))
+                .register(descriptor(PERSISTENT_PROJECTION_FAILED, DiagnosticSeverity.ERROR,
+                        "Persistent projection failed",
+                        "The source-resolved value could not be applied atomically to its physical target.",
+                        "Inspect the target adapter and retry only with a newly validated transaction plan.", false))
+                .register(descriptor(TRANSACTION_ROLLBACK_REJECTED, DiagnosticSeverity.ERROR,
+                        "Transaction rollback is unavailable",
+                        "Transition actions or later mutations cross the safe reversible boundary.",
+                        "Rollback only the latest retained action-free transaction or apply an explicit compensation.", false))
                 .build();
     }
 

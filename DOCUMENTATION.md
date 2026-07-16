@@ -2,7 +2,7 @@
 
 ## Current scope
 
-This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, and Phase 3 staged content-pack loader. ProgressiveSkills does not yet provide skills or other gameplay content. The base JAR now discovers schema-v2 TOML packs, compiles supported shared definitions, publishes immutable registry generations, and retains verified last-known-good sources.
+This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, and Phase 4 transaction/lifecycle runtime. ProgressiveSkills does not yet provide skills or XP content. The base JAR now also validates and commits bounded revision-pinned transactions, resolves source-owned persistent values, protects transition actions with exact receipts, and records bounded audit evidence.
 
 ## Prerequisites
 
@@ -28,11 +28,11 @@ The release JAR is created at `build/libs/progressiveskills-1.0-SNAPSHOT.jar`.
 
 | Layer | Command | Purpose |
 |---|---|---|
-| JUnit | `./gradlew test` | Identity, schemas/IR, pack compilation/recovery, starter installation, Java toolchain, and architecture rules |
-| Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, and requires at least 1,000 jqwik tries |
+| JUnit | `./gradlew test` | Identity, schemas/IR, pack compilation/recovery, transaction/lifecycle invariants, starter installation, Java toolchain, and architecture rules |
+| Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, transaction resolution order, and requires at least 1,000 jqwik tries |
 | Compilation | `./gradlew build` | Compiles main, GameTest, and test sources with all warnings treated as errors |
 | Schema artifacts | `./gradlew verifySchemaArtifacts` | Regenerates schema outputs in `build/` and compares them byte-for-byte with the checked-in reference/editor catalog |
-| GameTest | `./gradlew runGameTestServer` | Boots NeoForge, loads the starter pack, exercises Phase 3 operator commands, and fails without its success marker |
+| GameTest | `./gradlew runGameTestServer` | Boots NeoForge, loads the starter pack, exercises pack commands plus the Phase 4 lifecycle self-test, and fails without its success marker |
 | Dedicated server | `bash .ci/smoke-server.sh` | Requires an empty mods folder and production-only classpath, boots to `Done`, then shuts down |
 | Client | `bash .ci/smoke-client.sh` | Boots the production-only classpath under Xvfb and waits for the real title screen |
 | Release archive | `.ci/verify-release-jar.sh` | Rejects compiled test output, test libraries, retired identities, or unlocked metadata in the shipping JAR |
@@ -70,6 +70,25 @@ Validation does not arm publication. Dry-run stores an exact reviewed candidate;
 
 Only shared `component_spec` and `icon_spec` definitions have typed compilers at this milestone. Planned gameplay kinds fail closed until their feature phases.
 
+## Phase 4 transactions and lifecycles
+
+The server now has a side-neutral bounded transaction core with checked balances, definition/state revision pinning, exact idempotency, source-aware persistent ownership, transition receipts, deterministic child cascades, audit records, and a narrow rollback boundary. Recompute resolves only persistent ownership and structurally cannot replay transition actions.
+
+The first visible checkpoint is deliberately a session-only operator fixture:
+
+```text
+/ps lifecycle status
+/ps lifecycle demo
+/ps lifecycle recompute
+/ps lifecycle coowner
+/ps lifecycle revoke primary
+/ps lifecycle revoke secondary
+/ps lifecycle audit
+/ps lifecycle selftest
+```
+
+It awards one checked demo point, delivers one receipt-protected gold ingot, and projects a +4 max-health value through two separately revocable owners. It is not pack content, a final command API, or persisted player progression. See [TRANSACTIONS_AND_LIFECYCLES.md](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md) for the contracts and exact in-game checkpoint.
+
 ## Optional integrations
 
 No optional integration is currently compiled or loaded. Each adapter stays blocked until its exact target version, technical spike, absent-mod load test, and compatibility profile are green. See [COMPATIBILITY_MATRIX.md](docs/compatibility/COMPATIBILITY_MATRIX.md).
@@ -85,7 +104,9 @@ No optional integration is currently compiled or loaded. Each adapter stays bloc
 | Architecture test fails | A shared class references client or optional-mod code | Move the implementation behind the appropriate `client` or `compat` boundary and expose only neutral contracts |
 | `/ps` says the registry is unavailable | Primary packs and every verified recovery generation failed | Inspect the `[ProgressiveSkills]` startup diagnostics, restore valid pack sources, then restart |
 | Publish says sources changed | A file changed after the reviewed dry-run | Run `/ps reload --dry-run` again, inspect `/ps diff`, then publish |
+| `/ps lifecycle demo` rejects before commit | The inventory is full, no player is targeted, or the session runtime/definitions are unavailable | Free one inventory slot, use the command in game as an operator, and confirm `/ps status` has a live generation |
+| Lifecycle values disappear after restart | Phase 4 intentionally uses session-only state | This is expected until Phase 5 installs the versioned player attachment and persistence/migration boundary |
 
 ## Next milestone
 
-Phase 4 adds the transaction/action/effect runtime. Continue implementation until its first meaningful in-game behavior checkpoint rather than pausing at internal scaffolding stages.
+Phase 5 adds the versioned player attachment, death-copy semantics, migrations/quarantine, pending offline operations, and snapshot/export primitives.

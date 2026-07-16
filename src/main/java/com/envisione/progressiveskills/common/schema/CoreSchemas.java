@@ -5,6 +5,12 @@ import com.envisione.progressiveskills.common.diagnostic.DiagnosticCode;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.SchemaVersion;
 import com.envisione.progressiveskills.common.presentation.IconKind;
+import com.envisione.progressiveskills.common.transaction.DeliveryContract;
+import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
+import com.envisione.progressiveskills.common.transaction.ProgressionCause;
+import com.envisione.progressiveskills.common.transaction.RepeatPolicy;
+import com.envisione.progressiveskills.common.transaction.TransactionStatus;
+import com.envisione.progressiveskills.common.transaction.TransitionFailurePolicy;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Arrays;
@@ -31,6 +37,10 @@ public final class CoreSchemas {
         builder.register(packManifest());
         builder.register(definitionLayer());
         builder.register(definitionPatch());
+        builder.register(transactionPlan());
+        builder.register(transitionAction());
+        builder.register(entitlementContribution());
+        builder.register(auditRecord());
         return builder.build();
     }
 
@@ -485,6 +495,150 @@ public final class CoreSchemas {
         );
     }
 
+    private static SchemaDescriptor transactionPlan() {
+        return schema(
+                "transaction_plan",
+                SchemaAudience.INTERNAL,
+                "Progression transaction plan",
+                "Bounded, revision- and definition-pinned root plan validated before any mutation.",
+                List.of(
+                        runtimeField("actor_id", SchemaValueType.STRING,
+                                "Authoritative actor UUID.", "00000000-0000-0000-0000-000000000001",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 10).build(),
+                        runtimeField("cause", SchemaValueType.ENUM,
+                                "Typed progression origin.", "gameplay",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 60)
+                                .allowedValues(enumNames(ProgressionCause.values())).build(),
+                        runtimeField("definition_generation", SchemaValueType.INTEGER,
+                                "Pinned live definition generation.", "7",
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 40).build(),
+                        runtimeField("expected_state_revision", SchemaValueType.INTEGER,
+                                "Compare-and-swap target revision.", "12",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 30).build(),
+                        runtimeField("idempotency_key", SchemaValueType.STRING,
+                                "Bounded stable request identity.", "packet/session-1/request-42",
+                                CoreDiagnostics.TRANSACTION_LEDGER_FULL, 20).build(),
+                        runtimeField("queued_children", SchemaValueType.LIST,
+                                "Fully expanded bounded child steps in deterministic order.", "[]",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 90).build(),
+                        runtimeField("reason", SchemaValueType.STRING,
+                                "Bounded audit reason.", "Award gameplay XP",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 70).build(),
+                        runtimeField("root_step", SchemaValueType.OBJECT,
+                                "Root balance, ownership, and transition mutations.", "{ origin = \"mypack:rule\" }",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 80).build(),
+                        runtimeField("semantic_digest", SchemaValueType.STRING,
+                                "Pinned lowercase SHA-256 definition digest.", "a".repeat(64),
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 50).build(),
+                        runtimeField("target_id", SchemaValueType.STRING,
+                                "Authoritative target UUID.", "00000000-0000-0000-0000-000000000002",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 15).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor transitionAction() {
+        return schema(
+                "transition_action",
+                SchemaAudience.INTERNAL,
+                "Transition action",
+                "Typed edge-only action with explicit repeat, delivery, and failure contracts.",
+                List.of(
+                        runtimeField("amount", SchemaValueType.INTEGER,
+                                "Positive bounded action quantity.", "1",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 40).build(),
+                        runtimeField("delivery_contract", SchemaValueType.ENUM,
+                                "Honest external delivery guarantee.", "effectively_once",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 60)
+                                .allowedValues(enumNames(DeliveryContract.values())).build(),
+                        runtimeField("failure_policy", SchemaValueType.ENUM,
+                                "Whether later actions continue after post-commit failure.", "stop",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 70)
+                                .allowedValues(enumNames(TransitionFailurePolicy.values())).build(),
+                        runtimeField("payload", SchemaValueType.STRING,
+                                "Bounded adapter-specific typed payload.", "minecraft:gold_ingot",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 30).build(),
+                        runtimeField("repeat_policy", SchemaValueType.ENUM,
+                                "Exact receipt scope or explicit always-repeat behavior.", "once_per_character",
+                                CoreDiagnostics.TRANSACTION_LEDGER_FULL, 50)
+                                .allowedValues(enumNames(RepeatPolicy.values())).build(),
+                        runtimeField("source", SchemaValueType.OBJECT,
+                                "Typed owner, definition, and nested grant identity.",
+                                "{ owner_kind = \"progressiveskills:skill\", owner_id = \"mypack:physique\" }",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 20).build(),
+                        runtimeField("type", SchemaValueType.RESOURCE_LOCATION,
+                                "Registered physical action adapter type.", "progressiveskills:item",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 10).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor entitlementContribution() {
+        return schema(
+                "entitlement_contribution",
+                SchemaAudience.INTERNAL,
+                "Persistent entitlement contribution",
+                "One source-owned long value resolved with every co-owner before physical projection.",
+                List.of(
+                        runtimeField("key", SchemaValueType.OBJECT,
+                                "Typed persistent target.",
+                                "{ target_type = \"progressiveskills:attribute\", target_id = \"minecraft:generic.max_health\" }",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 10).build(),
+                        runtimeField("resolver", SchemaValueType.ENUM,
+                                "Shared deterministic co-owner resolver.", "highest",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 40)
+                                .allowedValues(enumNames(EntitlementResolver.values())).build(),
+                        runtimeField("source", SchemaValueType.OBJECT,
+                                "Typed grant source whose revocation removes only its contribution.",
+                                "{ owner_kind = \"progressiveskills:class\", owner_id = \"mypack:warrior\" }",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 20).build(),
+                        runtimeField("value", SchemaValueType.INTEGER,
+                                "Checked contribution value.", "4",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 30).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor auditRecord() {
+        return schema(
+                "audit_record",
+                SchemaAudience.INTERNAL,
+                "Transaction audit record",
+                "Bounded terminal mutation evidence retaining provenance, revisions, outputs, and rollback classification.",
+                List.of(
+                        runtimeField("action_results", SchemaValueType.LIST,
+                                "Ordered transition dispositions and delivery details.", "[]",
+                                CoreDiagnostics.TRANSITION_ACTION_REJECTED, 90).build(),
+                        runtimeField("after_revision", SchemaValueType.INTEGER,
+                                "Monotonic committed revision or unchanged rejection revision.", "13",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 60).build(),
+                        runtimeField("before_revision", SchemaValueType.INTEGER,
+                                "Captured target revision.", "12",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 50).build(),
+                        runtimeField("completed_at", SchemaValueType.STRING,
+                                "Authoritative server completion instant.", "2026-07-16T12:00:00Z",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 40).build(),
+                        runtimeField("definition_revision", SchemaValueType.OBJECT,
+                                "Generation and semantic digest used by the plan.", "{ generation = 7 }",
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 30).build(),
+                        runtimeField("projection_changes", SchemaValueType.LIST,
+                                "Source-resolved persistent diff.", "[]",
+                                CoreDiagnostics.PERSISTENT_PROJECTION_FAILED, 80).build(),
+                        runtimeField("reversible", SchemaValueType.BOOLEAN,
+                                "Whether this retained action-free boundary can still be rolled back.", "false",
+                                CoreDiagnostics.TRANSACTION_ROLLBACK_REJECTED, 70).build(),
+                        runtimeField("status", SchemaValueType.ENUM,
+                                "Terminal transaction state.", "committed",
+                                CoreDiagnostics.INVALID_LIFECYCLE_OWNERSHIP, 20)
+                                .allowedValues(enumNames(TransactionStatus.values())).build(),
+                        runtimeField("transaction_id", SchemaValueType.STRING,
+                                "Stable transaction UUID derived from the target and idempotency key.",
+                                "00000000-0000-0000-0000-000000000004",
+                                CoreDiagnostics.TRANSACTION_LEDGER_FULL, 10).build()
+                )
+        );
+    }
+
     private static FieldDescriptor internalField(
             String path,
             SchemaValueType type,
@@ -496,6 +650,23 @@ public final class CoreSchemas {
                 CoreDiagnostics.INVALID_CANONICAL_VALUE, EditorWidget.OBJECT, order)
                 .projection(ProjectionPolicy.SERVER_ONLY)
                 .build();
+    }
+
+    private static FieldDescriptor.Builder runtimeField(
+            String path,
+            SchemaValueType type,
+            String description,
+            String example,
+            DiagnosticCode diagnostic,
+            int order
+    ) {
+        return field(path, type, true, description, example, diagnostic, EditorWidget.OBJECT, order)
+                .projection(ProjectionPolicy.SERVER_ONLY);
+    }
+
+    private static String[] enumNames(Enum<?>[] values) {
+        return Arrays.stream(values).map(value -> value.name().toLowerCase(java.util.Locale.ROOT))
+                .toArray(String[]::new);
     }
 
     private static SchemaDescriptor schema(

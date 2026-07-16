@@ -23,6 +23,7 @@ class ArchitectureBoundaryTest {
     private static final String SCHEMA_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.schema..";
     private static final String DIAGNOSTIC_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.diagnostic..";
     private static final String PACK_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.pack..";
+    private static final String TRANSACTION_PACKAGE = ProjectIdentity.ROOT_PACKAGE + ".common.transaction..";
 
     private static JavaClasses productionClasses;
 
@@ -151,7 +152,8 @@ class ArchitectureBoundaryTest {
                         PRESENTATION_PACKAGE,
                         SCHEMA_PACKAGE,
                         DIAGNOSTIC_PACKAGE,
-                        PACK_PACKAGE
+                        PACK_PACKAGE,
+                        TRANSACTION_PACKAGE
                 )
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "net.minecraft.client..",

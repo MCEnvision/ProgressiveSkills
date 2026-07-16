@@ -1,6 +1,6 @@
 # Schema Registry and Canonical IR
 
-Status: Phase 2 foundation implemented and consumed by the Phase 3 TOML pack compiler. No gameplay schemas are included.
+Status: Phase 2 foundation implemented, consumed by the Phase 3 TOML compiler, and extended with Phase 4 internal transaction metadata. No gameplay definition schemas are included.
 
 ## Boundary
 
@@ -14,7 +14,7 @@ authoring source (Phase 3 TOML; later adapters follow)
   -> semanticProjection() without provenance
 ```
 
-The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 now supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Networking, player persistence, and gameplay remain outside this document; concrete `Skill`, `Tree`, `Class`, and other gameplay records arrive with their feature phases.
+The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Phase 4 registers internal metadata for transaction plans, transition actions, entitlement contributions, and audit records while keeping execution in `common.transaction`. Networking, player persistence, and gameplay definitions remain outside this document; concrete `Skill`, `Tree`, `Class`, and other records arrive with their feature phases.
 
 ## Delivery boundary against plan §§33.4–33.5
 

@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR contracts and the authoring schemas implemented through Phase 3. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 4. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -54,6 +54,26 @@ A same-kind old identity mapped to one canonical replacement identity.
 | `kind` (required) | `resource_location` | — | — | Definition kind shared by the old and replacement identities. | `progressiveskills:skill` | `PS-ID-003` | `resource_location` | `server_only` | `replace` |
 | `new_id` (required) | `resource_location` | — | — | Canonical replacement identity. | `mypack:combat/physique` | `PS-ID-003` | `resource_location` | `server_only` | `replace` |
 | `old_id` (required) | `resource_location` | — | — | Retired identity retained for migration and reference resolution. | `mypack:combat/strength` | `PS-ID-003` | `resource_location` | `server_only` | `replace` |
+
+## Transaction audit record
+
+- Schema ID: `progressiveskills:audit_record`
+- Version: `2`
+- Audience: `internal`
+
+Bounded terminal mutation evidence retaining provenance, revisions, outputs, and rollback classification.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `action_results` (required) | `list` | — | — | Ordered transition dispositions and delivery details. | `[]` | `PS-TX-005` | `object` | `server_only` | `replace` |
+| `after_revision` (required) | `integer` | — | — | Monotonic committed revision or unchanged rejection revision. | `13` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `before_revision` (required) | `integer` | — | — | Captured target revision. | `12` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `completed_at` (required) | `string` | — | — | Authoritative server completion instant. | `2026-07-16T12:00:00Z` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `definition_revision` (required) | `object` | — | — | Generation and semantic digest used by the plan. | `{ generation = 7 }` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `projection_changes` (required) | `list` | — | — | Source-resolved persistent diff. | `[]` | `PS-TX-007` | `object` | `server_only` | `replace` |
+| `reversible` (required) | `boolean` | — | — | Whether this retained action-free boundary can still be rolled back. | `false` | `PS-TX-008` | `object` | `server_only` | `replace` |
+| `status` (required) | `enum` | `committed \| committed_with_action_failures \| rejected` | — | Terminal transaction state. | `committed` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `transaction_id` (required) | `string` | — | — | Stable transaction UUID derived from the target and idempotency key. | `00000000-0000-0000-0000-000000000004` | `PS-TX-006` | `object` | `server_only` | `replace` |
 
 ## Canonical definition envelope
 
@@ -142,6 +162,21 @@ One bounded path-addressed mutation applied before typed schema validation.
 | `path` (required) | `string` | — | — | Dotted schema field path. | `style.color` | `PS-PACK-006` | `single_line` | `client_visible` | `replace` |
 | `target_id` | `resource_location` | — | — | Stable nested id selected by replace_by_id. | `mypack:tree/node` | `PS-ID-001` | `resource_location` | `client_visible` | `replace` |
 | `value` | `any` | — | — | Typed replacement or list value; forbidden for remove. | `red` | `PS-SCHEMA-005` | `object` | `client_visible` | `replace` |
+
+## Persistent entitlement contribution
+
+- Schema ID: `progressiveskills:entitlement_contribution`
+- Version: `2`
+- Audience: `internal`
+
+One source-owned long value resolved with every co-owner before physical projection.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `key` (required) | `object` | — | — | Typed persistent target. | `{ target_type = "progressiveskills:attribute", target_id = "minecraft:generic.max_health" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `resolver` (required) | `enum` | `additive \| highest \| lowest \| boolean_union` | — | Shared deterministic co-owner resolver. | `highest` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `source` (required) | `object` | — | — | Typed grant source whose revocation removes only its contribution. | `{ owner_kind = "progressiveskills:class", owner_id = "mypack:warrior" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `value` (required) | `integer` | — | — | Checked contribution value. | `4` | `PS-TX-004` | `object` | `server_only` | `replace` |
 
 ## Icon specification
 
@@ -237,6 +272,45 @@ Allowlisted visual styling with no click actions, selectors, NBT, or URLs.
 | `obfuscated` | `boolean` | — | `false` | Render text with vanilla obfuscation. | `false` | `PS-SEC-001` | `checkbox` | `client_visible` | `replace` |
 | `strikethrough` | `boolean` | — | `false` | Render text with a strike line. | `false` | `PS-SEC-001` | `checkbox` | `client_visible` | `replace` |
 | `underlined` | `boolean` | — | `false` | Render text with an underline. | `false` | `PS-SEC-001` | `checkbox` | `client_visible` | `replace` |
+
+## Progression transaction plan
+
+- Schema ID: `progressiveskills:transaction_plan`
+- Version: `2`
+- Audience: `internal`
+
+Bounded, revision- and definition-pinned root plan validated before any mutation.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `actor_id` (required) | `string` | — | — | Authoritative actor UUID. | `00000000-0000-0000-0000-000000000001` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `cause` (required) | `enum` | `gameplay \| character_creation \| admin \| migration \| reload \| reconcile` | — | Typed progression origin. | `gameplay` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `definition_generation` (required) | `integer` | — | — | Pinned live definition generation. | `7` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `expected_state_revision` (required) | `integer` | — | — | Compare-and-swap target revision. | `12` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `idempotency_key` (required) | `string` | — | — | Bounded stable request identity. | `packet/session-1/request-42` | `PS-TX-006` | `object` | `server_only` | `replace` |
+| `queued_children` (required) | `list` | — | — | Fully expanded bounded child steps in deterministic order. | `[]` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `reason` (required) | `string` | — | — | Bounded audit reason. | `Award gameplay XP` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `root_step` (required) | `object` | — | — | Root balance, ownership, and transition mutations. | `{ origin = "mypack:rule" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | Pinned lowercase SHA-256 definition digest. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `target_id` (required) | `string` | — | — | Authoritative target UUID. | `00000000-0000-0000-0000-000000000002` | `PS-TX-001` | `object` | `server_only` | `replace` |
+
+## Transition action
+
+- Schema ID: `progressiveskills:transition_action`
+- Version: `2`
+- Audience: `internal`
+
+Typed edge-only action with explicit repeat, delivery, and failure contracts.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `amount` (required) | `integer` | — | — | Positive bounded action quantity. | `1` | `PS-TX-005` | `object` | `server_only` | `replace` |
+| `delivery_contract` (required) | `enum` | `effectively_once \| at_least_once \| best_effort` | — | Honest external delivery guarantee. | `effectively_once` | `PS-TX-005` | `object` | `server_only` | `replace` |
+| `failure_policy` (required) | `enum` | `continue \| stop` | — | Whether later actions continue after post-commit failure. | `stop` | `PS-TX-005` | `object` | `server_only` | `replace` |
+| `payload` (required) | `string` | — | — | Bounded adapter-specific typed payload. | `minecraft:gold_ingot` | `PS-TX-005` | `object` | `server_only` | `replace` |
+| `repeat_policy` (required) | `enum` | `always \| once_per_transaction \| once_per_character` | — | Exact receipt scope or explicit always-repeat behavior. | `once_per_character` | `PS-TX-006` | `object` | `server_only` | `replace` |
+| `source` (required) | `object` | — | — | Typed owner, definition, and nested grant identity. | `{ owner_kind = "progressiveskills:skill", owner_id = "mypack:physique" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `type` (required) | `resource_location` | — | — | Registered physical action adapter type. | `progressiveskills:item` | `PS-TX-005` | `object` | `server_only` | `replace` |
 
 ## Diagnostic catalog
 
@@ -482,3 +556,75 @@ Allowlisted visual styling with no click actions, selectors, NBT, or URLs.
 - Suppressible: `false`
 - Why it matters: Unbounded file counts, nesting, or bytes can exhaust server resources during reload.
 - Suggested fix: Split or reduce the pack so it stays within the documented hard ceilings.
+
+<a id="ps-tx-001"></a>
+
+### PS-TX-001 — Transaction state revision is stale
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Applying a plan to a different state revision could duplicate costs, rewards, or ownership changes.
+- Suggested fix: Refresh the target state, rebuild the plan, and submit it with a new idempotency key.
+
+<a id="ps-tx-002"></a>
+
+### PS-TX-002 — Checked balance mutation was rejected
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A debit, credit, bound, or checked-arithmetic operation could not commit safely.
+- Suggested fix: Correct the amount or affordability condition and rebuild the complete transaction plan.
+
+<a id="ps-tx-003"></a>
+
+### PS-TX-003 — Transaction definition generation is stale
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A plan cannot execute after its pinned gameplay definitions or semantic digest change.
+- Suggested fix: Rebuild the plan against the current live definition generation.
+
+<a id="ps-tx-004"></a>
+
+### PS-TX-004 — Persistent lifecycle ownership is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Conflicting resolvers or malformed ownership would make effective values nondeterministic.
+- Suggested fix: Use one registered resolver for every source contributing to the same entitlement.
+
+<a id="ps-tx-005"></a>
+
+### PS-TX-005 — Transition action was rejected or failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Transition actions run only on explicit edges and must pass bounded physical-adapter validation.
+- Suggested fix: Correct the target, payload, delivery policy, or capacity issue and submit a fresh transaction.
+
+<a id="ps-tx-006"></a>
+
+### PS-TX-006 — Exact transaction ledger is full
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A transaction cannot proceed without durable idempotency or receipt truth.
+- Suggested fix: Increase the configured hard capacity or complete the planned persistence/archive maintenance.
+
+<a id="ps-tx-007"></a>
+
+### PS-TX-007 — Persistent projection failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: The source-resolved value could not be applied atomically to its physical target.
+- Suggested fix: Inspect the target adapter and retry only with a newly validated transaction plan.
+
+<a id="ps-tx-008"></a>
+
+### PS-TX-008 — Transaction rollback is unavailable
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Transition actions or later mutations cross the safe reversible boundary.
+- Suggested fix: Rollback only the latest retained action-free transaction or apply an explicit compensation.
