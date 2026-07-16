@@ -39,6 +39,13 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode TRANSACTION_LEDGER_FULL = code("PS-TX-006");
     public static final DiagnosticCode PERSISTENT_PROJECTION_FAILED = code("PS-TX-007");
     public static final DiagnosticCode TRANSACTION_ROLLBACK_REJECTED = code("PS-TX-008");
+    public static final DiagnosticCode PLAYER_DATA_QUARANTINED = code("PS-DATA-001");
+    public static final DiagnosticCode PLAYER_DATA_LIMIT_EXCEEDED = code("PS-DATA-002");
+    public static final DiagnosticCode PLAYER_DATA_MIGRATION_FAILED = code("PS-DATA-003");
+    public static final DiagnosticCode PLAYER_STATE_ORPHANED = code("PS-DATA-004");
+    public static final DiagnosticCode OFFLINE_OPERATION_QUARANTINED = code("PS-DATA-005");
+    public static final DiagnosticCode SNAPSHOT_EXPORT_FAILED = code("PS-DATA-006");
+    public static final DiagnosticCode PLAYER_DATA_IDENTITY_MISMATCH = code("PS-DATA-007");
 
     private CoreDiagnostics() {
     }
@@ -185,6 +192,34 @@ public final class CoreDiagnostics {
                         "Transaction rollback is unavailable",
                         "Transition actions or later mutations cross the safe reversible boundary.",
                         "Rollback only the latest retained action-free transaction or apply an explicit compensation.", false))
+                .register(descriptor(PLAYER_DATA_QUARANTINED, DiagnosticSeverity.ERROR,
+                        "Player progression data is quarantined",
+                        "Unknown, malformed, or unsafe persisted data cannot be projected without risking corruption.",
+                        "Export the quarantined evidence, restore a verified snapshot, or install a compatible migration.", false))
+                .register(descriptor(PLAYER_DATA_LIMIT_EXCEEDED, DiagnosticSeverity.ERROR,
+                        "Player progression data exceeds a safety limit",
+                        "Unbounded NBT depth, entries, strings, arrays, or bytes can exhaust server resources.",
+                        "Restore a bounded snapshot or reduce the persisted payload before importing it.", false))
+                .register(descriptor(PLAYER_DATA_MIGRATION_FAILED, DiagnosticSeverity.ERROR,
+                        "Player progression data migration failed",
+                        "The stored data version could not be transformed into the current attachment contract.",
+                        "Keep the migration shadow, restore a backup, and provide every required version step.", false))
+                .register(descriptor(PLAYER_STATE_ORPHANED, DiagnosticSeverity.WARNING,
+                        "Persisted definition state is orphaned",
+                        "Its definition is missing, incompatible, or lacks an explicit identity replacement.",
+                        "Restore the compatible definition or declare an unambiguous same-kind alias/replacement.", false))
+                .register(descriptor(OFFLINE_OPERATION_QUARANTINED, DiagnosticSeverity.ERROR,
+                        "Pending offline operation is quarantined",
+                        "The operation expired, exceeded a limit, or no longer matches its pinned definition.",
+                        "Review the retained evidence and enqueue a newly validated operation if appropriate.", false))
+                .register(descriptor(SNAPSHOT_EXPORT_FAILED, DiagnosticSeverity.ERROR,
+                        "Player data snapshot or export failed",
+                        "The bounded attachment could not be written and verified atomically.",
+                        "Check world storage access and free space, then retry without modifying the source attachment.", false))
+                .register(descriptor(PLAYER_DATA_IDENTITY_MISMATCH, DiagnosticSeverity.ERROR,
+                        "Player data identity does not match its owner",
+                        "Loading one player's attachment for another player could transfer progression or receipts.",
+                        "Quarantine the payload and restore data whose embedded UUID matches the attachment owner.", false))
                 .build();
     }
 

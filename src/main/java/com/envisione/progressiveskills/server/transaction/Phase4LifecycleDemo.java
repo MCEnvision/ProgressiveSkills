@@ -21,7 +21,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.UUID;
 
-/** Session-only Phase 4 fixture that makes lifecycle behavior observable before Phase 5 persistence. */
+/** Phase 4 fixture retained as a visible persistence and lifecycle checkpoint. */
 public final class Phase4LifecycleDemo {
     public static final ResourceLocation DEMO_POINTS = id("demo_points");
     public static final EntitlementKey MAX_HEALTH = new EntitlementKey(

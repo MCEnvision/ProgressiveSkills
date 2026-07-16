@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(14, ids.size());
+        assertEquals(19, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(

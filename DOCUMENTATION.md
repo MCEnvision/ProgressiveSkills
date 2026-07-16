@@ -2,7 +2,7 @@
 
 ## Current scope
 
-This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, and Phase 4 transaction/lifecycle runtime. ProgressiveSkills does not yet provide skills or XP content. The base JAR now also validates and commits bounded revision-pinned transactions, resolves source-owned persistent values, protects transition actions with exact receipts, and records bounded audit evidence.
+This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, Phase 4 transaction/lifecycle runtime, and Phase 5 persistence/migration boundary. ProgressiveSkills does not yet provide skills or XP content. The base JAR now persists bounded revision-pinned transactions, exact receipts/replays, source-owned values, audit evidence, migration/quarantine state, and offline-operation recovery in explicit bounded stores.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ The release JAR is created at `build/libs/progressiveskills-1.0-SNAPSHOT.jar`.
 | Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, transaction resolution order, and requires at least 1,000 jqwik tries |
 | Compilation | `./gradlew build` | Compiles main, GameTest, and test sources with all warnings treated as errors |
 | Schema artifacts | `./gradlew verifySchemaArtifacts` | Regenerates schema outputs in `build/` and compares them byte-for-byte with the checked-in reference/editor catalog |
-| GameTest | `./gradlew runGameTestServer` | Boots NeoForge, loads the starter pack, exercises pack commands plus the Phase 4 lifecycle self-test, and fails without its success marker |
+| GameTest | `./gradlew runGameTestServer` | Boots NeoForge and exercises pack commands, lifecycle persistence/replay, offline-operation recovery, snapshot/export, and death/non-death attachment copying |
 | Dedicated server | `bash .ci/smoke-server.sh` | Requires an empty mods folder and production-only classpath, boots to `Done`, then shuts down |
 | Client | `bash .ci/smoke-client.sh` | Boots the production-only classpath under Xvfb and waits for the real title screen |
 | Release archive | `.ci/verify-release-jar.sh` | Rejects compiled test output, test libraries, retired identities, or unlocked metadata in the shipping JAR |
@@ -74,7 +74,7 @@ Only shared `component_spec` and `icon_spec` definitions have typed compilers at
 
 The server now has a side-neutral bounded transaction core with checked balances, definition/state revision pinning, exact idempotency, source-aware persistent ownership, transition receipts, deterministic child cascades, audit records, and a narrow rollback boundary. Recompute resolves only persistent ownership and structurally cannot replay transition actions.
 
-The first visible checkpoint is deliberately a session-only operator fixture:
+The first visible checkpoint remains an operator fixture and is now backed by the Phase 5 player attachment:
 
 ```text
 /ps lifecycle status
@@ -87,7 +87,21 @@ The first visible checkpoint is deliberately a session-only operator fixture:
 /ps lifecycle selftest
 ```
 
-It awards one checked demo point, delivers one receipt-protected gold ingot, and projects a +4 max-health value through two separately revocable owners. It is not pack content, a final command API, or persisted player progression. See [TRANSACTIONS_AND_LIFECYCLES.md](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md) for the contracts and exact in-game checkpoint.
+It awards one checked demo point, delivers one receipt-protected gold ingot, and projects a +4 max-health value through two separately revocable owners. It is not pack content or a final command API. Its exact transaction state now survives clean unload/restart and death replacement. See [TRANSACTIONS_AND_LIFECYCLES.md](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md) for the transaction contracts.
+
+## Phase 5 persistence and migrations
+
+Player progression is stored in a versioned `progressiveskills:player_data` attachment with death copying. Raw NBT limits and migrations run before typed decode; corrupt, future, oversized, or wrong-owner data fails closed into quarantine. Definition state records retain lineage so missing or incompatible content becomes inert/orphaned and can later restore safely.
+
+The overworld pending-operation store queues checked work for unloaded players and applies it only on login through a two-save receipt protocol. It does not rewrite offline player NBT. Loaded operators can inspect and export their state with:
+
+```text
+/ps persistence status
+/ps persistence snapshot
+/ps persistence export
+```
+
+See [PERSISTENCE_AND_MIGRATIONS.md](docs/architecture/PERSISTENCE_AND_MIGRATIONS.md) for limits, failure behavior, file locations, and the exact restart/death checkpoint.
 
 ## Optional integrations
 
@@ -105,8 +119,9 @@ No optional integration is currently compiled or loaded. Each adapter stays bloc
 | `/ps` says the registry is unavailable | Primary packs and every verified recovery generation failed | Inspect the `[ProgressiveSkills]` startup diagnostics, restore valid pack sources, then restart |
 | Publish says sources changed | A file changed after the reviewed dry-run | Run `/ps reload --dry-run` again, inspect `/ps diff`, then publish |
 | `/ps lifecycle demo` rejects before commit | The inventory is full, no player is targeted, or the session runtime/definitions are unavailable | Free one inventory slot, use the command in game as an operator, and confirm `/ps status` has a live generation |
-| Lifecycle values disappear after restart | Phase 4 intentionally uses session-only state | This is expected until Phase 5 installs the versioned player attachment and persistence/migration boundary |
+| Lifecycle state is quarantined after login | Stored data is malformed, future-version, oversized, or belongs to another player | Run `/ps persistence status`, preserve the reported digest/export evidence, and restore a compatible verified save rather than forcing projection |
+| Snapshot/export command fails | The attachment exceeds a ceiling or the world path cannot be written/verified | Check the command error, storage access, and free space; the source attachment remains unchanged |
 
 ## Next milestone
 
-Phase 5 adds the versioned player attachment, death-copy semantics, migrations/quarantine, pending offline operations, and snapshot/export primitives.
+Phase 6 adds the networking handshake and sanitized bounded definition/state projection required before the first gameplay vertical slice.

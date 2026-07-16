@@ -41,6 +41,11 @@ public final class CoreSchemas {
         builder.register(transitionAction());
         builder.register(entitlementContribution());
         builder.register(auditRecord());
+        builder.register(playerDataAttachment());
+        builder.register(storedDefinitionState());
+        builder.register(operationReceipt());
+        builder.register(pendingProgressionOperation());
+        builder.register(playerDataSnapshot());
         return builder.build();
     }
 
@@ -639,6 +644,202 @@ public final class CoreSchemas {
         );
     }
 
+    private static SchemaDescriptor playerDataAttachment() {
+        return schema(
+                "player_data_attachment",
+                SchemaAudience.INTERNAL,
+                "Versioned player data attachment",
+                "Bounded durable progression state with transaction truth, migration evidence, and fail-closed quarantine.",
+                List.of(
+                        runtimeField("data_version", SchemaValueType.INTEGER,
+                                "Persisted attachment contract version.", "2",
+                                CoreDiagnostics.PLAYER_DATA_MIGRATION_FAILED, 10).build(),
+                        runtimeOptionalField("death_marker", SchemaValueType.OBJECT,
+                                "Two-step death-copy operation marker and completion receipt.", "{ transaction_id = \"00000000-0000-0000-0000-000000000004\" }",
+                                CoreDiagnostics.PLAYER_DATA_QUARANTINED, 80).build(),
+                        runtimeField("definition_states", SchemaValueType.LIST,
+                                "Bounded typed states keyed by stable definition identity and lineage.", "[]",
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 50).build(),
+                        runtimeOptionalField("extensions", SchemaValueType.MAP,
+                                "Unknown bounded fields retained for forward-compatible round trips.", "{}",
+                                CoreDiagnostics.PLAYER_DATA_LIMIT_EXCEEDED, 110).build(),
+                        runtimeOptionalField("migration_shadow", SchemaValueType.OBJECT,
+                                "Bounded pre-migration raw evidence retained through the first successful save.", "{ source_version = 1 }",
+                                CoreDiagnostics.PLAYER_DATA_MIGRATION_FAILED, 90).build(),
+                        runtimeField("operation_receipts", SchemaValueType.LIST,
+                                "Exact same-attachment receipts for death and offline operation completion.", "[]",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 70).build(),
+                        runtimeField("orphans", SchemaValueType.LIST,
+                                "Persisted definition state awaiting a compatible definition or explicit replacement.", "[]",
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 60).build(),
+                        runtimeField("player_id", SchemaValueType.STRING,
+                                "UUID that must match the attachment owner.", "00000000-0000-0000-0000-000000000001",
+                                CoreDiagnostics.PLAYER_DATA_IDENTITY_MISMATCH, 20).build(),
+                        runtimeOptionalField("quarantine", SchemaValueType.OBJECT,
+                                "Fail-closed reason, digest, and bounded raw evidence.", "{ reason = \"future data version\" }",
+                                CoreDiagnostics.PLAYER_DATA_QUARANTINED, 100).build(),
+                        runtimeOptionalField("state_definition", SchemaValueType.OBJECT,
+                                "Definition generation and digest associated with the persisted account.", "{ generation = 7 }",
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 35).build(),
+                        runtimeField("status", SchemaValueType.ENUM,
+                                "Active or quarantined projection state.", "ACTIVE",
+                                CoreDiagnostics.PLAYER_DATA_QUARANTINED, 25)
+                                .allowedValues("ACTIVE", "QUARANTINED").build(),
+                        runtimeField("storage_revision", SchemaValueType.INTEGER,
+                                "Monotonic attachment mutation revision.", "12",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 30).build(),
+                        runtimeField("transaction", SchemaValueType.OBJECT,
+                                "Exact revision, balances, ownership, receipts, replay results, and audit state.", "{ state_revision = 12 }",
+                                CoreDiagnostics.TRANSACTION_LEDGER_FULL, 40).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor storedDefinitionState() {
+        return schema(
+                "stored_definition_state",
+                SchemaAudience.INTERNAL,
+                "Stored definition state",
+                "Versioned per-definition payload whose stable lineage supports explicit aliases and compatible restoration.",
+                List.of(
+                        runtimeField("id", SchemaValueType.RESOURCE_LOCATION,
+                                "Stable definition identity.", "mypack:physique",
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 10).build(),
+                        runtimeField("kind", SchemaValueType.RESOURCE_LOCATION,
+                                "Typed definition-kind identity.", "progressiveskills:skill",
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 15).build(),
+                        runtimeField("kind_directory", SchemaValueType.STRING,
+                                "Source directory retained for provider-defined kinds.", "skills",
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 17).build(),
+                        runtimeField("lineage", SchemaValueType.STRING,
+                                "Semantic lineage required for compatibility checks.", "a".repeat(64),
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 20).build(),
+                        runtimeField("origin_lineage", SchemaValueType.STRING,
+                                "Original lineage retained across an explicit identity replacement.", "b".repeat(64),
+                                CoreDiagnostics.PLAYER_STATE_ORPHANED, 30).build(),
+                        runtimeField("payload", SchemaValueType.OBJECT,
+                                "Bounded definition-specific NBT.", "{ level = 4 }",
+                                CoreDiagnostics.PLAYER_DATA_LIMIT_EXCEEDED, 50).build(),
+                        runtimeField("payload_version", SchemaValueType.INTEGER,
+                                "Definition payload contract version.", "1",
+                                CoreDiagnostics.PLAYER_DATA_MIGRATION_FAILED, 40).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor operationReceipt() {
+        return schema(
+                "operation_receipt",
+                SchemaAudience.INTERNAL,
+                "Durable operation receipt",
+                "Bounded same-attachment evidence that an offline or death-copy operation completed.",
+                List.of(
+                        runtimeField("applied_at", SchemaValueType.INTEGER,
+                                "Authoritative completion epoch milliseconds.", "1784203200000",
+                                CoreDiagnostics.PLAYER_DATA_QUARANTINED, 40).build(),
+                        runtimeField("detail", SchemaValueType.STRING,
+                                "Bounded operator-readable completion detail.", "Pending offline operation applied",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 60).build(),
+                        runtimeField("operation_id", SchemaValueType.STRING,
+                                "Stable operation identity used for exact replay suppression.", "offline/fixture/1",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 10).build(),
+                        runtimeField("operation_type", SchemaValueType.STRING,
+                                "Bounded operation family.", "offline",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 20).build(),
+                        runtimeField("resulting_revision", SchemaValueType.INTEGER,
+                                "Transaction revision that contains the completed operation.", "12",
+                                CoreDiagnostics.STALE_TRANSACTION_STATE, 40).build(),
+                        runtimeField("transaction_id", SchemaValueType.STRING,
+                                "Transaction identity associated with the operation.", "00000000-0000-0000-0000-000000000003",
+                                CoreDiagnostics.TRANSACTION_LEDGER_FULL, 30).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor pendingProgressionOperation() {
+        return schema(
+                "pending_progression_operation",
+                SchemaAudience.INTERNAL,
+                "Pending offline progression operation",
+                "Version- and definition-pinned operation applied only while the target player is online.",
+                List.of(
+                        runtimeField("balance_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Canonical balance definition identity.", "mypack:renown",
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 70).build(),
+                        runtimeField("created_at", SchemaValueType.INTEGER,
+                                "Authoritative creation epoch milliseconds.", "1784203200000",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 35).build(),
+                        runtimeField("definition_digest", SchemaValueType.STRING,
+                                "Pinned lowercase SHA-256 definition digest.", "a".repeat(64),
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 60).build(),
+                        runtimeField("definition_generation", SchemaValueType.INTEGER,
+                                "Pinned live definition generation.", "7",
+                                CoreDiagnostics.STALE_TRANSACTION_DEFINITION, 50).build(),
+                        runtimeField("delta", SchemaValueType.INTEGER,
+                                "Checked signed balance delta.", "25",
+                                CoreDiagnostics.BALANCE_TRANSACTION_REJECTED, 80).build(),
+                        runtimeField("expires_at", SchemaValueType.INTEGER,
+                                "Hard expiry epoch milliseconds after which the operation is quarantined.", "1784289600000",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 40).build(),
+                        runtimeField("issuer_id", SchemaValueType.STRING,
+                                "Authoritative issuer UUID.", "00000000-0000-0000-0000-000000000001",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 20).build(),
+                        runtimeField("operation_id", SchemaValueType.STRING,
+                                "Stable queue and receipt identity.", "offline/fixture/1",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 10).build(),
+                        runtimeOptionalField("last_attempt_id", SchemaValueType.STRING,
+                                "Login-attempt UUID retained until later receipt confirmation.",
+                                "00000000-0000-0000-0000-000000000004",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 100).build(),
+                        runtimeField("maximum", SchemaValueType.INTEGER,
+                                "Inclusive checked post-mutation ceiling.", "1000",
+                                CoreDiagnostics.BALANCE_TRANSACTION_REJECTED, 90).build(),
+                        runtimeField("minimum", SchemaValueType.INTEGER,
+                                "Inclusive checked post-mutation floor.", "0",
+                                CoreDiagnostics.BALANCE_TRANSACTION_REJECTED, 85).build(),
+                        runtimeOptionalField("quarantine_reason", SchemaValueType.STRING,
+                                "Bounded evidence when the operation cannot apply safely.", "Pending operation expired",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 110).build(),
+                        runtimeField("reward_eligible", SchemaValueType.BOOLEAN,
+                                "Whether the operation may participate in an explicitly allowed reward path.", "false",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 80).build(),
+                        runtimeField("status", SchemaValueType.ENUM,
+                                "Pending or quarantined queue state.", "PENDING",
+                                CoreDiagnostics.OFFLINE_OPERATION_QUARANTINED, 95)
+                                .allowedValues("PENDING", "QUARANTINED").build(),
+                        runtimeField("target_id", SchemaValueType.STRING,
+                                "Target player UUID; no offline player NBT is opened.", "00000000-0000-0000-0000-000000000002",
+                                CoreDiagnostics.PLAYER_DATA_IDENTITY_MISMATCH, 30).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor playerDataSnapshot() {
+        return schema(
+                "player_data_snapshot",
+                SchemaAudience.INTERNAL,
+                "Player data snapshot",
+                "Atomically written, reread, and digest-verified recovery envelope for one attachment.",
+                List.of(
+                        runtimeField("player_data", SchemaValueType.OBJECT,
+                                "Bounded serialized player attachment.", "{ data_version = 2 }",
+                                CoreDiagnostics.PLAYER_DATA_QUARANTINED, 40).build(),
+                        runtimeField("created_at", SchemaValueType.INTEGER,
+                                "Authoritative snapshot epoch milliseconds.", "1784203200000",
+                                CoreDiagnostics.SNAPSHOT_EXPORT_FAILED, 30).build(),
+                        runtimeField("player_data_digest", SchemaValueType.STRING,
+                                "SHA-256 digest verified after the atomic write.", "a".repeat(64),
+                                CoreDiagnostics.SNAPSHOT_EXPORT_FAILED, 50).build(),
+                        runtimeField("snapshot_version", SchemaValueType.INTEGER,
+                                "Snapshot envelope contract version.", "1",
+                                CoreDiagnostics.SNAPSHOT_EXPORT_FAILED, 10).build(),
+                        runtimeField("player_id", SchemaValueType.STRING,
+                                "UUID whose attachment is enclosed.", "00000000-0000-0000-0000-000000000001",
+                                CoreDiagnostics.PLAYER_DATA_IDENTITY_MISMATCH, 20).build()
+                )
+        );
+    }
+
     private static FieldDescriptor internalField(
             String path,
             SchemaValueType type,
@@ -661,6 +862,18 @@ public final class CoreSchemas {
             int order
     ) {
         return field(path, type, true, description, example, diagnostic, EditorWidget.OBJECT, order)
+                .projection(ProjectionPolicy.SERVER_ONLY);
+    }
+
+    private static FieldDescriptor.Builder runtimeOptionalField(
+            String path,
+            SchemaValueType type,
+            String description,
+            String example,
+            DiagnosticCode diagnostic,
+            int order
+    ) {
+        return field(path, type, false, description, example, diagnostic, EditorWidget.OBJECT, order)
                 .projection(ProjectionPolicy.SERVER_ONLY);
     }
 

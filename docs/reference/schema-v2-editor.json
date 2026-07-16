@@ -1141,6 +1141,131 @@
       ]
     },
     {
+      "id": "progressiveskills:operation_receipt",
+      "version": 2,
+      "audience": "internal",
+      "title": "Durable operation receipt",
+      "description": "Bounded same-attachment evidence that an offline or death-copy operation completed.",
+      "fields": [
+        {
+          "path": "applied_at",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative completion epoch milliseconds.",
+          "example": "1784203200000",
+          "diagnostic": "PS-DATA-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Authoritative completion epoch milliseconds."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "detail",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded operator-readable completion detail.",
+          "example": "Pending offline operation applied",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Bounded operator-readable completion detail."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable operation identity used for exact replay suppression.",
+          "example": "offline/fixture/1",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable operation identity used for exact replay suppression."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation_type",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded operation family.",
+          "example": "offline",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Bounded operation family."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "resulting_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Transaction revision that contains the completed operation.",
+          "example": "12",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Transaction revision that contains the completed operation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "transaction_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Transaction identity associated with the operation.",
+          "example": "00000000-0000-0000-0000-000000000003",
+          "diagnostic": "PS-TX-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Transaction identity associated with the operation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:pack_manifest",
       "version": 2,
       "audience": "authoring",
@@ -1722,6 +1847,666 @@
       ]
     },
     {
+      "id": "progressiveskills:pending_progression_operation",
+      "version": 2,
+      "audience": "internal",
+      "title": "Pending offline progression operation",
+      "description": "Version- and definition-pinned operation applied only while the target player is online.",
+      "fields": [
+        {
+          "path": "balance_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Canonical balance definition identity.",
+          "example": "mypack:renown",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Canonical balance definition identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "created_at",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative creation epoch milliseconds.",
+          "example": "1784203200000",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 35,
+            "help": "Authoritative creation epoch milliseconds."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned lowercase SHA-256 definition digest.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Pinned lowercase SHA-256 definition digest."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned live definition generation.",
+          "example": "7",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Pinned live definition generation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "delta",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Checked signed balance delta.",
+          "example": "25",
+          "diagnostic": "PS-TX-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Checked signed balance delta."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "expires_at",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Hard expiry epoch milliseconds after which the operation is quarantined.",
+          "example": "1784289600000",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Hard expiry epoch milliseconds after which the operation is quarantined."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "issuer_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative issuer UUID.",
+          "example": "00000000-0000-0000-0000-000000000001",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Authoritative issuer UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "last_attempt_id",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Login-attempt UUID retained until later receipt confirmation.",
+          "example": "00000000-0000-0000-0000-000000000004",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 100,
+            "help": "Login-attempt UUID retained until later receipt confirmation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "maximum",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Inclusive checked post-mutation ceiling.",
+          "example": "1000",
+          "diagnostic": "PS-TX-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Inclusive checked post-mutation ceiling."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "minimum",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Inclusive checked post-mutation floor.",
+          "example": "0",
+          "diagnostic": "PS-TX-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 85,
+            "help": "Inclusive checked post-mutation floor."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable queue and receipt identity.",
+          "example": "offline/fixture/1",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable queue and receipt identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "quarantine_reason",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded evidence when the operation cannot apply safely.",
+          "example": "Pending operation expired",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 110,
+            "help": "Bounded evidence when the operation cannot apply safely."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "reward_eligible",
+          "type": "boolean",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Whether the operation may participate in an explicitly allowed reward path.",
+          "example": "false",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Whether the operation may participate in an explicitly allowed reward path."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "status",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["PENDING", "QUARANTINED"],
+          "default": null,
+          "description": "Pending or quarantined queue state.",
+          "example": "PENDING",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 95,
+            "help": "Pending or quarantined queue state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "target_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Target player UUID; no offline player NBT is opened.",
+          "example": "00000000-0000-0000-0000-000000000002",
+          "diagnostic": "PS-DATA-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Target player UUID; no offline player NBT is opened."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:player_data_attachment",
+      "version": 2,
+      "audience": "internal",
+      "title": "Versioned player data attachment",
+      "description": "Bounded durable progression state with transaction truth, migration evidence, and fail-closed quarantine.",
+      "fields": [
+        {
+          "path": "data_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Persisted attachment contract version.",
+          "example": "2",
+          "diagnostic": "PS-DATA-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Persisted attachment contract version."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "death_marker",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Two-step death-copy operation marker and completion receipt.",
+          "example": "{ transaction_id = \"00000000-0000-0000-0000-000000000004\" }",
+          "diagnostic": "PS-DATA-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Two-step death-copy operation marker and completion receipt."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_states",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded typed states keyed by stable definition identity and lineage.",
+          "example": "[]",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Bounded typed states keyed by stable definition identity and lineage."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "extensions",
+          "type": "map",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Unknown bounded fields retained for forward-compatible round trips.",
+          "example": "{}",
+          "diagnostic": "PS-DATA-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 110,
+            "help": "Unknown bounded fields retained for forward-compatible round trips."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "migration_shadow",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded pre-migration raw evidence retained through the first successful save.",
+          "example": "{ source_version = 1 }",
+          "diagnostic": "PS-DATA-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Bounded pre-migration raw evidence retained through the first successful save."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation_receipts",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exact same-attachment receipts for death and offline operation completion.",
+          "example": "[]",
+          "diagnostic": "PS-DATA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Exact same-attachment receipts for death and offline operation completion."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "orphans",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Persisted definition state awaiting a compatible definition or explicit replacement.",
+          "example": "[]",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Persisted definition state awaiting a compatible definition or explicit replacement."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "player_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "UUID that must match the attachment owner.",
+          "example": "00000000-0000-0000-0000-000000000001",
+          "diagnostic": "PS-DATA-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "UUID that must match the attachment owner."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "quarantine",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Fail-closed reason, digest, and bounded raw evidence.",
+          "example": "{ reason = \"future data version\" }",
+          "diagnostic": "PS-DATA-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 100,
+            "help": "Fail-closed reason, digest, and bounded raw evidence."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state_definition",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition generation and digest associated with the persisted account.",
+          "example": "{ generation = 7 }",
+          "diagnostic": "PS-TX-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 35,
+            "help": "Definition generation and digest associated with the persisted account."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "status",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["ACTIVE", "QUARANTINED"],
+          "default": null,
+          "description": "Active or quarantined projection state.",
+          "example": "ACTIVE",
+          "diagnostic": "PS-DATA-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 25,
+            "help": "Active or quarantined projection state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "storage_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic attachment mutation revision.",
+          "example": "12",
+          "diagnostic": "PS-TX-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Monotonic attachment mutation revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "transaction",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exact revision, balances, ownership, receipts, replay results, and audit state.",
+          "example": "{ state_revision = 12 }",
+          "diagnostic": "PS-TX-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Exact revision, balances, ownership, receipts, replay results, and audit state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:player_data_snapshot",
+      "version": 2,
+      "audience": "internal",
+      "title": "Player data snapshot",
+      "description": "Atomically written, reread, and digest-verified recovery envelope for one attachment.",
+      "fields": [
+        {
+          "path": "created_at",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative snapshot epoch milliseconds.",
+          "example": "1784203200000",
+          "diagnostic": "PS-DATA-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Authoritative snapshot epoch milliseconds."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "player_data",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded serialized player attachment.",
+          "example": "{ data_version = 2 }",
+          "diagnostic": "PS-DATA-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Bounded serialized player attachment."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "player_data_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA-256 digest verified after the atomic write.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-DATA-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "SHA-256 digest verified after the atomic write."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "player_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "UUID whose attachment is enclosed.",
+          "example": "00000000-0000-0000-0000-000000000001",
+          "diagnostic": "PS-DATA-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "UUID whose attachment is enclosed."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "snapshot_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Snapshot envelope contract version.",
+          "example": "1",
+          "diagnostic": "PS-DATA-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Snapshot envelope contract version."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:source_span",
       "version": 2,
       "audience": "internal",
@@ -1780,6 +2565,150 @@
             "group": "core",
             "order": 20,
             "help": "Inclusive one-based starting position."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:stored_definition_state",
+      "version": 2,
+      "audience": "internal",
+      "title": "Stored definition state",
+      "description": "Versioned per-definition payload whose stable lineage supports explicit aliases and compatible restoration.",
+      "fields": [
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable definition identity.",
+          "example": "mypack:physique",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable definition identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed definition-kind identity.",
+          "example": "progressiveskills:skill",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 15,
+            "help": "Typed definition-kind identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind_directory",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Source directory retained for provider-defined kinds.",
+          "example": "skills",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 17,
+            "help": "Source directory retained for provider-defined kinds."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "lineage",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Semantic lineage required for compatibility checks.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Semantic lineage required for compatibility checks."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "origin_lineage",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Original lineage retained across an explicit identity replacement.",
+          "example": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "diagnostic": "PS-DATA-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Original lineage retained across an explicit identity replacement."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "payload",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded definition-specific NBT.",
+          "example": "{ level = 4 }",
+          "diagnostic": "PS-DATA-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Bounded definition-specific NBT."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "payload_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition payload contract version.",
+          "example": "1",
+          "diagnostic": "PS-DATA-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Definition payload contract version."
           },
           "projection": "server_only",
           "diff": "replace",
@@ -1963,7 +2892,7 @@
           "path": "cause",
           "type": "enum",
           "required": true,
-          "allowed_values": ["gameplay", "character_creation", "admin", "migration", "reload", "reconcile"],
+          "allowed_values": ["gameplay", "character_creation", "admin", "offline_operation", "migration", "reload", "reconcile"],
           "default": null,
           "description": "Typed progression origin.",
           "example": "gameplay",
@@ -2288,6 +3217,69 @@
       "fix": "Add a short, meaningful alt component.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-a11y-001",
       "suppressible": true
+    },
+    {
+      "code": "PS-DATA-001",
+      "severity": "error",
+      "title": "Player progression data is quarantined",
+      "why": "Unknown, malformed, or unsafe persisted data cannot be projected without risking corruption.",
+      "fix": "Export the quarantined evidence, restore a verified snapshot, or install a compatible migration.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-002",
+      "severity": "error",
+      "title": "Player progression data exceeds a safety limit",
+      "why": "Unbounded NBT depth, entries, strings, arrays, or bytes can exhaust server resources.",
+      "fix": "Restore a bounded snapshot or reduce the persisted payload before importing it.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-003",
+      "severity": "error",
+      "title": "Player progression data migration failed",
+      "why": "The stored data version could not be transformed into the current attachment contract.",
+      "fix": "Keep the migration shadow, restore a backup, and provide every required version step.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-004",
+      "severity": "warning",
+      "title": "Persisted definition state is orphaned",
+      "why": "Its definition is missing, incompatible, or lacks an explicit identity replacement.",
+      "fix": "Restore the compatible definition or declare an unambiguous same-kind alias/replacement.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-005",
+      "severity": "error",
+      "title": "Pending offline operation is quarantined",
+      "why": "The operation expired, exceeded a limit, or no longer matches its pinned definition.",
+      "fix": "Review the retained evidence and enqueue a newly validated operation if appropriate.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-006",
+      "severity": "error",
+      "title": "Player data snapshot or export failed",
+      "why": "The bounded attachment could not be written and verified atomically.",
+      "fix": "Check world storage access and free space, then retry without modifying the source attachment.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-DATA-007",
+      "severity": "error",
+      "title": "Player data identity does not match its owner",
+      "why": "Loading one player's attachment for another player could transfer progression or receipts.",
+      "fix": "Quarantine the payload and restore data whose embedded UUID matches the attachment owner.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-data-007",
+      "suppressible": false
     },
     {
       "code": "PS-I18N-001",

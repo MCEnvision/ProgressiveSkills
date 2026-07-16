@@ -1,6 +1,6 @@
 # ProgressiveSkills
 
-ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. Phases 1–4 of the master plan now provide a reproducible side-safe foundation, immutable schema/IR, a staged TOML content-pack loader, and the bounded transaction/lifecycle runtime required by later gameplay. Skills and XP are intentionally not implemented yet.
+ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. Phases 1–5 of the master plan now provide a reproducible side-safe foundation, immutable schema/IR, a staged TOML content-pack loader, bounded transaction/lifecycle runtime, and versioned player persistence/migrations. Skills and XP are intentionally not implemented yet.
 
 ## Locked baseline
 
@@ -28,6 +28,6 @@ bash .ci/smoke-client.sh
 
 The client smoke requires `xvfb-run` on headless Linux. Test reports are written below `build/reports/`; runtime logs are isolated below `run/<configuration>/logs/`.
 
-See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and testing, [the transaction/lifecycle architecture](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md), [the content-pack architecture](docs/architecture/CONTENT_PACKS.md), [the schema/IR architecture](docs/architecture/SCHEMA_AND_IR.md), [the generated schema reference](docs/reference/SCHEMA-V2.md), [the package boundary policy](docs/architecture/PACKAGE_BOUNDARIES.md), [the compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), [PERF-001](docs/performance/PERF-001.md), and the [Phase 1](docs/verification/PHASE-1.md), [Phase 2](docs/verification/PHASE-2.md), [Phase 3](docs/verification/PHASE-3.md), and [Phase 4](docs/verification/PHASE-4.md) evidence records.
+See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and testing, [the persistence/migration architecture](docs/architecture/PERSISTENCE_AND_MIGRATIONS.md), [the transaction/lifecycle architecture](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md), [the content-pack architecture](docs/architecture/CONTENT_PACKS.md), [the schema/IR architecture](docs/architecture/SCHEMA_AND_IR.md), [the generated schema reference](docs/reference/SCHEMA-V2.md), [the package boundary policy](docs/architecture/PACKAGE_BOUNDARIES.md), [the compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), [PERF-001](docs/performance/PERF-001.md), and the [Phase 1](docs/verification/PHASE-1.md), [Phase 2](docs/verification/PHASE-2.md), [Phase 3](docs/verification/PHASE-3.md), [Phase 4](docs/verification/PHASE-4.md), and [Phase 5](docs/verification/PHASE-5.md) evidence records.
 
-Phase 4 adds revision-pinned checked transactions, exact idempotency/receipts, source-owned persistent projection, edge-only actions, audit, and a narrow rollback boundary. Use `/ps help` in a cheats-enabled development world. The `/ps lifecycle` fixture is session-only until Phase 5 implements the player attachment and migration/persistence boundary.
+Phase 5 backs that transaction state with a versioned death-copying player attachment, raw migrations/quarantine, definition orphan/restore rules, a pending offline-operation store, and verified snapshot/export primitives. Use `/ps help`, `/ps lifecycle`, and `/ps persistence` in a cheats-enabled development world.

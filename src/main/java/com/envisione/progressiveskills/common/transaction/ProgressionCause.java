@@ -5,6 +5,7 @@ public enum ProgressionCause {
     GAMEPLAY,
     CHARACTER_CREATION,
     ADMIN,
+    OFFLINE_OPERATION,
     MIGRATION,
     RELOAD,
     RECONCILE

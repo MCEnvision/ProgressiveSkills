@@ -378,6 +378,68 @@ public final class ProgressionTransactionService {
         return account == null ? Optional.empty() : Optional.ofNullable(account.receipts.get(key));
     }
 
+    /** Returns the exact durable state needed to resume idempotently after a player unload or restart. */
+    public synchronized PersistedTransactionState exportAccount(UUID targetId) {
+        Objects.requireNonNull(targetId, "targetId");
+        Account account = accounts.get(targetId);
+        return account == null ? PersistedTransactionState.empty() : account.persistedState();
+    }
+
+    /**
+     * Restores one durable account without projecting it. Callers must keep quarantined data out of
+     * this method and invoke {@link #forceReproject(UUID, PersistentProjector)} after a successful load.
+     */
+    public synchronized void restoreAccount(UUID targetId, PersistedTransactionState state) {
+        Objects.requireNonNull(targetId, "targetId");
+        Objects.requireNonNull(state, "state");
+        if (state.receipts().size() > maxReceiptsPerAccount
+                || state.idempotencyResults().size() > maxIdempotencyResultsPerAccount
+                || state.auditRecords().size() > maxAuditRecordsPerAccount) {
+            throw new IllegalArgumentException("Persisted transaction state exceeds configured ledger limits");
+        }
+        for (AuditRecord record : state.auditRecords()) {
+            if (!record.targetId().equals(targetId)) {
+                throw new IllegalArgumentException("Persisted audit target does not match attachment owner");
+            }
+        }
+        Map<EntitlementKey, Long> projected = resolveEffective(state.ownership());
+        Account existing = accounts.get(targetId);
+        if (existing != null) {
+            if (existing.revision > state.stateRevision()) {
+                return;
+            }
+            if (existing.revision == state.stateRevision()) {
+                if (!existing.persistedState().equals(state)) {
+                    throw new IllegalStateException("Equal-revision persisted state differs from the live account");
+                }
+                return;
+            }
+        } else if (accounts.size() >= maxAccounts) {
+            throw new IllegalStateException("Transaction account capacity is full");
+        }
+
+        Account restored = existing == null ? new Account() : existing;
+        restored.install(new CoreState(
+                state.stateRevision(),
+                copyBalances(state.balances()),
+                copyOwnership(state.ownership()),
+                new TreeMap<>(projected)
+        ), state.stateRevision());
+        restored.receipts.clear();
+        restored.receipts.putAll(state.receipts());
+        restored.idempotencyResults.clear();
+        restored.idempotencyResults.putAll(state.idempotencyResults());
+        restored.auditRecords.clear();
+        restored.auditRecords.addAll(state.auditRecords());
+        restored.rollbackRecords.clear();
+        accounts.put(targetId, restored);
+    }
+
+    /** Removes an unloaded player's cache entry after its attachment has captured the exported state. */
+    public synchronized void unloadAccount(UUID targetId) {
+        accounts.remove(Objects.requireNonNull(targetId, "targetId"));
+    }
+
     private Account accountFor(UUID targetId) {
         Account existing = accounts.get(targetId);
         if (existing != null) {
@@ -697,6 +759,17 @@ public final class ProgressionTransactionService {
                     receipts.size(),
                     idempotencyResults.size(),
                     auditRecords.size()
+            );
+        }
+
+        private PersistedTransactionState persistedState() {
+            return new PersistedTransactionState(
+                    revision,
+                    balances,
+                    ownership,
+                    receipts,
+                    idempotencyResults,
+                    List.copyOf(auditRecords)
             );
         }
     }

@@ -1,6 +1,6 @@
 # Transactions and Output Lifecycles
 
-Status: Phase 4 implemented as a side-neutral transaction core plus a session-only server demonstration. Player attachment persistence begins in Phase 5.
+Status: Phase 4 transaction core implemented and backed by the Phase 5 versioned player attachment.
 
 ## Scope and boundary
 
@@ -19,7 +19,7 @@ Phase 4 implements the mutation and lifecycle machinery required before skills, 
 
 `common.transaction` contains only side-neutral plans, identities, immutable results, and the bounded coordinator. Minecraft attributes, inventory delivery, player lookup, events, and commands remain under `server.transaction` and `server.command`.
 
-Phase 4 does not claim player-save persistence, death copying, offline mutation, networking, gameplay schemas, or skill/XP behavior. Its server state deliberately lasts only for the current server session. Phase 5 replaces that temporary authority with the versioned player attachment and migration boundary.
+Phase 4 itself does not provide networking, gameplay schemas, or skill/XP behavior. Phase 5 now persists the complete bounded account state, restores it before projection, distinguishes death/non-death copies, and queues offline work for login rather than editing unloaded player files. The exact storage and failure contracts are documented in [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md).
 
 ## Transaction pipeline
 
@@ -44,7 +44,7 @@ No child mutation executes recursively. Oversized steps/cascades are rejected du
 
 An `IdempotencyKey` is a bounded caller identity. The service stores every terminal result, including ordinary rejections, and returns the same transaction UUID and outcome for a replay. Exact idempotency entries are not evicted; a full ledger rejects new work before mutation.
 
-The session runtime is capped at 256 accounts, 512 exact receipts and 512 idempotency results per account, and 256 retained audit records per account. These are temporary Phase 4 safety ceilings, not the Phase 5 persistence configuration contract.
+The online cache is capped at 256 loaded accounts. Each persisted account is capped at 512 exact transition receipts, 512 idempotency results, and 256 retained audit records; a full exact ledger rejects new work before mutation.
 
 The Phase 4 demo uses a stable primary key. Running `/ps lifecycle demo` twice therefore cannot add another point, item, health owner, revision, or audit mutation.
 
@@ -83,7 +83,7 @@ A `TransitionAction` declares:
 
 Receipt-required actions reserve exact-ledger capacity before commit. A successful action records its definition revision, transaction ID, delivery time, contract, and adapter detail. Existing receipts skip delivery deterministically. Permanent receipts are not age/count evicted; full capacity rejects the transaction.
 
-Physical actions execute after state commit. A late adapter failure therefore produces `COMMITTED_WITH_ACTION_FAILURES`; it never pretends the external action was rolled back. Phase 4 has no durable outbox or automatic crash retry. Those persistence semantics begin in Phase 5.
+Physical actions execute after state commit. A late adapter failure therefore produces `COMMITTED_WITH_ACTION_FAILURES`; it never pretends the external action was rolled back. Phase 5 durably serializes the result/receipt state on clean saves but still does not claim a universal atomic commit with inventories, drops, commands, or external providers. Pending offline balance operations use their separate two-save recovery protocol.
 
 The in-game fixture supports only a prevalidated one-stack item delivery. Unknown types/items, excessive amounts, offline targets, and full inventories reject before state commit.
 
@@ -104,7 +104,7 @@ A successful rollback is a new transaction with a new, greater state revision. I
 
 | Command | Purpose |
 |---|---|
-| `/ps lifecycle status` | Show session revision, demo points, health bonus/owner count, receipts, and audit count. |
+| `/ps lifecycle status` | Show persisted revision, demo points, health bonus/owner count, receipts, and audit count. |
 | `/ps lifecycle demo` | Commit or replay the primary point + health-owner + gold-ingot transaction. |
 | `/ps lifecycle coowner` | Add a second equal owner without stacking the `highest` value. |
 | `/ps lifecycle recompute` | Re-resolve persistent owners and prove zero transition execution. |
@@ -113,7 +113,7 @@ A successful rollback is a new transaction with a new, greater state revision. I
 | `/ps lifecycle audit` | Show the latest bounded transaction records. |
 | `/ps lifecycle selftest` | Run a player-independent executable invariant proof; usable from GameTest/console. |
 
-All player-mutating lifecycle commands require an in-game operator and execute on that player. The fixture is a development checkpoint, not pack content or a supported player progression system.
+All player-mutating lifecycle commands require an in-game operator and execute on that player. The fixture is a development checkpoint, not pack content or a supported player progression system. Phase 5 preserves its account state across clean unload, restart, and death replacement.
 
 ## Manual in-game checkpoint
 
@@ -128,4 +128,4 @@ Use a cheats-enabled development world with at least one free inventory slot:
 7. `/ps lifecycle revoke secondary` — expect revision 4, zero owners, and the bonus removed.
 8. `/ps lifecycle audit` — expect four committed mutation records; replay and recompute do not add mutation records.
 
-Restarting the server clears this Phase 4 session fixture. That is intentional evidence that Phase 5 persistence has not been silently claimed.
+The original Phase 4 command sequence is accepted. The Phase 5 restart/death extension is the manual checkpoint in [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md#manual-in-game-checkpoint).

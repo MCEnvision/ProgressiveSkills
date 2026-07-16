@@ -93,7 +93,8 @@ public final class PackCommands {
 
     private static int help(CommandSourceStack source) {
         success(source, "Available: /ps status, validate, reload --dry-run|--publish, diff, info pack, "
-                + "info <kind> <id>, lifecycle status|demo|coowner|recompute|revoke|audit|selftest");
+                + "info <kind> <id>, lifecycle status|demo|coowner|recompute|revoke|audit|selftest, "
+                + "persistence status|snapshot|export");
         return 1;
     }
 

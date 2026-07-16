@@ -53,7 +53,7 @@ public final class TransactionCommands {
             return 0;
         }
         sendStatus(source, context.service().snapshot(player.getUUID()));
-        success(source, "Phase 4 state is session-only until the Phase 5 attachment/persistence milestone.");
+        success(source, "Lifecycle state is backed by the Phase 5 versioned player attachment.");
         return 1;
     }
 
@@ -69,9 +69,8 @@ public final class TransactionCommands {
                 player.getUUID(), player.getUUID(), context.service().snapshot(player.getUUID()),
                 definition.orElseThrow()
         );
-        return report(source, context.service().execute(
-                plan, definition.orElseThrow(), context.projector(), context.actionExecutor()
-        ), context.service().snapshot(player.getUUID()));
+        return report(source, context.executeAndPersist(player, plan, definition.orElseThrow()),
+                context.service().snapshot(player.getUUID()));
     }
 
     private static int coowner(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -86,9 +85,8 @@ public final class TransactionCommands {
                 player.getUUID(), player.getUUID(), context.service().snapshot(player.getUUID()),
                 definition.orElseThrow()
         );
-        return report(source, context.service().execute(
-                plan, definition.orElseThrow(), context.projector(), context.actionExecutor()
-        ), context.service().snapshot(player.getUUID()));
+        return report(source, context.executeAndPersist(player, plan, definition.orElseThrow()),
+                context.service().snapshot(player.getUUID()));
     }
 
     private static int revoke(
@@ -106,9 +104,8 @@ public final class TransactionCommands {
                 player.getUUID(), player.getUUID(), context.service().snapshot(player.getUUID()),
                 definition.orElseThrow(), primary
         );
-        return report(source, context.service().execute(
-                plan, definition.orElseThrow(), context.projector(), context.actionExecutor()
-        ), context.service().snapshot(player.getUUID()));
+        return report(source, context.executeAndPersist(player, plan, definition.orElseThrow()),
+                context.service().snapshot(player.getUUID()));
     }
 
     private static int recompute(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -136,7 +133,7 @@ public final class TransactionCommands {
         }
         var records = context.service().audit(player.getUUID());
         if (records.isEmpty()) {
-            success(source, "No Phase 4 session audit records exist for this player.");
+            success(source, "No persisted lifecycle audit records exist for this player.");
             return 1;
         }
         int start = Math.max(0, records.size() - MAX_AUDIT_LINES);

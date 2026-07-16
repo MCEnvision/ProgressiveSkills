@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 4. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 5. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -200,6 +200,23 @@ Cross-field constraints:
 
 - `exactly_one` → `value`, `values` (`PS-SCHEMA-006`): Use value for a single/tag identity or values for composite badge layers.
 
+## Durable operation receipt
+
+- Schema ID: `progressiveskills:operation_receipt`
+- Version: `2`
+- Audience: `internal`
+
+Bounded same-attachment evidence that an offline or death-copy operation completed.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `applied_at` (required) | `integer` | — | — | Authoritative completion epoch milliseconds. | `1784203200000` | `PS-DATA-001` | `object` | `server_only` | `replace` |
+| `detail` (required) | `string` | — | — | Bounded operator-readable completion detail. | `Pending offline operation applied` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `operation_id` (required) | `string` | — | — | Stable operation identity used for exact replay suppression. | `offline/fixture/1` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `operation_type` (required) | `string` | — | — | Bounded operation family. | `offline` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `resulting_revision` (required) | `integer` | — | — | Transaction revision that contains the completed operation. | `12` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `transaction_id` (required) | `string` | — | — | Transaction identity associated with the operation. | `00000000-0000-0000-0000-000000000003` | `PS-TX-006` | `object` | `server_only` | `replace` |
+
 ## Content-pack manifest
 
 - Schema ID: `progressiveskills:pack_manifest`
@@ -241,6 +258,72 @@ Identity, compatibility, dependencies, precedence, and fail-closed policy for on
 | `policies.unknown_field` | `enum` | `error` | `"error"` | Unknown manifest/definition field handling. | `error` | `PS-SCHEMA-002` | `select` | `client_visible` | `replace` |
 | `schema_version` (required) | `integer` | `2` | — | Manifest authoring schema version. | `2` | `PS-SCHEMA-001` | `integer` | `client_visible` | `replace` |
 
+## Pending offline progression operation
+
+- Schema ID: `progressiveskills:pending_progression_operation`
+- Version: `2`
+- Audience: `internal`
+
+Version- and definition-pinned operation applied only while the target player is online.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `balance_id` (required) | `resource_location` | — | — | Canonical balance definition identity. | `mypack:renown` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `created_at` (required) | `integer` | — | — | Authoritative creation epoch milliseconds. | `1784203200000` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `definition_digest` (required) | `string` | — | — | Pinned lowercase SHA-256 definition digest. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `definition_generation` (required) | `integer` | — | — | Pinned live definition generation. | `7` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `delta` (required) | `integer` | — | — | Checked signed balance delta. | `25` | `PS-TX-002` | `object` | `server_only` | `replace` |
+| `expires_at` (required) | `integer` | — | — | Hard expiry epoch milliseconds after which the operation is quarantined. | `1784289600000` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `issuer_id` (required) | `string` | — | — | Authoritative issuer UUID. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `last_attempt_id` | `string` | — | — | Login-attempt UUID retained until later receipt confirmation. | `00000000-0000-0000-0000-000000000004` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `maximum` (required) | `integer` | — | — | Inclusive checked post-mutation ceiling. | `1000` | `PS-TX-002` | `object` | `server_only` | `replace` |
+| `minimum` (required) | `integer` | — | — | Inclusive checked post-mutation floor. | `0` | `PS-TX-002` | `object` | `server_only` | `replace` |
+| `operation_id` (required) | `string` | — | — | Stable queue and receipt identity. | `offline/fixture/1` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `quarantine_reason` | `string` | — | — | Bounded evidence when the operation cannot apply safely. | `Pending operation expired` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `reward_eligible` (required) | `boolean` | — | — | Whether the operation may participate in an explicitly allowed reward path. | `false` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `status` (required) | `enum` | `PENDING \| QUARANTINED` | — | Pending or quarantined queue state. | `PENDING` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `target_id` (required) | `string` | — | — | Target player UUID; no offline player NBT is opened. | `00000000-0000-0000-0000-000000000002` | `PS-DATA-007` | `object` | `server_only` | `replace` |
+
+## Versioned player data attachment
+
+- Schema ID: `progressiveskills:player_data_attachment`
+- Version: `2`
+- Audience: `internal`
+
+Bounded durable progression state with transaction truth, migration evidence, and fail-closed quarantine.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `data_version` (required) | `integer` | — | — | Persisted attachment contract version. | `2` | `PS-DATA-003` | `object` | `server_only` | `replace` |
+| `death_marker` | `object` | — | — | Two-step death-copy operation marker and completion receipt. | `{ transaction_id = "00000000-0000-0000-0000-000000000004" }` | `PS-DATA-001` | `object` | `server_only` | `replace` |
+| `definition_states` (required) | `list` | — | — | Bounded typed states keyed by stable definition identity and lineage. | `[]` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `extensions` | `map` | — | — | Unknown bounded fields retained for forward-compatible round trips. | `{}` | `PS-DATA-002` | `object` | `server_only` | `replace` |
+| `migration_shadow` | `object` | — | — | Bounded pre-migration raw evidence retained through the first successful save. | `{ source_version = 1 }` | `PS-DATA-003` | `object` | `server_only` | `replace` |
+| `operation_receipts` (required) | `list` | — | — | Exact same-attachment receipts for death and offline operation completion. | `[]` | `PS-DATA-005` | `object` | `server_only` | `replace` |
+| `orphans` (required) | `list` | — | — | Persisted definition state awaiting a compatible definition or explicit replacement. | `[]` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `player_id` (required) | `string` | — | — | UUID that must match the attachment owner. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
+| `quarantine` | `object` | — | — | Fail-closed reason, digest, and bounded raw evidence. | `{ reason = "future data version" }` | `PS-DATA-001` | `object` | `server_only` | `replace` |
+| `state_definition` | `object` | — | — | Definition generation and digest associated with the persisted account. | `{ generation = 7 }` | `PS-TX-003` | `object` | `server_only` | `replace` |
+| `status` (required) | `enum` | `ACTIVE \| QUARANTINED` | — | Active or quarantined projection state. | `ACTIVE` | `PS-DATA-001` | `object` | `server_only` | `replace` |
+| `storage_revision` (required) | `integer` | — | — | Monotonic attachment mutation revision. | `12` | `PS-TX-001` | `object` | `server_only` | `replace` |
+| `transaction` (required) | `object` | — | — | Exact revision, balances, ownership, receipts, replay results, and audit state. | `{ state_revision = 12 }` | `PS-TX-006` | `object` | `server_only` | `replace` |
+
+## Player data snapshot
+
+- Schema ID: `progressiveskills:player_data_snapshot`
+- Version: `2`
+- Audience: `internal`
+
+Atomically written, reread, and digest-verified recovery envelope for one attachment.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `created_at` (required) | `integer` | — | — | Authoritative snapshot epoch milliseconds. | `1784203200000` | `PS-DATA-006` | `object` | `server_only` | `replace` |
+| `player_data` (required) | `object` | — | — | Bounded serialized player attachment. | `{ data_version = 2 }` | `PS-DATA-001` | `object` | `server_only` | `replace` |
+| `player_data_digest` (required) | `string` | — | — | SHA-256 digest verified after the atomic write. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-DATA-006` | `object` | `server_only` | `replace` |
+| `player_id` (required) | `string` | — | — | UUID whose attachment is enclosed. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
+| `snapshot_version` (required) | `integer` | — | — | Snapshot envelope contract version. | `1` | `PS-DATA-006` | `object` | `server_only` | `replace` |
+
 ## Source span
 
 - Schema ID: `progressiveskills:source_span`
@@ -254,6 +337,24 @@ Normalized field provenance kept outside semantic equality and future digests.
 | `end` (required) | `object` | — | — | Exclusive one-based ending position. | `{ line = 4, column = 8 }` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 | `source` (required) | `string` | — | — | POSIX relative source identifier without a host path. | `skills/combat/physique.toml` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 | `start` (required) | `object` | — | — | Inclusive one-based starting position. | `{ line = 4, column = 1 }` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+
+## Stored definition state
+
+- Schema ID: `progressiveskills:stored_definition_state`
+- Version: `2`
+- Audience: `internal`
+
+Versioned per-definition payload whose stable lineage supports explicit aliases and compatible restoration.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `id` (required) | `resource_location` | — | — | Stable definition identity. | `mypack:physique` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `kind` (required) | `resource_location` | — | — | Typed definition-kind identity. | `progressiveskills:skill` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `kind_directory` (required) | `string` | — | — | Source directory retained for provider-defined kinds. | `skills` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `lineage` (required) | `string` | — | — | Semantic lineage required for compatibility checks. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `origin_lineage` (required) | `string` | — | — | Original lineage retained across an explicit identity replacement. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `payload` (required) | `object` | — | — | Bounded definition-specific NBT. | `{ level = 4 }` | `PS-DATA-002` | `object` | `server_only` | `replace` |
+| `payload_version` (required) | `integer` | — | — | Definition payload contract version. | `1` | `PS-DATA-003` | `object` | `server_only` | `replace` |
 
 ## Safe style specification
 
@@ -284,7 +385,7 @@ Bounded, revision- and definition-pinned root plan validated before any mutation
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `actor_id` (required) | `string` | — | — | Authoritative actor UUID. | `00000000-0000-0000-0000-000000000001` | `PS-TX-001` | `object` | `server_only` | `replace` |
-| `cause` (required) | `enum` | `gameplay \| character_creation \| admin \| migration \| reload \| reconcile` | — | Typed progression origin. | `gameplay` | `PS-TX-004` | `object` | `server_only` | `replace` |
+| `cause` (required) | `enum` | `gameplay \| character_creation \| admin \| offline_operation \| migration \| reload \| reconcile` | — | Typed progression origin. | `gameplay` | `PS-TX-004` | `object` | `server_only` | `replace` |
 | `definition_generation` (required) | `integer` | — | — | Pinned live definition generation. | `7` | `PS-TX-003` | `object` | `server_only` | `replace` |
 | `expected_state_revision` (required) | `integer` | — | — | Compare-and-swap target revision. | `12` | `PS-TX-001` | `object` | `server_only` | `replace` |
 | `idempotency_key` (required) | `string` | — | — | Bounded stable request identity. | `packet/session-1/request-42` | `PS-TX-006` | `object` | `server_only` | `replace` |
@@ -322,6 +423,69 @@ Typed edge-only action with explicit repeat, delivery, and failure contracts.
 - Suppressible: `true`
 - Why it matters: Icons require a textual equivalent for narration and nonvisual use.
 - Suggested fix: Add a short, meaningful alt component.
+
+<a id="ps-data-001"></a>
+
+### PS-DATA-001 — Player progression data is quarantined
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Unknown, malformed, or unsafe persisted data cannot be projected without risking corruption.
+- Suggested fix: Export the quarantined evidence, restore a verified snapshot, or install a compatible migration.
+
+<a id="ps-data-002"></a>
+
+### PS-DATA-002 — Player progression data exceeds a safety limit
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Unbounded NBT depth, entries, strings, arrays, or bytes can exhaust server resources.
+- Suggested fix: Restore a bounded snapshot or reduce the persisted payload before importing it.
+
+<a id="ps-data-003"></a>
+
+### PS-DATA-003 — Player progression data migration failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: The stored data version could not be transformed into the current attachment contract.
+- Suggested fix: Keep the migration shadow, restore a backup, and provide every required version step.
+
+<a id="ps-data-004"></a>
+
+### PS-DATA-004 — Persisted definition state is orphaned
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: Its definition is missing, incompatible, or lacks an explicit identity replacement.
+- Suggested fix: Restore the compatible definition or declare an unambiguous same-kind alias/replacement.
+
+<a id="ps-data-005"></a>
+
+### PS-DATA-005 — Pending offline operation is quarantined
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: The operation expired, exceeded a limit, or no longer matches its pinned definition.
+- Suggested fix: Review the retained evidence and enqueue a newly validated operation if appropriate.
+
+<a id="ps-data-006"></a>
+
+### PS-DATA-006 — Player data snapshot or export failed
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: The bounded attachment could not be written and verified atomically.
+- Suggested fix: Check world storage access and free space, then retry without modifying the source attachment.
+
+<a id="ps-data-007"></a>
+
+### PS-DATA-007 — Player data identity does not match its owner
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Loading one player's attachment for another player could transfer progression or receipts.
+- Suggested fix: Quarantine the payload and restore data whose embedded UUID matches the attachment owner.
 
 <a id="ps-i18n-001"></a>
 

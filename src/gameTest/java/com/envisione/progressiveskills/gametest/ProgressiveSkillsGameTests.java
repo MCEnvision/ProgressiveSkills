@@ -1,6 +1,12 @@
 package com.envisione.progressiveskills.gametest;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
+import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
+import com.envisione.progressiveskills.server.offline.PendingOperationSavedData;
+import com.envisione.progressiveskills.server.offline.PendingProgressionOperation;
+import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -11,13 +17,15 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.item.Items;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.time.Instant;
 import java.util.UUID;
 
-/** Real-server proof for the staged pack workflow and Phase 4 lifecycle invariants. */
+/** Real-server proof for staged packs, transaction lifecycles, and Phase 5 persistence. */
 @GameTestHolder(ProjectIdentity.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class ProgressiveSkillsGameTests {
@@ -69,9 +77,21 @@ public final class ProgressiveSkillsGameTests {
                     player.getMaxHealth() == initialMaxHealth + 4,
                     "The persistent projector must add four max-health points"
             );
+            var context = TransactionRuntime.context(server).orElseThrow();
+            var attached = player.getData(PsDataAttachments.PLAYER_DATA);
+            var serialized = ProgressiveSkillsDataSerializer.encode(attached);
+            var decoded = ProgressiveSkillsDataSerializer.decode(player.getUUID(), serialized);
+            helper.assertTrue(decoded.active(), "A valid transaction attachment must decode as active");
+            helper.assertTrue(
+                    decoded.transactionState().stateRevision() == 1,
+                    "The attachment must capture the committed transaction revision"
+            );
+            player.setData(PsDataAttachments.PLAYER_DATA, decoded);
+            context.service().unloadAccount(player.getUUID());
+            context.service().restoreAccount(player.getUUID(), decoded.transactionState());
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps lifecycle demo", playerSource) == 1,
-                    "An exact lifecycle replay must return its cached success"
+                    "An exact lifecycle replay must survive attachment serialization and cache restoration"
             );
             helper.assertTrue(
                     player.getInventory().countItem(Items.GOLD_INGOT) == initialGold + 1,
@@ -113,6 +133,99 @@ public final class ProgressiveSkillsGameTests {
                     server.getCommands().getDispatcher().execute("ps lifecycle audit", playerSource) == 1,
                     "The in-game lifecycle audit must remain inspectable"
             );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,
+                    "The in-game persistence status must inspect the active attachment"
+            );
+
+            var currentDefinition = TransactionRuntime.currentDefinition().orElseThrow();
+            UUID offlineOperationId = UUID.randomUUID();
+            Instant createdAt = Instant.now();
+            var offlineOperation = PendingProgressionOperation.pending(
+                    offlineOperationId,
+                    player.getUUID(),
+                    player.getUUID(),
+                    createdAt,
+                    createdAt.plusSeconds(300),
+                    currentDefinition,
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "phase5_offline_points"),
+                    2,
+                    0,
+                    10,
+                    false
+            );
+            var pendingStore = PendingOperationSavedData.get(server);
+            pendingStore.queue(offlineOperation);
+            UUID firstLoginAttempt = UUID.randomUUID();
+            PendingOperationCoordinator.applyOnLogin(player, context, firstLoginAttempt);
+            helper.assertTrue(
+                    player.getData(PsDataAttachments.PLAYER_DATA).operationReceipt(offlineOperationId).isPresent(),
+                    "Offline application must write a same-attachment operation receipt"
+            );
+            helper.assertTrue(
+                    pendingStore.pendingFor(player.getUUID()).size() == 1,
+                    "SavedData must retain the operation until a later login proves the receipt survived"
+            );
+            PendingOperationCoordinator.applyOnLogin(player, context, firstLoginAttempt);
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(offlineOperation.balanceId()) == 2,
+                    "A duplicate login callback must not apply the offline balance twice"
+            );
+
+            var reloadedAttachment = ProgressiveSkillsDataSerializer.decode(
+                    player.getUUID(),
+                    ProgressiveSkillsDataSerializer.encode(player.getData(PsDataAttachments.PLAYER_DATA))
+            );
+            player.setData(PsDataAttachments.PLAYER_DATA, reloadedAttachment);
+            context.service().unloadAccount(player.getUUID());
+            context.service().restoreAccount(player.getUUID(), reloadedAttachment.transactionState());
+            PendingOperationCoordinator.applyOnLogin(player, context, UUID.randomUUID());
+            helper.assertTrue(
+                    pendingStore.pendingFor(player.getUUID()).isEmpty(),
+                    "A later attachment load with the receipt must consume the SavedData operation"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(offlineOperation.balanceId()) == 2,
+                    "Offline operation consumption must preserve its exactly-once balance"
+            );
+
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps persistence snapshot", playerSource) == 1,
+                    "The binary persistence snapshot must write and verify"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps persistence export", playerSource) == 1,
+                    "The readable persistence export must write within its bound"
+            );
+
+            var endReturn = makeReplacement(helper, player);
+            endReturn.copyAttachmentsFrom(player, false);
+            helper.assertTrue(
+                    endReturn.getData(PsDataAttachments.PLAYER_DATA).transactionState()
+                            .equals(player.getData(PsDataAttachments.PLAYER_DATA).transactionState()),
+                    "A non-death replacement must copy attachment state without creating a death operation"
+            );
+            helper.assertTrue(
+                    endReturn.getData(PsDataAttachments.PLAYER_DATA).view().deathMarker().isEmpty(),
+                    "An End-return replacement must have no death marker"
+            );
+
+            UUID deathId = UUID.randomUUID();
+            player.getData(PsDataAttachments.PLAYER_DATA)
+                    .prepareDeath(deathId, Instant.now(), false);
+            var deathReplacement = makeReplacement(helper, player);
+            deathReplacement.copyAttachmentsFrom(player, true);
+            var deathData = deathReplacement.getData(PsDataAttachments.PLAYER_DATA);
+            helper.assertTrue(
+                    deathData.transactionState().equals(
+                            player.getData(PsDataAttachments.PLAYER_DATA).transactionState()),
+                    "copyOnDeath must preserve exact transaction state and permanent receipts"
+            );
+            helper.assertTrue(
+                    deathData.completeDeath(Instant.now()).isPresent()
+                            && deathData.operationReceipt(deathId).isPresent(),
+                    "Death completion must atomically materialize its same-attachment receipt"
+            );
             helper.succeed();
         } catch (CommandSyntaxException exception) {
             helper.fail("Phase 3 command execution failed: " + exception.getMessage());
@@ -141,5 +254,14 @@ public final class ProgressiveSkillsGameTests {
         new EmbeddedChannel(connection);
         server.getPlayerList().placeNewPlayer(connection, player, cookie);
         return player;
+    }
+
+    private static ServerPlayer makeReplacement(GameTestHelper helper, ServerPlayer original) {
+        return new ServerPlayer(
+                helper.getLevel().getServer(),
+                helper.getLevel(),
+                original.getGameProfile(),
+                original.clientInformation()
+        );
     }
 }
