@@ -1,0 +1,59 @@
+name: Phase 1 Verification
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install headless client runtime
+        run: sudo apt-get update && sudo apt-get install --yes xvfb xauth libgl1-mesa-dri
+
+      - name: Enable scripts
+        run: chmod +x gradlew .ci/*.sh
+
+      - name: Build and run unit/property/architecture tests
+        run: ./gradlew --no-daemon --stacktrace clean build
+
+      - name: Run NeoForge GameTests
+        run: ./gradlew --no-daemon --stacktrace runGameTestServer
+
+      - name: Smoke-test a dedicated server without optional mods
+        run: .ci/smoke-server.sh
+
+      - name: Smoke-test the client through its title screen
+        run: .ci/smoke-client.sh
+
+      - name: Verify the release JAR excludes test fixtures
+        run: .ci/verify-release-jar.sh
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-1-evidence
+          if-no-files-found: warn
+          path: |
+            build/libs/*.jar
+            build/reports/**
+            build/test-results/**
+            run/*/logs/**

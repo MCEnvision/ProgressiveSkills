@@ -1,0 +1,114 @@
+# Normative machine-readable inputs for PERF-001. Changing a value requires an ADR.
+contract_version = 1
+fixture_id = "progressiveskills:perf_001_v1"
+minecraft = "1.21.1"
+neoforge = "21.1.236"
+world_seed = 5788052724285985585 # ASCII-derived 0x50534B494C4C5331 ("PSKILLS1")
+pack_seed = 1393753992385309920
+player_script_seed = 1084818905618843912
+
+[jvm]
+java_feature = 21
+collector = "G1"
+heap_mib = 8192
+flags = [
+  "-Xms8G",
+  "-Xmx8G",
+  "-XX:+UseG1GC",
+  "-XX:+AlwaysPreTouch",
+  "-XX:MaxGCPauseMillis=100",
+  "-Dfile.encoding=UTF-8",
+]
+
+[world]
+generator = "minecraft:flat"
+biome = "minecraft:plains"
+difficulty = "normal"
+generate_structures = false
+view_distance = 10
+simulation_distance = 10
+spawn_chunk_radius = 0
+do_daylight_cycle = false
+do_weather_cycle = false
+do_mob_spawning = false
+random_tick_speed = 0
+
+[pack]
+generator_revision = 1
+definition_count = 10000
+routed_rule_count = 50000
+routes_per_definition = 5
+definition_id_pattern = "perf:skill_%05d"
+route_id_pattern = "perf:route_%05d_%d"
+selector_families = ["exact_id", "tag", "namespace", "predicate", "no_match_control"]
+
+[timing]
+target_tps = 20
+warmup_ticks = 18000
+capture_ticks = 36000
+capture_reload_tick = 18000
+screen_open_lead_ticks = 300
+screen_open_lag_ticks = 300
+
+[traffic]
+# event_ordinal modulo 20: 0..13 miss, 14..18 match one route, 19 matches four routes.
+selection_cycle_events = 20
+no_match_events = 14
+single_match_events = 5
+four_match_events = 1
+
+[actions]
+phase_offset_rule = "player_ordinal modulo action_period_ticks"
+mining_period_ticks = 4
+mining_blocks = ["minecraft:stone", "minecraft:deepslate", "minecraft:oak_log", "minecraft:iron_ore"]
+mining_restore_delay_ticks = 1
+combat_period_ticks = 10
+combat_target = "minecraft:husk"
+combat_targets_per_player = 4
+combat_target_ai = false
+combat_target_heal_delay_ticks = 1
+movement_sample_period_ticks = 1
+movement_jump_period_ticks = 10
+movement_course_length_blocks = 128
+condition_period_ticks = 20
+condition_cycle = ["equip_iron_boots", "damage_to_half", "heal_to_full", "unequip_boots"]
+
+[players."40"]
+mining = 16
+combat = 12
+movement = 8
+condition = 4
+
+[players."100"]
+mining = 40
+combat = 30
+movement = 20
+condition = 10
+
+[reload]
+open_screen_percent = 25
+presentation_changes = 1000
+route_selector_changes = 500
+definition_count_after = 10000
+routed_rule_count_after = 50000
+
+[network]
+emulated_rtt_ms = 50
+packet_loss_percent = 0
+trials_per_scenario = 30
+cache_hit_reconnect_percent = 10
+cache_miss_replacement_percent = 10
+cache_hit_capture_tick = 6000
+cache_miss_capture_tick = 12000
+
+[capture]
+jfr_name = "progressiveskills"
+warmup_samples_retained = false
+required_outputs = [
+  "profile.jfr",
+  "tick-percentiles.csv",
+  "allocation-per-event.csv",
+  "network-per-player.csv",
+  "gc-pauses.csv",
+  "run-manifest.toml",
+]
