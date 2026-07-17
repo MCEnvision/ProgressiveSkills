@@ -1,6 +1,6 @@
 # Rule Engine and Anti Exploit Foundation
 
-Status: Phase 8 automated verification passed. The real client gameplay checkpoint is pending.
+Status: Phase 8 original gameplay checkpoint and all refined automated gates passed. The focused block-origin client checkpoint is pending.
 
 ## Runtime pipeline
 
@@ -8,16 +8,17 @@ Phase 8 adds the first ordinary gameplay route through one fixed server-side pip
 
 ```text
 uncancelled block break event
+  -> persistent block origin lookup and consumption
   -> compiled block route lookup
   -> event dedupe
-  -> actor and fake player policy
+  -> actor, block origin, and fake player policy
   -> cooldown and first time eligibility
   -> stable rule stack resolution
   -> repeat decay and rate caps
   -> one atomic skill XP transaction with source memory
 ```
 
-The NeoForge provider currently binds only `progressiveskills:block_break`. The listener is registered once at startup and observes an uncancelled `BlockEvent.BreakEvent` at lowest priority. Pack reloads replace immutable compiled route tables; definitions never add or remove event listeners at runtime.
+The NeoForge provider currently binds only `progressiveskills:block_break`. The listener is registered once at startup and observes an uncancelled `BlockEvent.BreakEvent` at lowest priority. Placement and piston listeners maintain provenance independently of whether an XP route currently matches. Pack reloads replace immutable compiled route tables; definitions never add or remove event listeners at runtime.
 
 ## Registries and validation
 
@@ -52,16 +53,26 @@ Event dedupe uses a bounded per-player set for the current tick and rejects the 
 
 A real player route also requires active attachment state pinned to the live definition revision. A failed login or publication reconciliation therefore leaves that player's gameplay routes closed instead of awarding against stale state.
 
+## Block origin policy
+
+Every block-break rule accepts an `allowed_block_origins` set containing any combination of `natural`, `creative_placed`, `survival_placed`, `automation_placed`, and `unknown`. Omitting the setting uses the safe default of natural and creative-placed blocks. The starter routes state that default explicitly.
+
+Player placement events are stored as creative or survival origin. Fake-player and non-player placement events are stored as automation origin. Multi-block placement records every replaced position. A successful observed break consumes its position entry. Piston pre and post events transfer origins from every source position to its destination and remove destroyed entries.
+
+The ledger is persisted in overworld saved data and tracks at most 90,000 non-natural positions across dimensions. Positions that predate this feature and have no entry are inferred as natural while the ledger is reliable. If decoding, capacity, or piston correlation fails, the ledger becomes unreliable and every untracked position resolves to unknown. The safe starter policy denies unknown, so loss of provenance cannot silently become a natural reward.
+
+Natural world changes that do not emit a player placement remain inferred natural. A non-player `EntityPlaceEvent`, including a falling-block landing, is conservatively classified as automation. Modded movement systems that do not emit NeoForge piston or placement events need a future registered provenance adapter before they can preserve a placed origin exactly.
+
 ## Starter routes
 
 The installer adds missing rule files without overwriting operator edits:
 
 | Rule | Match | Award and policy |
 |---|---|---|
-| `progressiveskills:physique_stone_training` | exact `minecraft:stone` | 8 base plus a 25 percent context modifier, producing 10 XP. Ten-tick cooldown, 100-tick repeat window, 0.5 repeat decay with a 0.25 floor, and tick, minute, and day caps. |
-| `progressiveskills:physique_first_log` | `minecraft:logs` tag | 20 XP once per player, persisted across relog. |
+| `progressiveskills:physique_stone_training` | exact `minecraft:stone` | Natural or creative-placed blocks only. 8 base plus a 25 percent context modifier, producing 10 XP. Ten-tick cooldown, 100-tick repeat window, 0.5 repeat decay with a 0.25 floor, and tick, minute, and day caps. |
+| `progressiveskills:physique_first_log` | `minecraft:logs` tag | Natural or creative-placed blocks only. 20 XP once per player, persisted across relog. |
 
-The stone route is deliberately training content. Phase 8 does not claim natural-block provenance, so it is not suitable as a high-value natural-resource reward. Provenance-aware bindings remain incremental work described by the master plan.
+The persistent origin ledger closes the ordinary Silk Touch place-and-break loop. Existing worlds cannot prove the origin of blocks placed before this feature, so previously untracked blocks are initially inferred natural. Packs with high-value resource economies should also account for modded movers and generators that bypass the covered NeoForge placement and piston events.
 
 A minimal copy-paste route uses the same typed shape:
 
@@ -81,6 +92,7 @@ base = 5
 
 [rule.anti_exploit]
 fake_players = "deny"
+allowed_block_origins = ["natural", "creative_placed"]
 first_time = true
 cooldown_ticks = 0
 per_tick_cap = 5
@@ -97,22 +109,41 @@ skill = "progressiveskills:physique"
 amount_formula = "rule_amount"
 ```
 
+To allow every origin, list all five values explicitly. To keep every accepted award at full value with no cooldown, repeat timeout, or rate cap, use:
+
+```toml
+[rule.anti_exploit]
+fake_players = "deny"
+allowed_block_origins = ["natural", "creative_placed", "survival_placed", "automation_placed", "unknown"]
+first_time = false
+cooldown_ticks = 0
+per_tick_cap = 0
+per_minute_cap = 0
+per_day_cap = 0
+repeat_window_ticks = 0
+repeat_decay = 1
+minimum_multiplier = 1
+```
+
+A zero cap means unlimited. A zero repeat window requires both repeat multipliers to be one, which disables repeat decay completely.
+
 ## Commands
 
 | Command | Result |
 |---|---|
-| `/ps rule status` | Reports total and enabled compiled rule definitions. |
-| `/ps explain xp last` | Shows the caller's most recent matched block route, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
+| `/ps rule status` | Reports total and enabled compiled rules plus tracked block count, ledger reliability, and any fail-closed issue. |
+| `/ps explain xp last` | Shows the caller's most recent matched block route, block origin, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
 
 The Phase 8 explanation is intentionally bounded. Predicate traces, individual multiplier details, and rounding remainders will expand with the Phase 9 evaluator.
 
 ## Troubleshooting
 
 - Run `/ps validate` first. Unknown triggers, subject-incompatible matchers, missing skills, conflicting stack policies, and unbounded anti exploit values reject the candidate generation with the definition path and reason.
-- Run `/ps explain xp last` after a matched block. A zero award can be an active cooldown, an already claimed first-time route, repeat decay to zero, an exhausted cap, a duplicate token, or fake-player denial.
+- Run `/ps explain xp last` after a matched block. A zero award can be a denied block origin, an active cooldown, an already claimed first-time route, repeat decay to zero, an exhausted cap, a duplicate token, or fake-player denial.
+- Run `/ps rule status` when origin behavior is unexpected. `Reliable false` means untracked positions resolve to unknown until the ledger is repaired or intentionally reset while the server is stopped.
 - A disabled or nonmatching block does not replace the previous explanation because it never enters the matched hot path. Compare XP and `/ps rule status` when testing a disabled route.
 - Tag routes require the server's current tag registry. A normal server start or data reload provides vanilla and datapack tag membership.
 
 ## Phase boundary
 
-Phase 8 establishes extensible registries and one tested binding. It does not implement general formulas or predicates, target/assist/team credit, block provenance, combat/crafting/movement providers, fractional carry, full performance soak evidence, or the complete Creator rule surface. Those features remain assigned to their planned phases and must not be inferred from the block training route.
+Phase 8 establishes extensible registries, one tested binding, and bounded persistent provenance for player placements and vanilla piston movement. It does not implement general formulas or predicates, target/assist/team credit, adapters for arbitrary modded movers, combat/crafting/movement providers, fractional carry, full performance soak evidence, or the complete Creator rule surface. Those features remain assigned to their planned phases and must not be inferred from the block training route.

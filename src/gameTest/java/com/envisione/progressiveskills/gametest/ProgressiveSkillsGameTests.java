@@ -3,6 +3,7 @@ package com.envisione.progressiveskills.gametest;
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillStateIds;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
@@ -11,11 +12,13 @@ import com.envisione.progressiveskills.server.offline.PendingProgressionOperatio
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.envisione.progressiveskills.server.transaction.PlayerPersistentProjector;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
+import com.envisione.progressiveskills.server.rule.BlockProvenanceSavedData;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.world.level.GameType;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,6 +30,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
+import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -237,7 +243,21 @@ public final class ProgressiveSkillsGameTests {
                     SkillStateIds.activeXp(physiqueId)
             );
             BlockPos stone = helper.absolutePos(new BlockPos(1, 1, 1));
+            BlockSnapshot creativeSnapshot = BlockSnapshot.create(
+                    helper.getLevel().dimension(), helper.getLevel(), stone
+            );
             helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
+            player.gameMode.changeGameModeForPlayer(GameType.CREATIVE);
+            NeoForge.EVENT_BUS.post(new BlockEvent.EntityPlaceEvent(
+                    creativeSnapshot, Blocks.AIR.defaultBlockState(), player
+            ));
+            helper.assertTrue(
+                    BlockProvenanceSavedData.get(server).originAt(
+                            helper.getLevel().dimension().location(), stone
+                    ) == BlockOrigin.CREATIVE_PLACED,
+                    "The placement subscriber must record creative origin"
+            );
+            player.gameMode.changeGameModeForPlayer(GameType.SURVIVAL);
             player.teleportTo(stone.getX() + 0.5D, stone.getY() + 1.0D, stone.getZ() + 0.5D);
             helper.assertTrue(player.gameMode.destroyBlock(stone),
                     "The real server block break binding must accept stone");
@@ -264,17 +284,48 @@ public final class ProgressiveSkillsGameTests {
                     "The same block event token must be rejected without another award"
             );
             BlockPos secondStone = helper.absolutePos(new BlockPos(2, 1, 1));
+            BlockSnapshot survivalSnapshot = BlockSnapshot.create(
+                    helper.getLevel().dimension(), helper.getLevel(), secondStone
+            );
             helper.getLevel().setBlockAndUpdate(secondStone, Blocks.STONE.defaultBlockState());
+            NeoForge.EVENT_BUS.post(new BlockEvent.EntityPlaceEvent(
+                    survivalSnapshot, Blocks.AIR.defaultBlockState(), player
+            ));
+            BlockOrigin storedSurvivalOrigin = BlockProvenanceSavedData.get(server).originAt(
+                    helper.getLevel().dimension().location(), secondStone
+            );
+            helper.assertTrue(
+                    storedSurvivalOrigin == BlockOrigin.SURVIVAL_PLACED,
+                    "The placement subscriber must record survival origin. Recorded "
+                            + storedSurvivalOrigin.serializedName()
+            );
             helper.assertTrue(player.gameMode.destroyBlock(secondStone),
-                    "A distinct stone block must be broken successfully"
+                    "A survival placed stone block must be broken successfully"
             );
             helper.assertTrue(
                     context.service().snapshot(player.getUUID()).balances().get(
                             SkillStateIds.activeXp(physiqueId)
                     ) == beforeRuleXp + FixedPoint.parse("10"),
-                    "The stone cooldown must reject a distinct immediate event"
+                    "The starter origin policy must reject survival placed stone"
             );
-            BlockPos firstLog = helper.absolutePos(new BlockPos(3, 1, 1));
+            var survivalTrace = RuleRuntime.lastTrace(player.getUUID()).orElseThrow();
+            helper.assertTrue(
+                    survivalTrace.outcome().contains("survival_placed"),
+                    "The rule trace must explain a survival placed origin rejection. Origin "
+                            + survivalTrace.origin().serializedName() + ". Outcome " + survivalTrace.outcome()
+            );
+            BlockPos cooldownStone = helper.absolutePos(new BlockPos(3, 1, 1));
+            helper.getLevel().setBlockAndUpdate(cooldownStone, Blocks.STONE.defaultBlockState());
+            helper.assertTrue(player.gameMode.destroyBlock(cooldownStone),
+                    "A distinct natural stone block must be broken successfully"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("10"),
+                    "The stone cooldown must reject a distinct immediate natural event"
+            );
+            BlockPos firstLog = helper.absolutePos(new BlockPos(4, 1, 1));
             helper.getLevel().setBlockAndUpdate(firstLog, Blocks.OAK_LOG.defaultBlockState());
             helper.assertTrue(player.gameMode.destroyBlock(firstLog),
                     "The first time tag matched log rule must bind to a real break event");
@@ -284,7 +335,7 @@ public final class ProgressiveSkillsGameTests {
                     ) == beforeRuleXp + FixedPoint.parse("30"),
                     "The first log must award exactly twenty XP"
             );
-            BlockPos secondLog = helper.absolutePos(new BlockPos(4, 1, 1));
+            BlockPos secondLog = helper.absolutePos(new BlockPos(5, 1, 1));
             helper.getLevel().setBlockAndUpdate(secondLog, Blocks.OAK_LOG.defaultBlockState());
             helper.assertTrue(player.gameMode.destroyBlock(secondLog),
                     "The second log must still be physically breakable");
@@ -298,7 +349,7 @@ public final class ProgressiveSkillsGameTests {
             var paused = RuleRuntime.processBlockBreak(
                     player,
                     Blocks.STONE.defaultBlockState(),
-                    helper.absolutePos(new BlockPos(5, 1, 1)),
+                    helper.absolutePos(new BlockPos(6, 1, 1)),
                     helper.getLevel().dimension().location(),
                     helper.getLevel().getGameTime()
             );
@@ -307,7 +358,7 @@ public final class ProgressiveSkillsGameTests {
                     "The publication barrier must pause every gameplay route"
             );
             RuleRuntime.reload(server);
-            BlockPos thirdLog = helper.absolutePos(new BlockPos(6, 1, 1));
+            BlockPos thirdLog = helper.absolutePos(new BlockPos(7, 1, 1));
             helper.getLevel().setBlockAndUpdate(thirdLog, Blocks.OAK_LOG.defaultBlockState());
             helper.assertTrue(player.gameMode.destroyBlock(thirdLog),
                     "The rebuilt tag route must remain physically callable");

@@ -1,8 +1,8 @@
 # Phase 8 Verification Record
 
-Status: beta implementation complete. Automated verification passed and the real client gameplay checkpoint is pending.
+Status: original Phase 8 gameplay checkpoint and all refined automated gates passed. The focused block-origin real-client checkpoint is pending.
 
-This record covers the rule engine and anti exploit foundation plus the first NeoForge block break binding. It does not claim Phase 9 predicates and formulas, natural block provenance, combat or crafting bindings, target or team attribution, or the full Creator rule surface.
+This record covers the rule engine and anti exploit foundation, the first NeoForge block break binding, and persistent player-placement origin tracking. It does not claim Phase 9 predicates and formulas, arbitrary modded mover provenance, combat or crafting bindings, target or team attribution, or the full Creator rule surface.
 
 ## Implemented scope
 
@@ -16,6 +16,10 @@ This record covers the rule engine and anti exploit foundation plus the first Ne
 - tick, minute, and Minecraft-day caps
 - first-time, cooldown, repeat-window, decay, and minimum multiplier memory
 - fake-player denial by default
+- configurable natural, creative-placed, survival-placed, automation-placed, and unknown origin policies
+- safe natural and creative-placed default for omitted origin policies
+- persistent bounded player-placement provenance with multi-place and piston transfer
+- fail-closed unknown origin after capacity, decode, or piston-correlation failure
 - bounded per-player event dedupe
 - atomic XP and source-memory transactions
 - persistent internal memory filtered from client state projection
@@ -38,14 +42,16 @@ bash .ci/smoke-client.sh
 
 | Check | Status | Evidence |
 |---|---|---|
-| Rule engine unit suite | local pass | Registries, bare and prefixed matchers, negation, custom-name opt in, every multiplier mode and rule stack policy, final-only rounding, invalid factor rejection, cooldown at world tick zero, repeat decay, caps, first-time persistence, and atomic memory mutation pass. |
-| Full unit and property suite | local pass | 159 tests passed with 0 failed, errored, or skipped. All eight architecture rules pass and the retained jqwik suite completes 4,000 tries. |
-| Generated metadata | local pass | 28 schemas, 32 definition kinds, and 59 diagnostics, including `progressiveskills:rule_definition` and `PS-RULE-001` through `PS-RULE-006`. Checked-in Markdown and editor JSON match byte for byte. |
-| NeoForge GameTest | local pass | The one required real-server test loads five starter definitions and proves exact stone and vanilla-log-tag routing, 10 and 20 XP awards, cooldown, event dedupe, fake-player rejection, first-time memory, command explanation, route pause, table rebuild, and retained source memory. |
+| Rule engine unit suite | local pass | Registries, matchers, every multiplier and stack policy, cooldown at world tick zero, repeat decay, caps, first-time persistence, full-value disabled windows, safe origin defaults, customizable origin combinations, and atomic memory mutation pass. |
+| Block provenance unit suite | local pass | Placement round trip, break consumption, piston transfer, destroyed-position removal, bounded capacity, and malformed-data fail-closed behavior pass. |
+| Full unit and property suite | local pass | 165 tests passed with 0 failed, errored, or skipped. All eight architecture rules pass and the retained jqwik suite completes 4,000 tries. |
+| Generated metadata | local pass | 28 schemas, 32 definition kinds, and 59 diagnostics. The rule schema exposes `allowed_block_origins`, and checked-in Markdown and editor JSON match byte for byte. |
+| NeoForge GameTest | local pass | The one required real-server test proves placement-event classification, permitted creative placement, denied survival placement with origin explanation, natural routing and cooldown, and every prior Phase 8 invariant. |
 | Client redaction | local pass | Internal hashed rule-memory balances are omitted from the visible network balance map. |
 | Dedicated server and client smoke | local pass | The production-only server reached ready state and the production-only client reached the title screen; both error-marker gates passed. |
-| Release JAR | local pass | 808,455 bytes; archive verification passed; SHA-256 `578beb622c4203d68aaf0d860dfab710a05add9d1417c079eeb767b929865740`. |
-| Real client checkpoint | pending | Awaiting the stone cooldown and repeat sequence, first-log persistence, and live rule-table publish checks below. |
+| Release JAR | local pass | 824,940 bytes; archive verification passed; SHA-256 `6107345b95b212e9260dec84f6dae9d51554ffc6bf072d56689804fcdd29c96e`. |
+| Original real client checkpoint | pass | The supplied log loaded five definitions with no warnings, awarded 10 XP for stone and 5 XP for a repeated stone, awarded the first-log 20 XP once across a full relog, and published disable and restore generations successfully. |
+| Block-origin client checkpoint | pending | Awaiting natural, creative-placed, survival-placed, customization, and full-value checks below. |
 
 ## Acceptance checklist
 
@@ -56,24 +62,28 @@ bash .ci/smoke-client.sh
 - [x] Cooldown, first-time, repeat, and cap memory are bounded and persistent.
 - [x] XP and changed source memory commit in one ordinary progression transaction.
 - [x] Fake players and duplicate event tokens fail closed.
+- [x] Origin policy is configurable and defaults to natural plus creative-placed.
+- [x] Survival placement persists across save and is consumed on break.
+- [x] Vanilla piston movement transfers provenance without duplication.
+- [x] Provenance corruption or capacity exhaustion makes untracked blocks unknown.
 - [x] Internal anti exploit state cannot enter visible client balances.
 - [x] Publication pauses old routes and rebuilds one immutable table from the new generation.
-- [x] Generated schemas, diagnostics, unit and property tests, GameTest, smokes, and release archive pass.
-- [ ] User completed the real-client block route, persistence, and hot-reload checkpoint.
+- [x] Regenerated schemas, full clean build, GameTest, smokes, and release archive pass after the refinement.
+- [x] User completed the original real-client block route, persistence, and hot-reload checkpoint.
+- [ ] User completed the focused block-origin and full-value checkpoint.
 
 ## Manual in-game checkpoint
 
-Use a cheats-enabled development world. The installer adds the two missing starter rule files on launch without replacing existing pack files.
+Use a cheats-enabled development world. Existing installed rule files are not overwritten. An omitted `allowed_block_origins` still receives the safe natural and creative-placed default, but adding the line explicitly makes the pack intent clear.
 
-1. Install the Phase 8 beta JAR and launch the same world used for Phase 7.
-2. Run `/ps validate` and `/ps status`. Expect a valid pack with at least five definitions and no errors.
-3. Run `/ps rule status`. With the unmodified starter pack, expect `Rules 2. Enabled 2.`
-4. Run `/ps skill get progressiveskills:physique` and record the current active XP as `X`.
-5. In survival, break one normal `minecraft:stone` block. Run `/ps skill get progressiveskills:physique`; expect `X + 10` XP. Run `/ps explain xp last`; expect one candidate, one eligible route, one selected route, 10 XP, and a committed outcome.
-6. Wait six seconds so the prior repeat window expires. For a repeatable timing check, place three adjacent stone blocks, use an unenchanted diamond pick, run `/tick rate 1`, and hold the break button across the row. The first accepted stone should add 10 XP, the second should add 0 while the ten-tick cooldown is active, and the third should add 5 XP from the 0.5 repeat multiplier. Use `/ps explain xp last` after each result if the timing differs. Restore `/tick rate 20` when done.
-7. Break one normal oak log. Expect exactly 20 XP and a committed explanation for `progressiveskills:physique_first_log`. Break a second block in the `minecraft:logs` tag. Expect no XP and the outcome `first time reward already received`.
-8. Save and quit completely, reopen the same world, and break another log. Expect no XP; the first-time source memory must survive the relog.
-9. In `config/progressiveskills/packs/progressiveskills-core/rules/physique_stone_training.toml`, set `enabled = false`. Run `/ps reload --dry-run`, review `/ps diff`, then run `/ps reload --publish`. `/ps rule status` should report two rules with one enabled, and breaking stone must not change XP.
-10. Restore `enabled = true` through the same reviewed publish flow. Wait six seconds so the repeat window expires, then break stone. Expect exactly 10 XP and two enabled rules again.
+1. Install the refined Phase 8 JAR and launch the same world. Run `/ps validate`, `/ps status`, and `/ps rule status`. Expect five valid definitions, two enabled rules, and block provenance `Reliable true`.
+2. Add `allowed_block_origins = ["natural", "creative_placed"]` under `[rule.anti_exploit]` in both starter rule files if it is absent. Publish through `/ps reload --dry-run`, `/ps diff`, and `/ps reload --publish`.
+3. Find stone in newly generated terrain, record Physique XP as `X`, and break it in survival. Expect `X + 10`. `/ps explain xp last` must show origin `natural` and a committed 10 XP award.
+4. Place stone in survival, wait at least six seconds, then break it. Expect no XP. The explanation must show origin `survival_placed` and outcome `block origin survival_placed is not allowed`.
+5. Switch to creative, place stone, switch back to survival, wait at least six seconds, and break it. Expect 10 XP. The explanation must show origin `creative_placed` and a committed award.
+6. Save and quit completely after placing another stone in survival. Reopen the world and break that stone. Expect no XP with origin `survival_placed`, proving the ledger persisted.
+7. To prove customization, change the stone rule to `allowed_block_origins = ["natural", "creative_placed", "survival_placed"]`, publish it, place stone in survival, wait six seconds, and break it. Expect 10 XP with origin `survival_placed`.
+8. To prove full XP without timeout or decay, keep survival placed enabled and set `cooldown_ticks = 0`, all three caps to `0`, `repeat_window_ticks = 0`, `repeat_decay = 1`, and `minimum_multiplier = 1`. Publish, then place and break two survival stones consecutively. Each must award the full 10 XP.
+9. Restore the desired safe origins and pacing values through the reviewed publish flow. Run `/ps rule status` once more and confirm `Reliable true`.
 
-If the three-stone timing lands outside the intended windows, the explanation is authoritative: cooldown requires fewer than ten world ticks since the last committed stone award, and repeat decay requires the next accepted award within 100 world ticks. Include the complete game log and the explanation lines when reporting the checkpoint.
+Blocks placed before this refinement have no historical marker and are inferred natural. Use newly placed blocks and newly generated terrain for an unambiguous checkpoint. Include the complete game log and all `/ps explain xp last` lines when reporting the result.

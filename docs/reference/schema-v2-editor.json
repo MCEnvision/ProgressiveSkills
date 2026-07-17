@@ -3090,6 +3090,25 @@
           "omit_when_default": true
         },
         {
+          "path": "anti_exploit.allowed_block_origins",
+          "type": "list",
+          "required": false,
+          "allowed_values": ["natural", "creative_placed", "survival_placed", "automation_placed", "unknown"],
+          "default": null,
+          "description": "Allowed block origins. Omission permits natural and creative placed blocks.",
+          "example": "[\"natural\", \"creative_placed\"]",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 185,
+            "help": "Allowed block origins. Omission permits natural and creative placed blocks."
+          },
+          "projection": "server_only",
+          "diff": "set",
+          "omit_when_default": false
+        },
+        {
           "path": "anti_exploit.cooldown_ticks",
           "type": "integer",
           "required": false,

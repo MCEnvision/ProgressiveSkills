@@ -1,5 +1,8 @@
 package com.envisione.progressiveskills.server.pack;
 
+import com.envisione.progressiveskills.common.rule.BlockOrigin;
+import com.envisione.progressiveskills.common.rule.RuleCatalog;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -7,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +32,8 @@ class StarterPackInstallerTest {
                 .contains("progressiveskills:physique"));
         assertTrue(Files.readString(pack.resolve("rules/physique_stone_training.toml"))
                 .contains("progressiveskills:block_break"));
+        assertTrue(Files.readString(pack.resolve("rules/physique_stone_training.toml"))
+                .contains("allowed_block_origins = [\"natural\", \"creative_placed\"]"));
         assertTrue(Files.readString(pack.resolve("rules/physique_first_log.toml"))
                 .contains("first_time = true"));
 
@@ -82,5 +88,48 @@ class StarterPackInstallerTest {
         var routes = com.envisione.progressiveskills.server.rule.BlockRuleTable.compile(rules);
         assertEquals(1, routes.match(net.minecraft.world.level.block.Blocks.STONE.defaultBlockState()).size());
         assertTrue(routes.match(net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState()).isEmpty());
+    }
+
+    @Test
+    void blockOriginListIsCustomizableAndOmissionRetainsTheSafeDefault() throws IOException {
+        Path root = temporaryDirectory.resolve("packs");
+        Path pack = StarterPackInstaller.install(root);
+        Path stone = pack.resolve("rules/physique_stone_training.toml");
+        String starter = Files.readString(stone);
+
+        Files.writeString(stone, starter.replace(
+                "[\"natural\", \"creative_placed\"]",
+                "[\"survival_placed\"]"
+        ));
+        assertEquals(
+                Set.of(BlockOrigin.SURVIVAL_PLACED),
+                stoneRule(root).antiExploit().allowedBlockOrigins()
+        );
+
+        Files.writeString(stone, starter.replace(
+                "allowed_block_origins = [\"natural\", \"creative_placed\"]\n",
+                ""
+        ));
+        assertEquals(
+                Set.of(BlockOrigin.NATURAL, BlockOrigin.CREATIVE_PLACED),
+                stoneRule(root).antiExploit().allowedBlockOrigins()
+        );
+    }
+
+    private static com.envisione.progressiveskills.common.rule.RuleDefinition stoneRule(Path root) {
+        var result = new com.envisione.progressiveskills.common.pack.ContentPackLoader().stage(
+                List.of(new com.envisione.progressiveskills.common.pack.PackRoot(
+                        com.envisione.progressiveskills.common.pack.PackRootTier.GLOBAL_CONFIG,
+                        "test",
+                        root
+                )),
+                com.envisione.progressiveskills.common.pack.AvailableEnvironment.empty()
+        );
+        assertTrue(result.valid(), () -> result.diagnostics().diagnostics().toString());
+        var skills = com.envisione.progressiveskills.common.skill.SkillCatalog.from(
+                result.snapshot().orElseThrow().canonicalIr()
+        );
+        RuleCatalog rules = RuleCatalog.from(result.snapshot().orElseThrow().canonicalIr(), skills);
+        return rules.rule(ResourceLocation.parse("progressiveskills:physique_stone_training")).orElseThrow();
     }
 }

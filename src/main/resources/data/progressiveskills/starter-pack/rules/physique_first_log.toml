@@ -13,6 +13,7 @@ base = 20
 
 [rule.anti_exploit]
 fake_players = "deny"
+allowed_block_origins = ["natural", "creative_placed"]
 first_time = true
 cooldown_ticks = 0
 per_tick_cap = 20

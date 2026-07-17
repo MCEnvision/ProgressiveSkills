@@ -174,7 +174,8 @@ class RuleEngineTest {
                 FixedPoint.parse("30"),
                 100,
                 FixedPoint.parse("0.5"),
-                FixedPoint.parse("0.25")
+                FixedPoint.parse("0.25"),
+                java.util.Set.of(BlockOrigin.NATURAL, BlockOrigin.CREATIVE_PLACED)
         );
         RuleDefinition rule = rule("test:memory", RuleStackRule.SUM, 0, policy);
         RuleMemoryKeys keys = RuleMemoryKeys.forRule(rule.id());
@@ -217,7 +218,8 @@ class RuleEngineTest {
                 0,
                 0,
                 FixedPoint.SCALE,
-                FixedPoint.SCALE
+                FixedPoint.SCALE,
+                java.util.Set.of(BlockOrigin.NATURAL, BlockOrigin.CREATIVE_PLACED)
         );
         RuleDefinition rule = rule("test:first_only", RuleStackRule.FIRST, 0, firstOnly);
         RuleMemoryKeys keys = RuleMemoryKeys.forRule(rule.id());
@@ -235,6 +237,49 @@ class RuleEngineTest {
         assertTrue(restored.snapshot(PLAYER).balances().keySet().stream()
                 .filter(RuleMemoryKeys::isInternal).count() >= 2);
         assertFalse(RuleMemoryKeys.isInternal(id("progressiveskills:skill_xp/test/value")));
+    }
+
+    @Test
+    void disabledCooldownDecayAndCapsKeepEveryAwardAtFullValue() {
+        RuleDefinition rule = rule("test:full_value", RuleStackRule.SUM, 0, RuleAntiExploit.defaults());
+        RuleMemoryKeys keys = RuleMemoryKeys.forRule(rule.id());
+        var service = ProgressionTransactionService.boundedDefaults();
+
+        RuleAntiExploitDecision first = RuleAntiExploitEngine.evaluate(
+                rule, keys, service.snapshot(PLAYER), 100, FixedPoint.parse("10")
+        );
+        execute(service, first, "test/rule/full/first");
+        RuleAntiExploitDecision second = RuleAntiExploitEngine.evaluate(
+                rule, keys, service.snapshot(PLAYER), 101, FixedPoint.parse("10")
+        );
+
+        assertEquals(FixedPoint.parse("10"), first.awardedUnits());
+        assertEquals(FixedPoint.parse("10"), second.awardedUnits());
+    }
+
+    @Test
+    void blockOriginPolicyIsSafeByDefaultAndSupportsExplicitCombinations() {
+        RuleAntiExploit defaults = RuleAntiExploit.defaults();
+        assertTrue(defaults.allows(BlockOrigin.NATURAL));
+        assertTrue(defaults.allows(BlockOrigin.CREATIVE_PLACED));
+        assertFalse(defaults.allows(BlockOrigin.SURVIVAL_PLACED));
+        assertFalse(defaults.allows(BlockOrigin.AUTOMATION_PLACED));
+        assertFalse(defaults.allows(BlockOrigin.UNKNOWN));
+
+        RuleAntiExploit survivalOnly = new RuleAntiExploit(
+                FakePlayerPolicy.DENY,
+                false,
+                0,
+                0,
+                0,
+                0,
+                0,
+                FixedPoint.SCALE,
+                FixedPoint.SCALE,
+                Set.of(BlockOrigin.SURVIVAL_PLACED)
+        );
+        assertTrue(survivalOnly.allows(BlockOrigin.SURVIVAL_PLACED));
+        assertFalse(survivalOnly.allows(BlockOrigin.NATURAL));
     }
 
     private static void execute(

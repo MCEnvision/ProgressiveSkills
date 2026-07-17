@@ -39,6 +39,9 @@ public final class RuleCanonicalCodec {
         anti.put("repeat_window_ticks", integer(rule.antiExploit().repeatWindowTicks()));
         anti.put("repeat_decay_units", integer(rule.antiExploit().repeatDecayUnits()));
         anti.put("minimum_multiplier_units", integer(rule.antiExploit().minimumMultiplierUnits()));
+        anti.put("allowed_block_origins", list(rule.antiExploit().allowedBlockOrigins().stream()
+                .sorted(java.util.Comparator.comparing(BlockOrigin::serializedName))
+                .map(origin -> text(origin.serializedName())).toList()));
 
         var fields = new LinkedHashMap<String, CanonicalValue>();
         fields.put("enabled", bool(rule.enabled()));
@@ -122,7 +125,8 @@ public final class RuleCanonicalCodec {
                         integer(anti, "per_day_cap_units"),
                         integer(anti, "repeat_window_ticks"),
                         integer(anti, "repeat_decay_units"),
-                        integer(anti, "minimum_multiplier_units")
+                        integer(anti, "minimum_multiplier_units"),
+                        blockOrigins(anti)
                 ),
                 new RuleDefinition.XpOutput(id(output, "id"), id(output, "skill"))
         );
@@ -196,6 +200,16 @@ public final class RuleCanonicalCodec {
             throw new IllegalArgumentException("Expected canonical boolean field " + key);
         }
         return bool.value();
+    }
+
+    private static java.util.Set<BlockOrigin> blockOrigins(Map<String, CanonicalValue> anti) {
+        if (!anti.containsKey("allowed_block_origins")) {
+            return java.util.Set.of(BlockOrigin.NATURAL, BlockOrigin.CREATIVE_PLACED);
+        }
+        return list(anti, "allowed_block_origins").stream()
+                .map(RuleCanonicalCodec::text)
+                .map(BlockOrigin::parse)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     private static ResourceLocation id(Map<String, CanonicalValue> parent, String key) {

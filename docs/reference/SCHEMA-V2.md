@@ -406,6 +406,7 @@ Compiled trigger route with literal fixed point output and bounded anti exploit 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `allow_custom_name` | `boolean` | — | `false` | Explicit opt in for normalized player controlled custom name matching. | `false` | `PS-RULE-003` | `checkbox` | `server_only` | `replace` |
+| `anti_exploit.allowed_block_origins` | `list` | `natural \| creative_placed \| survival_placed \| automation_placed \| unknown` | — | Allowed block origins. Omission permits natural and creative placed blocks. | `["natural", "creative_placed"]` | `PS-RULE-005` | `list` | `server_only` | `set` |
 | `anti_exploit.cooldown_ticks` | `integer` | — | `0` | Minimum world ticks between committed awards from this source. | `10` | `PS-RULE-005` | `integer` | `server_only` | `replace` |
 | `anti_exploit.fake_players` | `enum` | `deny \| allow` | `"deny"` | Whether automation identities may receive this route. | `deny` | `PS-RULE-005` | `select` | `server_only` | `replace` |
 | `anti_exploit.first_time` | `boolean` | — | `false` | Persist one receipt like source marker and reject later awards. | `false` | `PS-RULE-005` | `checkbox` | `server_only` | `replace` |

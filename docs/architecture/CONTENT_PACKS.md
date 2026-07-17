@@ -92,7 +92,7 @@ key = "text.mypack.engine_name"
 fallback = "My Progression Engine"
 ```
 
-TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Skill files accept root `[curve]`, `[[level_currency_awards]]`, `[[xp_sources]]`, `[[levels]]`, and `[[scaling]]` companions. Rule files accept nested `[rule.anti_exploit]`, `[[rule.multipliers]]`, and `[[rule.outputs]]` tables. Each source compiles into one normalized immutable definition rather than independent runtime paths. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
+TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Skill files accept root `[curve]`, `[[level_currency_awards]]`, `[[xp_sources]]`, `[[levels]]`, and `[[scaling]]` companions. Rule files accept nested `[rule.anti_exploit]`, `[[rule.multipliers]]`, and `[[rule.outputs]]` tables. Block rules can select any combination of `natural`, `creative_placed`, `survival_placed`, `automation_placed`, and `unknown` through `allowed_block_origins`; omission safely permits only natural and creative-placed blocks. Each source compiles into one normalized immutable definition rather than independent runtime paths. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
 
 ## Explicit layering
 

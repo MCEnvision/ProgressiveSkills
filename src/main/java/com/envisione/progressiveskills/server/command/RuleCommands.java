@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.server.command;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.server.rule.BlockProvenanceSavedData;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -37,6 +38,10 @@ public final class RuleCommands {
         }
         long enabled = catalog.orElseThrow().rules().values().stream().filter(rule -> rule.enabled()).count();
         success(source, "Rules " + catalog.orElseThrow().rules().size() + ". Enabled " + enabled + ".");
+        var provenance = BlockProvenanceSavedData.get(source.getServer());
+        success(source, "Block provenance tracked " + provenance.trackedCount()
+                + ". Reliable " + provenance.reliable() + ".");
+        provenance.issue().ifPresent(issue -> failure(source, "Block provenance issue. " + issue + "."));
         return 1;
     }
 
@@ -50,6 +55,7 @@ public final class RuleCommands {
             }
             var value = trace.orElseThrow();
             success(source, "Trigger " + value.trigger() + ". Subject " + value.subject()
+                    + ". Origin " + value.origin().serializedName()
                     + ". Candidates " + value.candidates() + ". Eligible " + value.eligible()
                     + ". Selected " + value.selected() + ". Awarded " + value.awarded()
                     + " XP. Outcome " + value.outcome() + ".");

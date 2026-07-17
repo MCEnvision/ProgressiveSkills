@@ -9,6 +9,7 @@ import com.envisione.progressiveskills.common.skill.AttributeOperation;
 import com.envisione.progressiveskills.common.skill.CurveRounding;
 import com.envisione.progressiveskills.common.skill.CurveType;
 import com.envisione.progressiveskills.common.rule.FakePlayerPolicy;
+import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.rule.RuleMultiplierMode;
 import com.envisione.progressiveskills.common.rule.RuleMultiplierStage;
 import com.envisione.progressiveskills.common.rule.RuleStackRule;
@@ -439,6 +440,13 @@ public final class CoreSchemas {
                                 "Explicit opt in for normalized player controlled custom name matching.", "false",
                                 CoreDiagnostics.INVALID_RULE_MATCHER, EditorWidget.CHECKBOX, 80)
                                 .defaultBoolean(false).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.allowed_block_origins", SchemaValueType.LIST, false,
+                                "Allowed block origins. Omission permits natural and creative placed blocks.",
+                                "[\"natural\", \"creative_placed\"]",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.LIST, 185)
+                                .allowedValues(Arrays.stream(BlockOrigin.values())
+                                        .map(BlockOrigin::serializedName).toArray(String[]::new))
+                                .diff(DiffPolicy.SET).projection(ProjectionPolicy.SERVER_ONLY).build(),
                         field("anti_exploit.cooldown_ticks", SchemaValueType.INTEGER, false,
                                 "Minimum world ticks between committed awards from this source.", "10",
                                 CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.INTEGER, 210)

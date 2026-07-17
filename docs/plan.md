@@ -2011,7 +2011,7 @@ amount_formula = "base * max(1, block_hardness / 3)"
 [rule.anti_exploit]
 profile = "mypack:natural_resource"
 fake_players = "deny"
-placed_blocks = "deny_recent"
+allowed_block_origins = ["natural", "creative_placed"]
 per_tick_cap = 40
 per_minute_cap = 500
 per_day_cap = 10000

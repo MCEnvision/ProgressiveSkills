@@ -4,6 +4,7 @@ import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.id.StableId;
 import com.envisione.progressiveskills.common.ir.CanonicalDefinition;
 import com.envisione.progressiveskills.common.rule.FakePlayerPolicy;
+import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.rule.RuleAntiExploit;
 import com.envisione.progressiveskills.common.rule.RuleCanonicalCodec;
 import com.envisione.progressiveskills.common.rule.RuleDefinition;
@@ -19,6 +20,7 @@ import com.envisione.progressiveskills.common.source.SourceMap;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +35,8 @@ final class RuleTomlCompiler {
     );
     private static final Set<String> ANTI_FIELDS = Set.of(
             "fake_players", "first_time", "cooldown_ticks", "per_tick_cap", "per_minute_cap",
-            "per_day_cap", "repeat_window_ticks", "repeat_decay", "minimum_multiplier"
+            "per_day_cap", "repeat_window_ticks", "repeat_decay", "minimum_multiplier",
+            "allowed_block_origins"
     );
     private static final Set<String> OUTPUT_FIELDS = Set.of("id", "type", "skill", "amount_formula");
 
@@ -115,8 +118,20 @@ final class RuleTomlCompiler {
                 repeatWindow,
                 optionalFixed(anti, "repeat_decay", FixedPoint.SCALE),
                 optionalFixed(anti, "minimum_multiplier", repeatWindow == 0
-                        ? FixedPoint.SCALE : 0)
+                        ? FixedPoint.SCALE : 0),
+                allowedBlockOrigins(anti)
         );
+    }
+
+    private static Set<BlockOrigin> allowedBlockOrigins(Map<String, Object> anti) {
+        if (!anti.containsKey("allowed_block_origins")) {
+            return EnumSet.of(BlockOrigin.NATURAL, BlockOrigin.CREATIVE_PLACED);
+        }
+        var result = EnumSet.noneOf(BlockOrigin.class);
+        TomlValues.stringList(anti, "allowed_block_origins").stream()
+                .map(BlockOrigin::parse)
+                .forEach(result::add);
+        return result;
     }
 
     private static BigDecimal decimal(Map<String, Object> values, String key) {
