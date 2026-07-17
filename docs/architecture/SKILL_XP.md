@@ -1,6 +1,6 @@
 # Skill XP and Linear Attribute Progression
 
-Status: Phase 7 implemented and awaiting the real client gameplay checkpoint.
+Status: Phase 7 accepted after automated verification and the real client gameplay checkpoint.
 
 ## Authoritative state
 

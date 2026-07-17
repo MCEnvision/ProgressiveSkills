@@ -1,6 +1,6 @@
 # Phase 7 Verification Record
 
-Status: automated verification passed. Ready for the real client Physique checkpoint.
+Status: accepted. Automated verification and the real client Physique checkpoint passed.
 
 This record covers the skill XP vertical slice. It does not claim the Phase 8 general rule engine, ordinary gameplay event bindings, requirements/formulas, trees, classes, abilities, or baseline progression UI.
 
@@ -42,6 +42,7 @@ bash .ci/smoke-client.sh
 | NeoForge GameTest | local pass | The one required real-server test loads three starter definitions, awards manual and custom XP, reaches exact level 6, verifies +10 max health and multiplied-base jump strength, proves six points, denies negative XP, serializes state, and reprojects identical attributes. |
 | Dedicated server/client smoke | local pass | Production-only server reached ready state and production-only client reached the title screen; both error-marker gates passed. |
 | Release JAR | local pass | 715,585 bytes; archive verification passed; SHA-256 `e1ff197fc252755afd8e0a2ffe6c747325198314282907950b89559987a2c051`. |
+| Real client checkpoint | user pass | NeoForge 21.1.238 on Java 21.0.7 reached exact 975 XP, level and highest 6, six points, max health 30 from a 20 baseline, and jump strength 0.483 from a 0.42 baseline. Negative XP was rejected. Full relog retained identical state and effects. Reloading scaling from 2 to 1 changed health to 26 without progression drift, and restoring it returned health to 30. |
 
 ## Acceptance checklist
 
@@ -56,7 +57,7 @@ bash .ci/smoke-client.sh
 - [x] Persistence restore and force projection reproduce identical semantic state and effects.
 - [x] Published definitions reconcile online players before gameplay resumes.
 - [x] Generated schemas, diagnostics, unit/property tests, GameTest, smokes, and release archive pass.
-- [ ] User completed the real-client Physique progression, relog, and reload-reconciliation checkpoint.
+- [x] User completed the real-client Physique progression, relog, and reload-reconciliation checkpoint.
 
 ## Manual in-game checkpoint
 
