@@ -46,6 +46,12 @@ public final class CoreSchemas {
         builder.register(operationReceipt());
         builder.register(pendingProgressionOperation());
         builder.register(playerDataSnapshot());
+        builder.register(networkHandshake());
+        builder.register(definitionProjection());
+        builder.register(transferEnvelope());
+        builder.register(visiblePlayerState());
+        builder.register(stateDelta());
+        builder.register(networkIntent());
         return builder.build();
     }
 
@@ -840,6 +846,216 @@ public final class CoreSchemas {
         );
     }
 
+    private static SchemaDescriptor networkHandshake() {
+        return schema(
+                "network_handshake",
+                SchemaAudience.INTERNAL,
+                "Network handshake",
+                "Connection-scoped protocol, feature, server identity, and semantic/presentation revision contract.",
+                List.of(
+                        networkField("definition_generation", SchemaValueType.INTEGER,
+                                "Monotonic server gameplay-definition generation.", "7",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 50).build(),
+                        networkField("features", SchemaValueType.INTEGER,
+                                "Required bounded protocol feature bitset.", "15",
+                                CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 40).build(),
+                        networkField("presentation_digest", SchemaValueType.STRING,
+                                "SHA-256 of the exact sanitized definition projection bytes.", "b".repeat(64),
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 70).build(),
+                        networkField("presentation_revision", SchemaValueType.INTEGER,
+                                "Monotonic presentation generation negotiated independently.", "7",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 60).build(),
+                        networkField("protocol_version", SchemaValueType.INTEGER,
+                                "ProgressiveSkills application protocol version.", "1",
+                                CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 30).build(),
+                        networkField("semantic_digest", SchemaValueType.STRING,
+                                "SHA-256 of the authoritative gameplay definition snapshot.", "a".repeat(64),
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 55).build(),
+                        networkField("server_identity", SchemaValueType.STRING,
+                                "Persistent world/server UUID that scopes the local definition cache.",
+                                "00000000-0000-0000-0000-000000000601",
+                                CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 10).build(),
+                        networkField("session_id", SchemaValueType.STRING,
+                                "Ephemeral connection session UUID required on every later payload.",
+                                "00000000-0000-0000-0000-000000000602",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor definitionProjection() {
+        return schema(
+                "definition_projection",
+                SchemaAudience.INTERNAL,
+                "Sanitized definition projection",
+                "Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.",
+                List.of(
+                        networkField("description", SchemaValueType.COMPONENT,
+                                "Optional localized description with bounded fallback.",
+                                "{ key = \"skill.mypack.physique.desc\", fallback = \"Raw power.\" }",
+                                CoreDiagnostics.INVALID_COMPONENT, 30).build(),
+                        networkField("display", SchemaValueType.COMPONENT,
+                                "Optional localized display component with bounded fallback.",
+                                "{ key = \"skill.mypack.physique\", fallback = \"Physique\" }",
+                                CoreDiagnostics.INVALID_COMPONENT, 20).build(),
+                        networkField("icon", SchemaValueType.ICON,
+                                "Optional bounded icon, fallback, alt text, and narration.",
+                                "{ type = \"item\", value = \"minecraft:iron_chestplate\" }",
+                                CoreDiagnostics.INVALID_ICON, 40).build(),
+                        networkField("key", SchemaValueType.STRING,
+                                "Typed definition kind and namespaced identity.",
+                                "progressiveskills:skill[mypack:physique]",
+                                CoreDiagnostics.INVALID_ID, 10).build(),
+                        networkField("search_aliases", SchemaValueType.LIST,
+                                "Bounded presentation-only search terms.", "[\"Strength\", \"Might\"]",
+                                CoreDiagnostics.INVALID_COMPONENT, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor transferEnvelope() {
+        return schema(
+                "transfer_envelope",
+                SchemaAudience.INTERNAL,
+                "Bounded transfer envelope",
+                "Atomic compressed definition/full-state transfer split below conservative clientbound ceilings.",
+                List.of(
+                        networkField("chunk_count", SchemaValueType.INTEGER,
+                                "Declared total chunk count checked before allocation.", "4",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 60).build(),
+                        networkField("compressed_bytes", SchemaValueType.INTEGER,
+                                "Total compressed bytes under the hard aggregate cap.", "49152",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 50).build(),
+                        networkField("digest", SchemaValueType.STRING,
+                                "SHA-256 of the uncompressed payload verified before activation.", "c".repeat(64),
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 70).build(),
+                        networkField("kind", SchemaValueType.ENUM,
+                                "Closed transfer family.", "definitions",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 30)
+                                .allowedValues("definitions", "full_state").build(),
+                        networkField("session_id", SchemaValueType.STRING,
+                                "Owning negotiated session UUID.",
+                                "00000000-0000-0000-0000-000000000602",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 10).build(),
+                        networkField("transfer_id", SchemaValueType.STRING,
+                                "Unique transfer UUID used by every chunk and ACK.",
+                                "00000000-0000-0000-0000-000000000603",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 20).build(),
+                        networkField("uncompressed_bytes", SchemaValueType.INTEGER,
+                                "Expected output bytes bounded before decompression.", "65536",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 40).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor visiblePlayerState() {
+        return schema(
+                "visible_player_state",
+                SchemaAudience.INTERNAL,
+                "Visible player state",
+                "Owner-only authoritative state projection without durable ledgers, provenance, or hidden definitions.",
+                List.of(
+                        networkField("balances", SchemaValueType.MAP,
+                                "Bounded namespaced visible balances.", "{ \"mypack:points\" = 4 }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 70).build(),
+                        networkField("definition_generation", SchemaValueType.INTEGER,
+                                "Pinned gameplay definition generation.", "7",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 40).build(),
+                        networkField("effective_values", SchemaValueType.MAP,
+                                "Bounded effective values needed by current client presentation.",
+                                "{ \"minecraft:attribute[minecraft:generic.max_health]\" = 4 }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 80).build(),
+                        networkField("operation_receipt_count", SchemaValueType.INTEGER,
+                                "Visible diagnostic count without receipt contents.", "1",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 100).build(),
+                        networkField("orphan_count", SchemaValueType.INTEGER,
+                                "Visible diagnostic count without orphan payload contents.", "0",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 90).build(),
+                        networkField("player_id", SchemaValueType.STRING,
+                                "UUID of the session owner.", "00000000-0000-0000-0000-000000000601",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 10).build(),
+                        networkField("presentation_revision", SchemaValueType.INTEGER,
+                                "Pinned sanitized presentation generation.", "7",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 50).build(),
+                        networkField("semantic_digest", SchemaValueType.STRING,
+                                "Pinned gameplay SHA-256.", "a".repeat(64),
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 45).build(),
+                        networkField("state_revision", SchemaValueType.INTEGER,
+                                "Authoritative transaction compare-and-swap revision.", "3",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
+                        networkField("storage_revision", SchemaValueType.INTEGER,
+                                "Monotonic visible-state continuity revision.", "5",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor stateDelta() {
+        return schema(
+                "state_delta",
+                SchemaAudience.INTERNAL,
+                "Visible state delta",
+                "Typed changed/removed paths applied only across an exact base-to-new revision edge.",
+                List.of(
+                        networkField("base_revision", SchemaValueType.INTEGER,
+                                "Required current client storage revision.", "5",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 10).build(),
+                        networkField("changed_balances", SchemaValueType.MAP,
+                                "Changed or added visible balance paths.", "{ \"mypack:points\" = 5 }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 40).build(),
+                        networkField("changed_effective_values", SchemaValueType.MAP,
+                                "Changed or added effective-value paths.", "{}",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 60).build(),
+                        networkField("new_revision", SchemaValueType.INTEGER,
+                                "Strictly newer resulting storage revision.", "6",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 20).build(),
+                        networkField("removed_balances", SchemaValueType.LIST,
+                                "Removed visible balance paths.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 50).build(),
+                        networkField("removed_effective_values", SchemaValueType.LIST,
+                                "Removed effective-value paths.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 70).build(),
+                        networkField("resulting_state_digest", SchemaValueType.STRING,
+                                "SHA-256 of the exact post-application full visible state.", "d".repeat(64),
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 80).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor networkIntent() {
+        return schema(
+                "network_intent",
+                SchemaAudience.INTERNAL,
+                "Bounded client intent",
+                "Serverbound request identity and stale guards; clients never provide costs, XP, or effect amounts.",
+                List.of(
+                        runtimeField("definition_generation", SchemaValueType.INTEGER,
+                                "Client-observed gameplay definition generation.", "7",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
+                        runtimeField("intent_type", SchemaValueType.ENUM,
+                                "Closed server-registered intent family.", "noop_test",
+                                CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 60)
+                                .allowedValues("noop_test").build(),
+                        runtimeField("payload", SchemaValueType.STRING,
+                                "Small type-specific bounded selection payload; never effect amounts or commands.", "\"\"",
+                                CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 70).build(),
+                        runtimeField("request_id", SchemaValueType.INTEGER,
+                                "Monotonic request id covered by the bounded replay/result window.", "12",
+                                CoreDiagnostics.NETWORK_RATE_LIMITED, 20).build(),
+                        runtimeField("semantic_digest", SchemaValueType.STRING,
+                                "Client-observed gameplay SHA-256.", "a".repeat(64),
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 40).build(),
+                        runtimeField("session_id", SchemaValueType.STRING,
+                                "Current connection session UUID.",
+                                "00000000-0000-0000-0000-000000000602",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 10).build(),
+                        runtimeField("state_revision", SchemaValueType.INTEGER,
+                                "Client-observed authoritative state revision.", "3",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 50).build()
+                )
+        );
+    }
+
     private static FieldDescriptor internalField(
             String path,
             SchemaValueType type,
@@ -875,6 +1091,18 @@ public final class CoreSchemas {
     ) {
         return field(path, type, false, description, example, diagnostic, EditorWidget.OBJECT, order)
                 .projection(ProjectionPolicy.SERVER_ONLY);
+    }
+
+    private static FieldDescriptor.Builder networkField(
+            String path,
+            SchemaValueType type,
+            String description,
+            String example,
+            DiagnosticCode diagnostic,
+            int order
+    ) {
+        return field(path, type, true, description, example, diagnostic, EditorWidget.OBJECT, order)
+                .projection(ProjectionPolicy.CLIENT_VISIBLE);
     }
 
     private static String[] enumNames(Enum<?>[] values) {

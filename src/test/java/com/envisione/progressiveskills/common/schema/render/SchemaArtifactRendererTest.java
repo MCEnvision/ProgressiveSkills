@@ -29,7 +29,7 @@ class SchemaArtifactRendererTest {
                     "<a id=\"" + diagnostic.code().value().toLowerCase(Locale.ROOT) + "\"></a>"
             ));
         }
-        assertTrue(first.contains("internal runtime contracts implemented through Phase 5"));
+        assertTrue(first.contains("internal runtime contracts implemented through Phase 6"));
         assertTrue(first.contains("Gameplay definition schemas arrive with their implementation phases."));
     }
 
@@ -50,7 +50,7 @@ class SchemaArtifactRendererTest {
             assertEquals(expected.id().toString(), actual.get("id").getAsString());
             assertEquals(expected.sourceDirectory(), actual.get("source_directory").getAsString());
         }
-        assertEquals(19, root.getAsJsonArray("schemas").size());
+        assertEquals(25, root.getAsJsonArray("schemas").size());
         assertTrue(first.contains("\"projection\": \"server_only\""));
 
         var schemas = root.getAsJsonArray("schemas");

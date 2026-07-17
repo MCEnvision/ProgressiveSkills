@@ -1,6 +1,6 @@
 # Transactions and Output Lifecycles
 
-Status: Phase 4 transaction core implemented and backed by the Phase 5 versioned player attachment.
+Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, and synchronized by the Phase 6 bounded protocol.
 
 ## Scope and boundary
 
@@ -19,7 +19,7 @@ Phase 4 implements the mutation and lifecycle machinery required before skills, 
 
 `common.transaction` contains only side-neutral plans, identities, immutable results, and the bounded coordinator. Minecraft attributes, inventory delivery, player lookup, events, and commands remain under `server.transaction` and `server.command`.
 
-Phase 4 itself does not provide networking, gameplay schemas, or skill/XP behavior. Phase 5 now persists the complete bounded account state, restores it before projection, distinguishes death/non-death copies, and queues offline work for login rather than editing unloaded player files. The exact storage and failure contracts are documented in [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md).
+Phase 4 itself does not provide gameplay schemas or skill/XP behavior. Phase 5 persists the complete bounded account state, restores it before projection, distinguishes death/non-death copies, and queues offline work for login rather than editing unloaded player files. Phase 6 sends the owning client a redacted visible snapshot/delta only after that authority commits; durable ledgers remain server-only. See [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md) and [NETWORKING.md](NETWORKING.md).
 
 ## Transaction pipeline
 

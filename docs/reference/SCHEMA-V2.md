@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 5. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 6. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -163,6 +163,22 @@ One bounded path-addressed mutation applied before typed schema validation.
 | `target_id` | `resource_location` | — | — | Stable nested id selected by replace_by_id. | `mypack:tree/node` | `PS-ID-001` | `resource_location` | `client_visible` | `replace` |
 | `value` | `any` | — | — | Typed replacement or list value; forbidden for remove. | `red` | `PS-SCHEMA-005` | `object` | `client_visible` | `replace` |
 
+## Sanitized definition projection
+
+- Schema ID: `progressiveskills:definition_projection`
+- Version: `2`
+- Audience: `internal`
+
+Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `description` (required) | `component` | — | — | Optional localized description with bounded fallback. | `{ key = "skill.mypack.physique.desc", fallback = "Raw power." }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Optional localized display component with bounded fallback. | `{ key = "skill.mypack.physique", fallback = "Physique" }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Optional bounded icon, fallback, alt text, and narration. | `{ type = "item", value = "minecraft:iron_chestplate" }` | `PS-SCHEMA-006` | `object` | `client_visible` | `replace` |
+| `key` (required) | `string` | — | — | Typed definition kind and namespaced identity. | `progressiveskills:skill[mypack:physique]` | `PS-ID-001` | `object` | `client_visible` | `replace` |
+| `search_aliases` (required) | `list` | — | — | Bounded presentation-only search terms. | `["Strength", "Might"]` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+
 ## Persistent entitlement contribution
 
 - Schema ID: `progressiveskills:entitlement_contribution`
@@ -199,6 +215,43 @@ Registry-neutral visual descriptor resolved only at a later presentation boundar
 Cross-field constraints:
 
 - `exactly_one` → `value`, `values` (`PS-SCHEMA-006`): Use value for a single/tag identity or values for composite badge layers.
+
+## Network handshake
+
+- Schema ID: `progressiveskills:network_handshake`
+- Version: `2`
+- Audience: `internal`
+
+Connection-scoped protocol, feature, server identity, and semantic/presentation revision contract.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `definition_generation` (required) | `integer` | — | — | Monotonic server gameplay-definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `15` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `presentation_digest` (required) | `string` | — | — | SHA-256 of the exact sanitized definition projection bytes. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `presentation_revision` (required) | `integer` | — | — | Monotonic presentation generation negotiated independently. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `1` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | SHA-256 of the authoritative gameplay definition snapshot. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `server_identity` (required) | `string` | — | — | Persistent world/server UUID that scopes the local definition cache. | `00000000-0000-0000-0000-000000000601` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `session_id` (required) | `string` | — | — | Ephemeral connection session UUID required on every later payload. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+
+## Bounded client intent
+
+- Schema ID: `progressiveskills:network_intent`
+- Version: `2`
+- Audience: `internal`
+
+Serverbound request identity and stale guards; clients never provide costs, XP, or effect amounts.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `definition_generation` (required) | `integer` | — | — | Client-observed gameplay definition generation. | `7` | `PS-NET-003` | `object` | `server_only` | `replace` |
+| `intent_type` (required) | `enum` | `noop_test` | — | Closed server-registered intent family. | `noop_test` | `PS-NET-001` | `object` | `server_only` | `replace` |
+| `payload` (required) | `string` | — | — | Small type-specific bounded selection payload; never effect amounts or commands. | `""` | `PS-NET-002` | `object` | `server_only` | `replace` |
+| `request_id` (required) | `integer` | — | — | Monotonic request id covered by the bounded replay/result window. | `12` | `PS-NET-004` | `object` | `server_only` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | Client-observed gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `server_only` | `replace` |
+| `session_id` (required) | `string` | — | — | Current connection session UUID. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `server_only` | `replace` |
+| `state_revision` (required) | `integer` | — | — | Client-observed authoritative state revision. | `3` | `PS-NET-003` | `object` | `server_only` | `replace` |
 
 ## Durable operation receipt
 
@@ -338,6 +391,24 @@ Normalized field provenance kept outside semantic equality and future digests.
 | `source` (required) | `string` | — | — | POSIX relative source identifier without a host path. | `skills/combat/physique.toml` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 | `start` (required) | `object` | — | — | Inclusive one-based starting position. | `{ line = 4, column = 1 }` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 
+## Visible state delta
+
+- Schema ID: `progressiveskills:state_delta`
+- Version: `2`
+- Audience: `internal`
+
+Typed changed/removed paths applied only across an exact base-to-new revision edge.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `base_revision` (required) | `integer` | — | — | Required current client storage revision. | `5` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_balances` (required) | `map` | — | — | Changed or added visible balance paths. | `{ "mypack:points" = 5 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_effective_values` (required) | `map` | — | — | Changed or added effective-value paths. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `new_revision` (required) | `integer` | — | — | Strictly newer resulting storage revision. | `6` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_balances` (required) | `list` | — | — | Removed visible balance paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_effective_values` (required) | `list` | — | — | Removed effective-value paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `resulting_state_digest` (required) | `string` | — | — | SHA-256 of the exact post-application full visible state. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+
 ## Stored definition state
 
 - Schema ID: `progressiveskills:stored_definition_state`
@@ -395,6 +466,24 @@ Bounded, revision- and definition-pinned root plan validated before any mutation
 | `semantic_digest` (required) | `string` | — | — | Pinned lowercase SHA-256 definition digest. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-TX-003` | `object` | `server_only` | `replace` |
 | `target_id` (required) | `string` | — | — | Authoritative target UUID. | `00000000-0000-0000-0000-000000000002` | `PS-TX-001` | `object` | `server_only` | `replace` |
 
+## Bounded transfer envelope
+
+- Schema ID: `progressiveskills:transfer_envelope`
+- Version: `2`
+- Audience: `internal`
+
+Atomic compressed definition/full-state transfer split below conservative clientbound ceilings.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `chunk_count` (required) | `integer` | — | — | Declared total chunk count checked before allocation. | `4` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `compressed_bytes` (required) | `integer` | — | — | Total compressed bytes under the hard aggregate cap. | `49152` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `digest` (required) | `string` | — | — | SHA-256 of the uncompressed payload verified before activation. | `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `kind` (required) | `enum` | `definitions \| full_state` | — | Closed transfer family. | `definitions` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `session_id` (required) | `string` | — | — | Owning negotiated session UUID. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `transfer_id` (required) | `string` | — | — | Unique transfer UUID used by every chunk and ACK. | `00000000-0000-0000-0000-000000000603` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+| `uncompressed_bytes` (required) | `integer` | — | — | Expected output bytes bounded before decompression. | `65536` | `PS-NET-002` | `object` | `client_visible` | `replace` |
+
 ## Transition action
 
 - Schema ID: `progressiveskills:transition_action`
@@ -412,6 +501,27 @@ Typed edge-only action with explicit repeat, delivery, and failure contracts.
 | `repeat_policy` (required) | `enum` | `always \| once_per_transaction \| once_per_character` | — | Exact receipt scope or explicit always-repeat behavior. | `once_per_character` | `PS-TX-006` | `object` | `server_only` | `replace` |
 | `source` (required) | `object` | — | — | Typed owner, definition, and nested grant identity. | `{ owner_kind = "progressiveskills:skill", owner_id = "mypack:physique" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
 | `type` (required) | `resource_location` | — | — | Registered physical action adapter type. | `progressiveskills:item` | `PS-TX-005` | `object` | `server_only` | `replace` |
+
+## Visible player state
+
+- Schema ID: `progressiveskills:visible_player_state`
+- Version: `2`
+- Audience: `internal`
+
+Owner-only authoritative state projection without durable ledgers, provenance, or hidden definitions.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `balances` (required) | `map` | — | — | Bounded namespaced visible balances. | `{ "mypack:points" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `definition_generation` (required) | `integer` | — | — | Pinned gameplay definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `effective_values` (required) | `map` | — | — | Bounded effective values needed by current client presentation. | `{ "minecraft:attribute[minecraft:generic.max_health]" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `operation_receipt_count` (required) | `integer` | — | — | Visible diagnostic count without receipt contents. | `1` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `orphan_count` (required) | `integer` | — | — | Visible diagnostic count without orphan payload contents. | `0` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `player_id` (required) | `string` | — | — | UUID of the session owner. | `00000000-0000-0000-0000-000000000601` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `presentation_revision` (required) | `integer` | — | — | Pinned sanitized presentation generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | Pinned gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `state_revision` (required) | `integer` | — | — | Authoritative transaction compare-and-swap revision. | `3` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `storage_revision` (required) | `integer` | — | — | Monotonic visible-state continuity revision. | `5` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 
 ## Diagnostic catalog
 
@@ -531,6 +641,51 @@ Typed edge-only action with explicit repeat, delivery, and failure contracts.
 - Suppressible: `false`
 - Why it matters: Ambiguous, cyclic, or cross-kind aliases can corrupt reference migration.
 - Suggested fix: Use one acyclic same-kind old-id to new-id mapping.
+
+<a id="ps-net-001"></a>
+
+### PS-NET-001 — Networking protocol or feature mismatch
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A client and server cannot exchange authoritative state under incompatible contracts.
+- Suggested fix: Install matching ProgressiveSkills versions and reconnect.
+
+<a id="ps-net-002"></a>
+
+### PS-NET-002 — Bounded network transfer was rejected
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A chunk count, byte ceiling, timeout, decompression cap, or digest check failed.
+- Suggested fix: Reconnect; if the error repeats, inspect both endpoints for mismatched or malformed payloads.
+
+<a id="ps-net-003"></a>
+
+### PS-NET-003 — Network intent revision is stale
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: Executing an intent against different definitions or player state could duplicate or misprice it.
+- Suggested fix: Wait for the targeted full resync, then submit a fresh intent.
+
+<a id="ps-net-004"></a>
+
+### PS-NET-004 — Network intent rate limit exceeded
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: Unbounded client requests could consume server tick time or memory.
+- Suggested fix: Wait briefly and retry a single current intent.
+
+<a id="ps-net-005"></a>
+
+### PS-NET-005 — Visible state resynchronization is required
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: A revision gap, out-of-order delta, unknown path, or digest mismatch broke continuity.
+- Suggested fix: Allow the bounded full-state transfer to complete before making another mutation.
 
 <a id="ps-pack-001"></a>
 

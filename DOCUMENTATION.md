@@ -2,7 +2,7 @@
 
 ## Current scope
 
-This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, Phase 4 transaction/lifecycle runtime, and Phase 5 persistence/migration boundary. ProgressiveSkills does not yet provide skills or XP content. The base JAR now persists bounded revision-pinned transactions, exact receipts/replays, source-owned values, audit evidence, migration/quarantine state, and offline-operation recovery in explicit bounded stores.
+This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, Phase 4 transaction/lifecycle runtime, Phase 5 persistence/migration boundary, and Phase 6 server-authoritative networking/client projection. ProgressiveSkills does not yet provide skills or XP content. The base JAR persists bounded revision-pinned transactions and exposes only a digest-bound sanitized definition/visible-state projection to the owning client.
 
 ## Prerequisites
 
@@ -28,8 +28,8 @@ The release JAR is created at `build/libs/progressiveskills-1.0-SNAPSHOT.jar`.
 
 | Layer | Command | Purpose |
 |---|---|---|
-| JUnit | `./gradlew test` | Identity, schemas/IR, pack compilation/recovery, transaction/lifecycle invariants, starter installation, Java toolchain, and architecture rules |
-| Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, transaction resolution order, and requires at least 1,000 jqwik tries |
+| JUnit | `./gradlew test` | Identity, schemas/IR, pack compilation/recovery, transaction/lifecycle invariants, persistence, networking codecs/state machines, starter installation, Java toolchain, and architecture rules |
+| Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, transaction resolution order, player-data decode, malformed network buffers, and requires at least 1,000 jqwik tries |
 | Compilation | `./gradlew build` | Compiles main, GameTest, and test sources with all warnings treated as errors |
 | Schema artifacts | `./gradlew verifySchemaArtifacts` | Regenerates schema outputs in `build/` and compares them byte-for-byte with the checked-in reference/editor catalog |
 | GameTest | `./gradlew runGameTestServer` | Boots NeoForge and exercises pack commands, lifecycle persistence/replay, offline-operation recovery, snapshot/export, and death/non-death attachment copying |
@@ -103,6 +103,21 @@ The overworld pending-operation store queues checked work for unloaded players a
 
 See [PERSISTENCE_AND_MIGRATIONS.md](docs/architecture/PERSISTENCE_AND_MIGRATIONS.md) for limits, failure behavior, file locations, and the exact restart/death checkpoint.
 
+## Phase 6 networking and client projection
+
+NeoForge negotiates the non-optional payload registrar version, then ProgressiveSkills exchanges a protocol/features hello pinned to a persistent server identity, ephemeral session, gameplay definition generation/digest, and independent presentation revision/digest. A client receives only typed identity/presentation fields, never gameplay costs/rules/commands/provenance. Cache misses use bounded compressed chunks; cache hits still wait for a full owner-visible state snapshot and ACK before mutation state becomes active.
+
+Transactions normally send a continuity/hash-checked delta. Gaps, stale generation/state, malformed data, or a digest mismatch trigger a bounded full resync. Serverbound intent messages stay under 16 KiB, carry session/request/definition/state guards, and are protected by a bounded exact replay cache plus per-player token bucket.
+
+Loaded operators can inspect or deliberately restart the session with:
+
+```text
+/ps network status
+/ps network resync
+```
+
+See [NETWORKING.md](docs/architecture/NETWORKING.md) for the protocol flow, hard ceilings, redaction boundary, lifecycle behavior, and current manual checkpoint.
+
 ## Optional integrations
 
 No optional integration is currently compiled or loaded. Each adapter stays blocked until its exact target version, technical spike, absent-mod load test, and compatibility profile are green. See [COMPATIBILITY_MATRIX.md](docs/compatibility/COMPATIBILITY_MATRIX.md).
@@ -121,7 +136,10 @@ No optional integration is currently compiled or loaded. Each adapter stays bloc
 | `/ps lifecycle demo` rejects before commit | The inventory is full, no player is targeted, or the session runtime/definitions are unavailable | Free one inventory slot, use the command in game as an operator, and confirm `/ps status` has a live generation |
 | Lifecycle state is quarantined after login | Stored data is malformed, future-version, oversized, or belongs to another player | Run `/ps persistence status`, preserve the reported digest/export evidence, and restore a compatible verified save rather than forcing projection |
 | Snapshot/export command fails | The attachment exceeds a ceiling or the world path cannot be written/verified | Check the command error, storage access, and free space; the source attachment remains unchanged |
+| `/ps network status` is not `ACTIVE` | The join/reload transfer is still awaiting an ACK, timed out, or was rejected | Wait one moment; if it does not activate, reconnect and inspect the disconnect/log message for `PS-NET-*` evidence |
+| Definition cache never hits after reconnect | Server identity, address, protocol, semantic digest, or presentation digest changed | This is safe invalidation; let the bounded projection transfer complete and confirm the next unchanged reconnect |
+| A mutation reports stale network state | Definitions or player revision changed after the client formed its intent | Allow the targeted full resync to finish, then submit the action once against the current screen |
 
 ## Next milestone
 
-Phase 6 adds the networking handshake and sanitized bounded definition/state projection required before the first gameplay vertical slice.
+After the Phase 6 real-client checkpoint is accepted, Phase 7 adds the fixed-point skill XP vertical slice and proves Physique end to end.

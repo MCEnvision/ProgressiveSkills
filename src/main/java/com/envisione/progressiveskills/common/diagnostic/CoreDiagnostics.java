@@ -46,6 +46,11 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode OFFLINE_OPERATION_QUARANTINED = code("PS-DATA-005");
     public static final DiagnosticCode SNAPSHOT_EXPORT_FAILED = code("PS-DATA-006");
     public static final DiagnosticCode PLAYER_DATA_IDENTITY_MISMATCH = code("PS-DATA-007");
+    public static final DiagnosticCode NETWORK_PROTOCOL_MISMATCH = code("PS-NET-001");
+    public static final DiagnosticCode NETWORK_TRANSFER_REJECTED = code("PS-NET-002");
+    public static final DiagnosticCode NETWORK_STALE_REVISION = code("PS-NET-003");
+    public static final DiagnosticCode NETWORK_RATE_LIMITED = code("PS-NET-004");
+    public static final DiagnosticCode NETWORK_RESYNC_REQUIRED = code("PS-NET-005");
 
     private CoreDiagnostics() {
     }
@@ -220,6 +225,26 @@ public final class CoreDiagnostics {
                         "Player data identity does not match its owner",
                         "Loading one player's attachment for another player could transfer progression or receipts.",
                         "Quarantine the payload and restore data whose embedded UUID matches the attachment owner.", false))
+                .register(descriptor(NETWORK_PROTOCOL_MISMATCH, DiagnosticSeverity.ERROR,
+                        "Networking protocol or feature mismatch",
+                        "A client and server cannot exchange authoritative state under incompatible contracts.",
+                        "Install matching ProgressiveSkills versions and reconnect.", false))
+                .register(descriptor(NETWORK_TRANSFER_REJECTED, DiagnosticSeverity.ERROR,
+                        "Bounded network transfer was rejected",
+                        "A chunk count, byte ceiling, timeout, decompression cap, or digest check failed.",
+                        "Reconnect; if the error repeats, inspect both endpoints for mismatched or malformed payloads.", false))
+                .register(descriptor(NETWORK_STALE_REVISION, DiagnosticSeverity.WARNING,
+                        "Network intent revision is stale",
+                        "Executing an intent against different definitions or player state could duplicate or misprice it.",
+                        "Wait for the targeted full resync, then submit a fresh intent.", false))
+                .register(descriptor(NETWORK_RATE_LIMITED, DiagnosticSeverity.WARNING,
+                        "Network intent rate limit exceeded",
+                        "Unbounded client requests could consume server tick time or memory.",
+                        "Wait briefly and retry a single current intent.", false))
+                .register(descriptor(NETWORK_RESYNC_REQUIRED, DiagnosticSeverity.WARNING,
+                        "Visible state resynchronization is required",
+                        "A revision gap, out-of-order delta, unknown path, or digest mismatch broke continuity.",
+                        "Allow the bounded full-state transfer to complete before making another mutation.", false))
                 .build();
     }
 

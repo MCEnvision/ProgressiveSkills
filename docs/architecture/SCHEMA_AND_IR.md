@@ -1,6 +1,6 @@
 # Schema Registry and Canonical IR
 
-Status: Phase 2 foundation implemented, consumed by the Phase 3 TOML compiler, and extended with Phase 4 transaction plus Phase 5 persistence metadata. No gameplay definition schemas are included.
+Status: Phase 2 foundation implemented, consumed by the Phase 3 TOML compiler, and extended with Phase 4 transaction, Phase 5 persistence, and Phase 6 networking metadata. No gameplay definition schemas are included.
 
 ## Boundary
 
@@ -14,7 +14,7 @@ authoring source (Phase 3 TOML; later adapters follow)
   -> semanticProjection() without provenance
 ```
 
-The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Phase 4 registers internal metadata for transaction plans, transition actions, entitlement contributions, and audit records while keeping execution in `common.transaction`. Phase 5 adds internal metadata for the player attachment, stored definition state, durable operation receipts, pending offline operations, and snapshot envelopes; their codecs and runtime remain in `common.data`/`server`. Networking and gameplay definitions remain outside this document; concrete `Skill`, `Tree`, `Class`, and other records arrive with their feature phases.
+The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Phase 4 registers internal metadata for transaction plans, transition actions, entitlement contributions, and audit records while keeping execution in `common.transaction`. Phase 5 adds internal metadata for the player attachment, stored definition state, durable operation receipts, pending offline operations, and snapshot envelopes. Phase 6 adds handshake, sanitized projection, transfer, full/delta state, and intent contracts; executable codecs/state machines remain in `common.network` and orchestration in `server.network`. Gameplay definitions remain outside this document; concrete `Skill`, `Tree`, `Class`, and other records arrive with their feature phases.
 
 ## Delivery boundary against plan §§33.4–33.5
 
@@ -33,7 +33,7 @@ Phase 2 supplies a data-only schema/IR foundation and two deterministic referenc
 | Command suggestions | Phase 3 suggestions use the live kind/pack/definition registries | Generate richer field/value suggestions as concrete typed schemas arrive |
 | TOML/JSON editor schemas and snippets | Not implemented; the editor catalog is not a TOML schema, JSON Schema, or snippet bundle | Generate format-specific schemas/snippets from the registry after adapter grammar is fixed |
 | Diff/default behavior | Diff policy and default-elision metadata exist | Executable semantic diff/default-elision engine |
-| Client projection/redaction | Per-field projection policy metadata exists | Sanitized projection construction, redaction enforcement, networking, and secrecy tests |
+| Client projection/redaction | Per-field projection policy metadata plus Phase 6 sanitized definition/full/delta projection, bounded networking, and secrecy tests | Gameplay-specific visible DTO fields expand only with their implementation phases |
 | Test parameter catalogs | Not implemented | Generate reusable conformance inputs once codecs and executable constraints exist |
 
 The checked-in `schema-v2-editor.json` is therefore a catalog for future tooling, not evidence that every renderer listed in §33.5 exists.

@@ -13,6 +13,7 @@ import net.minecraft.world.level.GameRules;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.audit.PersistenceMetadataSavedData;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
+import com.envisione.progressiveskills.server.network.NetworkRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
@@ -143,6 +144,23 @@ public final class TransactionRuntime {
         ));
     }
 
+    /** Reconciles all online attachments and starts a fresh digest bound session after publish. */
+    public static void onDefinitionsPublished(MinecraftServer server) {
+        Context context = CONTEXT.get();
+        if (context == null || context.server() != server) {
+            return;
+        }
+        server.getPlayerList().getPlayers().forEach(player -> {
+            try {
+                loadAndReproject(player, false);
+            } catch (RuntimeException exception) {
+                NetworkRuntime.invalidate(player);
+                LOGGER.error("[ProgressiveSkills] definition publish could not reconcile player {}; "
+                        + "their network session was invalidated", player.getUUID(), exception);
+            }
+        });
+    }
+
     private static void loadAndReproject(ServerPlayer player, boolean applyPendingOperations) {
         Context context = CONTEXT.get();
         if (context == null || context.server() != player.getServer()) {
@@ -155,6 +173,7 @@ public final class TransactionRuntime {
             context.service().unloadAccount(player.getUUID());
             LOGGER.error("[ProgressiveSkills] quarantined player data for {}; gameplay projection is disabled",
                     player.getUUID());
+            NetworkRuntime.begin(player);
             return;
         }
         reconcileDefinitions(data);
@@ -171,6 +190,7 @@ public final class TransactionRuntime {
         }
         context.service().forceReproject(player.getUUID(), context.projector());
         currentDefinition().ifPresent(definition -> context.persist(player, definition));
+        NetworkRuntime.begin(player);
     }
 
     private static void reconcileDefinitions(ProgressiveSkillsData data) {
@@ -204,6 +224,7 @@ public final class TransactionRuntime {
         ) {
             TransactionResult result = service.execute(plan, definition, projector, actionExecutor);
             persist(player, definition);
+            NetworkRuntime.sync(player);
             return result;
         }
 

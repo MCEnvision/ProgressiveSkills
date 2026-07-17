@@ -10,10 +10,12 @@ import com.envisione.progressiveskills.common.ir.CanonicalValue;
 import com.envisione.progressiveskills.common.pack.CanonicalSemanticDigest;
 import com.envisione.progressiveskills.common.pack.DefinitionRegistryService;
 import com.envisione.progressiveskills.common.pack.LivePackState;
+import com.envisione.progressiveskills.common.pack.PublishResult;
 import com.envisione.progressiveskills.common.pack.SemanticDiff;
 import com.envisione.progressiveskills.common.pack.StageAttempt;
 import com.envisione.progressiveskills.common.pack.StagingResult;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.mojang.logging.LogUtils;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -94,7 +96,7 @@ public final class PackCommands {
     private static int help(CommandSourceStack source) {
         success(source, "Available: /ps status, validate, reload --dry-run|--publish, diff, info pack, "
                 + "info <kind> <id>, lifecycle status|demo|coowner|recompute|revoke|audit|selftest, "
-                + "persistence status|snapshot|export");
+                + "persistence status|snapshot|export, network status|resync");
         return 1;
     }
 
@@ -175,19 +177,21 @@ public final class PackCommands {
         if (service == null) {
             return 0;
         }
+        PublishResult result;
         try {
-            var result = service.publishStaged();
-            if (!result.published()) {
-                failure(source, result.message());
-                return 0;
-            }
-            success(source, result.message() + "; digest "
-                    + result.liveState().orElseThrow().snapshot().contentDigest());
-            return 1;
+            result = service.publishStaged();
         } catch (IOException | ArithmeticException | IllegalArgumentException exception) {
             failure(source, "Publication failed before the live registry changed: " + safeMessage(exception));
             return 0;
         }
+        if (!result.published()) {
+            failure(source, result.message());
+            return 0;
+        }
+        success(source, result.message() + "; digest "
+                + result.liveState().orElseThrow().snapshot().contentDigest());
+        TransactionRuntime.onDefinitionsPublished(source.getServer());
+        return 1;
     }
 
     private static int diff(CommandSourceStack source) {

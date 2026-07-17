@@ -1,6 +1,6 @@
 # Persistence and Migrations
 
-Status: Phase 5 implemented. Automated attachment, migration, clone, offline-operation, snapshot, and export checks pass; the real-world restart/death checkpoint awaits user acceptance.
+Status: Phase 5 accepted. Automated attachment, migration, clone, offline-operation, snapshot, and export checks pass, and the real-world restart/death checkpoint passed on 2026-07-16.
 
 ## Authority and storage split
 

@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.client;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.common.network.PsNetworking;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.neoforged.api.distmarker.Dist;
@@ -8,6 +9,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import org.slf4j.Logger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +25,7 @@ public final class ClientModEvents {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
+        PsNetworking.configureClientConnectionIdentity(ClientConnectionIdentity::current);
         LOGGER.info("{} client bootstrap ready", ProjectIdentity.DISPLAY_NAME);
     }
 
@@ -31,5 +34,10 @@ public final class ClientModEvents {
         if (event.getNewScreen() instanceof TitleScreen && TITLE_SCREEN_REPORTED.compareAndSet(false, true)) {
             LOGGER.info("{} title screen ready", ProjectIdentity.DISPLAY_NAME);
         }
+    }
+
+    @SubscribeEvent
+    static void onClientLogout(ClientPlayerNetworkEvent.LoggingOut event) {
+        PsNetworking.clientDisconnect();
     }
 }

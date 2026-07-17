@@ -903,6 +903,112 @@
       ]
     },
     {
+      "id": "progressiveskills:definition_projection",
+      "version": 2,
+      "audience": "internal",
+      "title": "Sanitized definition projection",
+      "description": "Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.",
+      "fields": [
+        {
+          "path": "description",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional localized description with bounded fallback.",
+          "example": "{ key = \"skill.mypack.physique.desc\", fallback = \"Raw power.\" }",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Optional localized description with bounded fallback."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional localized display component with bounded fallback.",
+          "example": "{ key = \"skill.mypack.physique\", fallback = \"Physique\" }",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Optional localized display component with bounded fallback."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional bounded icon, fallback, alt text, and narration.",
+          "example": "{ type = \"item\", value = \"minecraft:iron_chestplate\" }",
+          "diagnostic": "PS-SCHEMA-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Optional bounded icon, fallback, alt text, and narration."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "key",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Typed definition kind and namespaced identity.",
+          "example": "progressiveskills:skill[mypack:physique]",
+          "diagnostic": "PS-ID-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Typed definition kind and namespaced identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded presentation-only search terms.",
+          "example": "[\"Strength\", \"Might\"]",
+          "diagnostic": "PS-I18N-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Bounded presentation-only search terms."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:entitlement_contribution",
       "version": 2,
       "audience": "internal",
@@ -1138,6 +1244,313 @@
           "diagnostic": "PS-SCHEMA-006",
           "description": "Use value for a single/tag identity or values for composite badge layers."
         }
+      ]
+    },
+    {
+      "id": "progressiveskills:network_handshake",
+      "version": 2,
+      "audience": "internal",
+      "title": "Network handshake",
+      "description": "Connection-scoped protocol, feature, server identity, and semantic/presentation revision contract.",
+      "fields": [
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic server gameplay-definition generation.",
+          "example": "7",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Monotonic server gameplay-definition generation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "features",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required bounded protocol feature bitset.",
+          "example": "15",
+          "diagnostic": "PS-NET-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Required bounded protocol feature bitset."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "presentation_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA-256 of the exact sanitized definition projection bytes.",
+          "example": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "SHA-256 of the exact sanitized definition projection bytes."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "presentation_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic presentation generation negotiated independently.",
+          "example": "7",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Monotonic presentation generation negotiated independently."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "protocol_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "ProgressiveSkills application protocol version.",
+          "example": "1",
+          "diagnostic": "PS-NET-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "ProgressiveSkills application protocol version."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA-256 of the authoritative gameplay definition snapshot.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 55,
+            "help": "SHA-256 of the authoritative gameplay definition snapshot."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "server_identity",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Persistent world/server UUID that scopes the local definition cache.",
+          "example": "00000000-0000-0000-0000-000000000601",
+          "diagnostic": "PS-NET-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Persistent world/server UUID that scopes the local definition cache."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "session_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ephemeral connection session UUID required on every later payload.",
+          "example": "00000000-0000-0000-0000-000000000602",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Ephemeral connection session UUID required on every later payload."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:network_intent",
+      "version": 2,
+      "audience": "internal",
+      "title": "Bounded client intent",
+      "description": "Serverbound request identity and stale guards; clients never provide costs, XP, or effect amounts.",
+      "fields": [
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Client-observed gameplay definition generation.",
+          "example": "7",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Client-observed gameplay definition generation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "intent_type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["noop_test"],
+          "default": null,
+          "description": "Closed server-registered intent family.",
+          "example": "noop_test",
+          "diagnostic": "PS-NET-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Closed server-registered intent family."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "payload",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Small type-specific bounded selection payload; never effect amounts or commands.",
+          "example": "\"\"",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Small type-specific bounded selection payload; never effect amounts or commands."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "request_id",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic request id covered by the bounded replay/result window.",
+          "example": "12",
+          "diagnostic": "PS-NET-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Monotonic request id covered by the bounded replay/result window."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Client-observed gameplay SHA-256.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Client-observed gameplay SHA-256."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "session_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Current connection session UUID.",
+          "example": "00000000-0000-0000-0000-000000000602",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Current connection session UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Client-observed authoritative state revision.",
+          "example": "3",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Client-observed authoritative state revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
       ]
     },
     {
@@ -2575,6 +2988,150 @@
       ]
     },
     {
+      "id": "progressiveskills:state_delta",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible state delta",
+      "description": "Typed changed/removed paths applied only across an exact base-to-new revision edge.",
+      "fields": [
+        {
+          "path": "base_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required current client storage revision.",
+          "example": "5",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Required current client storage revision."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "changed_balances",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added visible balance paths.",
+          "example": "{ \"mypack:points\" = 5 }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Changed or added visible balance paths."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "changed_effective_values",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added effective-value paths.",
+          "example": "{}",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Changed or added effective-value paths."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "new_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Strictly newer resulting storage revision.",
+          "example": "6",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Strictly newer resulting storage revision."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "removed_balances",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Removed visible balance paths.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Removed visible balance paths."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "removed_effective_values",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Removed effective-value paths.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Removed effective-value paths."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "resulting_state_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA-256 of the exact post-application full visible state.",
+          "example": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "SHA-256 of the exact post-application full visible state."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:stored_definition_state",
       "version": 2,
       "audience": "internal",
@@ -3064,6 +3621,150 @@
       ]
     },
     {
+      "id": "progressiveskills:transfer_envelope",
+      "version": 2,
+      "audience": "internal",
+      "title": "Bounded transfer envelope",
+      "description": "Atomic compressed definition/full-state transfer split below conservative clientbound ceilings.",
+      "fields": [
+        {
+          "path": "chunk_count",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Declared total chunk count checked before allocation.",
+          "example": "4",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Declared total chunk count checked before allocation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "compressed_bytes",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Total compressed bytes under the hard aggregate cap.",
+          "example": "49152",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Total compressed bytes under the hard aggregate cap."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA-256 of the uncompressed payload verified before activation.",
+          "example": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "SHA-256 of the uncompressed payload verified before activation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["definitions", "full_state"],
+          "default": null,
+          "description": "Closed transfer family.",
+          "example": "definitions",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Closed transfer family."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "session_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owning negotiated session UUID.",
+          "example": "00000000-0000-0000-0000-000000000602",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Owning negotiated session UUID."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "transfer_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Unique transfer UUID used by every chunk and ACK.",
+          "example": "00000000-0000-0000-0000-000000000603",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Unique transfer UUID used by every chunk and ACK."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "uncompressed_bytes",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Expected output bytes bounded before decompression.",
+          "example": "65536",
+          "diagnostic": "PS-NET-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Expected output bytes bounded before decompression."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:transition_action",
       "version": 2,
       "audience": "internal",
@@ -3206,6 +3907,207 @@
       ],
       "constraints": [
       ]
+    },
+    {
+      "id": "progressiveskills:visible_player_state",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible player state",
+      "description": "Owner-only authoritative state projection without durable ledgers, provenance, or hidden definitions.",
+      "fields": [
+        {
+          "path": "balances",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded namespaced visible balances.",
+          "example": "{ \"mypack:points\" = 4 }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Bounded namespaced visible balances."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned gameplay definition generation.",
+          "example": "7",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Pinned gameplay definition generation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "effective_values",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded effective values needed by current client presentation.",
+          "example": "{ \"minecraft:attribute[minecraft:generic.max_health]\" = 4 }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Bounded effective values needed by current client presentation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation_receipt_count",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Visible diagnostic count without receipt contents.",
+          "example": "1",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 100,
+            "help": "Visible diagnostic count without receipt contents."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "orphan_count",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Visible diagnostic count without orphan payload contents.",
+          "example": "0",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Visible diagnostic count without orphan payload contents."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "player_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "UUID of the session owner.",
+          "example": "00000000-0000-0000-0000-000000000601",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "UUID of the session owner."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "presentation_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned sanitized presentation generation.",
+          "example": "7",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Pinned sanitized presentation generation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned gameplay SHA-256.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 45,
+            "help": "Pinned gameplay SHA-256."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative transaction compare-and-swap revision.",
+          "example": "3",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Authoritative transaction compare-and-swap revision."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "storage_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic visible-state continuity revision.",
+          "example": "5",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Monotonic visible-state continuity revision."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
     }
   ],
   "diagnostics": [
@@ -3324,6 +4226,51 @@
       "why": "Ambiguous, cyclic, or cross-kind aliases can corrupt reference migration.",
       "fix": "Use one acyclic same-kind old-id to new-id mapping.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-id-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-NET-001",
+      "severity": "error",
+      "title": "Networking protocol or feature mismatch",
+      "why": "A client and server cannot exchange authoritative state under incompatible contracts.",
+      "fix": "Install matching ProgressiveSkills versions and reconnect.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-net-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-NET-002",
+      "severity": "error",
+      "title": "Bounded network transfer was rejected",
+      "why": "A chunk count, byte ceiling, timeout, decompression cap, or digest check failed.",
+      "fix": "Reconnect; if the error repeats, inspect both endpoints for mismatched or malformed payloads.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-net-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-NET-003",
+      "severity": "warning",
+      "title": "Network intent revision is stale",
+      "why": "Executing an intent against different definitions or player state could duplicate or misprice it.",
+      "fix": "Wait for the targeted full resync, then submit a fresh intent.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-net-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-NET-004",
+      "severity": "warning",
+      "title": "Network intent rate limit exceeded",
+      "why": "Unbounded client requests could consume server tick time or memory.",
+      "fix": "Wait briefly and retry a single current intent.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-net-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-NET-005",
+      "severity": "warning",
+      "title": "Visible state resynchronization is required",
+      "why": "A revision gap, out-of-order delta, unknown path, or digest mismatch broke continuity.",
+      "fix": "Allow the bounded full-state transfer to complete before making another mutation.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-net-005",
       "suppressible": false
     },
     {

@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills;
 
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.common.network.PsNetworking;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -20,6 +21,7 @@ public final class ProgressiveSkills {
 
     public ProgressiveSkills(IEventBus modEventBus) {
         PsDataAttachments.register(modEventBus);
+        modEventBus.addListener(PsNetworking::register);
         modEventBus.addListener(ProgressiveSkills::onCommonSetup);
     }
 
