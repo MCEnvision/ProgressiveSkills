@@ -53,6 +53,8 @@ bash .ci/smoke-client.sh
 | Original real client checkpoint | pass | The supplied log loaded five definitions with no warnings, awarded 10 XP for stone and 5 XP for a repeated stone, awarded the first-log 20 XP once across a full relog, and published disable and restore generations successfully. |
 | Block-origin client checkpoint | pending | Awaiting natural, creative-placed, survival-placed, customization, and full-value checks below. |
 
+The exact checkpoint binary is committed at `releases/phase-8/progressiveskills-phase-8.jar` with its digest in the adjacent `checksums.txt`.
+
 ## Acceptance checklist
 
 - [x] Rule, matcher, provider, output, stack, and multiplier identities are stable and validated.
