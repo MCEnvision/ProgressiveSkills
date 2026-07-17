@@ -1,10 +1,14 @@
 package com.envisione.progressiveskills.server.network;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.common.ability.AbilityCatalog;
+import com.envisione.progressiveskills.common.ability.AbilityProgression;
+import com.envisione.progressiveskills.common.ability.AbilityState;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.classdef.ClassCatalog;
 import com.envisione.progressiveskills.common.classdef.ClassProgression;
 import com.envisione.progressiveskills.common.network.BoundedNetworkCodec;
+import com.envisione.progressiveskills.common.network.AbilityIntentPayload;
 import com.envisione.progressiveskills.common.network.ClassIntentPayload;
 import com.envisione.progressiveskills.common.network.DefinitionProjection;
 import com.envisione.progressiveskills.common.network.DefinitionProjectionCodec;
@@ -22,6 +26,7 @@ import com.envisione.progressiveskills.common.skill.SkillCatalog;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.ability.AbilityRuntime;
 import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
 import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
@@ -53,6 +58,7 @@ public final class NetworkRuntime {
     static {
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
         PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
+        PsNetworking.configureServerAbilityIntentExecutor(NetworkRuntime::executeAbilityIntent);
     }
 
     private NetworkRuntime() {
@@ -78,6 +84,8 @@ public final class NetworkRuntime {
         PsNetworking.configureServerIntentExecutor(ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS);
         PsNetworking.configureServerClassIntentExecutor(
                 ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS);
+        PsNetworking.configureServerAbilityIntentExecutor(
+                ServerNetworkSessions.AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
         CACHED_DEFINITIONS.set(null);
         ACTIVE_SERVER.compareAndSet(event.getServer(), null);
     }
@@ -98,6 +106,7 @@ public final class NetworkRuntime {
         ACTIVE_SERVER.set(player.getServer());
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
         PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
+        PsNetworking.configureServerAbilityIntentExecutor(NetworkRuntime::executeAbilityIntent);
         if (!player.connection.hasChannel(NetworkPayloads.ServerHello.TYPE)) {
             PsNetworking.removeServerSession(player.getUUID());
             return;
@@ -177,6 +186,8 @@ public final class NetworkRuntime {
         Map<String, Long> balances = visibleBalances(state.balances());
         Map<String, Long> effective = new LinkedHashMap<>();
         state.projectedValues().forEach((key, value) -> effective.put(key.toString(), value));
+        long gameTick = player.serverLevel().getGameTime();
+        AbilityState abilityState = AbilityProgression.state(cached.abilities(), state, gameTick);
         var visible = new VisiblePlayerState(
                 player.getUUID(),
                 dataView.storageRevision(),
@@ -188,6 +199,9 @@ public final class NetworkRuntime {
                 effective,
                 visibleNodeRanks(state, cached.trees()),
                 visibleClasses(state, cached.classes()),
+                visibleAbilities(abilityState, cached.abilities(), gameTick),
+                visibleAbilitySlots(abilityState),
+                visibleSelectedAbilitySlot(abilityState),
                 dataView.orphans().size(),
                 dataView.operationReceipts().size(),
                 !progressionReady
@@ -200,7 +214,7 @@ public final class NetworkRuntime {
     ) {
         Map<String, Long> balances = new LinkedHashMap<>();
         authoritative.forEach((key, value) -> {
-            if (!RuleMemoryKeys.isInternal(key)) {
+            if (!RuleMemoryKeys.isInternal(key) && !AbilityProgression.isInternalBalance(key)) {
                 balances.put(key.toString(), value);
             }
         });
@@ -255,6 +269,53 @@ public final class NetworkRuntime {
         return Map.copyOf(result);
     }
 
+    static Map<net.minecraft.resources.ResourceLocation, VisiblePlayerState.AbilityState> visibleAbilities(
+            AbilityState state,
+            AbilityCatalog abilities,
+            long gameTick
+    ) {
+        var result = new java.util.TreeMap<
+                net.minecraft.resources.ResourceLocation,
+                VisiblePlayerState.AbilityState>(
+                net.minecraft.resources.ResourceLocation::compareNamespaced);
+        state.ownedAbilities().forEach(abilityId -> {
+            var definition = abilities.ability(abilityId);
+            int charges = 0;
+            int maximumCharges = 0;
+            long cooldown = 0;
+            if (definition.isPresent()) {
+                var ability = definition.orElseThrow();
+                var charge = state.charges().get(abilityId);
+                if (charge != null) {
+                    charges = charge.current();
+                    maximumCharges = charge.maximum();
+                }
+                cooldown = state.cooldownRemaining(ability.cooldownGroup(), gameTick);
+            }
+            result.put(abilityId, new VisiblePlayerState.AbilityState(
+                    state.toggleOn(abilityId), charges, maximumCharges, cooldown));
+        });
+        return Map.copyOf(result);
+    }
+
+    static Map<Integer, net.minecraft.resources.ResourceLocation> visibleAbilitySlots(
+            AbilityState state
+    ) {
+        var result = new java.util.TreeMap<Integer, net.minecraft.resources.ResourceLocation>();
+        state.assignments().forEach((slotId, abilityId) -> {
+            if (state.ownedAbilities().contains(abilityId)) {
+                result.put(AbilityState.slotIndex(slotId), abilityId);
+            }
+        });
+        return Map.copyOf(result);
+    }
+
+    static int visibleSelectedAbilitySlot(AbilityState state) {
+        return state.selectedSlot().filter(state.assignments()::containsKey)
+                .filter(slot -> state.ownedAbilities().contains(state.assignments().get(slot)))
+                .map(AbilityState::slotIndex).orElse(-1);
+    }
+
     private static ServerNetworkSessions.IntentExecution executeTreeIntent(
             UUID playerId,
             NetworkPayloads.Intent intent,
@@ -285,6 +346,22 @@ public final class NetworkRuntime {
             return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
         }
         return dispatchClassIntent(intent, payload, new LiveClassIntentOperations(player));
+    }
+
+    private static ServerNetworkSessions.IntentExecution executeAbilityIntent(
+            UUID playerId,
+            NetworkPayloads.Intent intent,
+            AbilityIntentPayload payload
+    ) {
+        MinecraftServer server = ACTIVE_SERVER.get();
+        if (server == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Server progression runtime is unavailable");
+        }
+        ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+        if (player == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
+        }
+        return dispatchAbilityIntent(intent, payload, new LiveAbilityIntentOperations(player));
     }
 
     static ServerNetworkSessions.IntentExecution dispatchTreeIntent(
@@ -319,6 +396,9 @@ public final class NetworkRuntime {
             case CLASS_SELECT, CLASS_RESPEC_PREVIEW, CLASS_RESPEC_CONFIRM,
                     CLASS_SWAP_PREVIEW, CLASS_SWAP_CONFIRM ->
                     ServerNetworkSessions.IntentExecution.invalid("Class intent reached the tree dispatcher");
+            case ABILITY_ASSIGN, ABILITY_UNASSIGN, ABILITY_SELECT, ABILITY_TOGGLE,
+                    ABILITY_ACTIVATE -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Ability intent reached the tree dispatcher");
         };
     }
 
@@ -359,7 +439,52 @@ public final class NetworkRuntime {
             );
             case NOOP_TEST, TREE_BUY, TREE_REFUND_PREVIEW, TREE_REFUND_CONFIRM ->
                     ServerNetworkSessions.IntentExecution.invalid("Tree intent reached the class dispatcher");
+            case ABILITY_ASSIGN, ABILITY_UNASSIGN, ABILITY_SELECT, ABILITY_TOGGLE,
+                    ABILITY_ACTIVATE -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Ability intent reached the class dispatcher");
         };
+    }
+
+    static ServerNetworkSessions.IntentExecution dispatchAbilityIntent(
+            NetworkPayloads.Intent intent,
+            AbilityIntentPayload payload,
+            AbilityIntentOperations operations
+    ) {
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(payload, "payload");
+        Objects.requireNonNull(operations, "operations");
+        if (!operations.active()) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player progression data is quarantined");
+        }
+        return switch (intent.intentType()) {
+            case ABILITY_ASSIGN -> abilityMutationExecution(operations.assign(
+                    payload.abilityId().orElseThrow(), payload.slot().orElseThrow(),
+                    abilityIntentKey(intent)), "Ability assigned");
+            case ABILITY_UNASSIGN -> abilityMutationExecution(operations.unassign(
+                    payload.slot().orElseThrow(), abilityIntentKey(intent)), "Ability unassigned");
+            case ABILITY_SELECT -> abilityMutationExecution(operations.select(
+                    payload.slot().orElseThrow(), abilityIntentKey(intent)), "Ability slot selected");
+            case ABILITY_TOGGLE -> abilityMutationExecution(operations.toggle(
+                    payload.abilityId().orElseThrow(), abilityIntentKey(intent)), "Ability toggled");
+            case ABILITY_ACTIVATE -> abilityMutationExecution(operations.activate(
+                    payload.slot().orElseThrow(), abilityIntentKey(intent)), "Ability activated");
+            default -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Non ability intent reached the ability dispatcher");
+        };
+    }
+
+    private static ServerNetworkSessions.IntentExecution abilityMutationExecution(
+            AbilityMutationOutcome outcome,
+            String acceptedMessage
+    ) {
+        return outcome.accepted()
+                ? ServerNetworkSessions.IntentExecution.accepted(
+                acceptedMessage + ". " + outcome.message())
+                : ServerNetworkSessions.IntentExecution.invalid(outcome.message());
+    }
+
+    private static IdempotencyKey abilityIntentKey(NetworkPayloads.Intent intent) {
+        return new IdempotencyKey("phase12/network/" + intent.sessionId() + "/" + intent.requestId());
     }
 
     private static ServerNetworkSessions.IntentExecution classMutationExecution(
@@ -480,6 +605,33 @@ public final class NetworkRuntime {
                 String previewDigest,
                 IdempotencyKey idempotencyKey
         );
+    }
+
+    interface AbilityIntentOperations {
+        boolean active();
+
+        AbilityMutationOutcome assign(
+                net.minecraft.resources.ResourceLocation abilityId,
+                int slot,
+                IdempotencyKey idempotencyKey
+        );
+
+        AbilityMutationOutcome unassign(int slot, IdempotencyKey idempotencyKey);
+
+        AbilityMutationOutcome select(int slot, IdempotencyKey idempotencyKey);
+
+        AbilityMutationOutcome toggle(
+                net.minecraft.resources.ResourceLocation abilityId,
+                IdempotencyKey idempotencyKey
+        );
+
+        AbilityMutationOutcome activate(int slot, IdempotencyKey idempotencyKey);
+    }
+
+    record AbilityMutationOutcome(boolean accepted, String message) {
+        AbilityMutationOutcome {
+            message = Objects.requireNonNull(message, "message");
+        }
     }
 
     record ClassMutationOutcome(boolean committed, String message) {
@@ -616,6 +768,57 @@ public final class NetworkRuntime {
         }
     }
 
+    private record LiveAbilityIntentOperations(ServerPlayer player)
+            implements AbilityIntentOperations {
+        private LiveAbilityIntentOperations {
+            Objects.requireNonNull(player, "player");
+        }
+
+        @Override
+        public boolean active() {
+            return TransactionRuntime.context(player.getServer())
+                    .map(context -> context.ready(player))
+                    .orElse(false);
+        }
+
+        @Override
+        public AbilityMutationOutcome assign(
+                net.minecraft.resources.ResourceLocation abilityId,
+                int slot,
+                IdempotencyKey idempotencyKey
+        ) {
+            var result = AbilityRuntime.assign(player, abilityId, slot, idempotencyKey);
+            return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public AbilityMutationOutcome unassign(int slot, IdempotencyKey idempotencyKey) {
+            var result = AbilityRuntime.unassign(player, slot, idempotencyKey);
+            return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public AbilityMutationOutcome select(int slot, IdempotencyKey idempotencyKey) {
+            var result = AbilityRuntime.select(player, slot, idempotencyKey);
+            return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public AbilityMutationOutcome toggle(
+                net.minecraft.resources.ResourceLocation abilityId,
+                IdempotencyKey idempotencyKey
+        ) {
+            var result = AbilityRuntime.toggle(player, abilityId, idempotencyKey);
+            return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public AbilityMutationOutcome activate(int slot, IdempotencyKey idempotencyKey) {
+            var result = AbilityRuntime.activate(player, slot, idempotencyKey);
+            return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+    }
+
     private static ClassPreviewOutcome classPreview(ClassProgression.ChangePreview preview) {
         return new ClassPreviewOutcome(
                 preview.classId(), preview.replacementClassId(), preview.affectedClasses(),
@@ -639,14 +842,17 @@ public final class NetworkRuntime {
         SkillCatalog skills = SkillCatalog.from(canonicalIr);
         TreeCatalog trees = TreeCatalog.from(canonicalIr, skills);
         ClassCatalog classes = ClassCatalog.from(canonicalIr, skills, trees);
-        DefinitionProjection definitions = DefinitionProjection.from(canonicalIr, trees, classes);
+        AbilityCatalog abilities = AbilityCatalog.from(canonicalIr, skills, classes);
+        DefinitionProjection definitions = DefinitionProjection.from(
+                canonicalIr, trees, classes, abilities);
         CachedDefinitions replacement = new CachedDefinitions(
                 generation,
                 semanticDigest,
                 definitions,
                 BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions)),
                 trees,
-                classes
+                classes,
+                abilities
         );
         CACHED_DEFINITIONS.set(replacement);
         return replacement;
@@ -667,7 +873,8 @@ public final class NetworkRuntime {
             DefinitionProjection definitions,
             String presentationDigest,
             TreeCatalog trees,
-            ClassCatalog classes
+            ClassCatalog classes,
+            AbilityCatalog abilities
     ) {
     }
 }

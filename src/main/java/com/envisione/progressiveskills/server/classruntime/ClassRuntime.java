@@ -1,10 +1,13 @@
 package com.envisione.progressiveskills.server.classruntime;
 
+import com.envisione.progressiveskills.common.ability.AbilityCatalog;
+import com.envisione.progressiveskills.common.ability.AbilityProgression;
 import com.envisione.progressiveskills.common.classdef.ClassCatalog;
 import com.envisione.progressiveskills.common.classdef.ClassProgression;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsData;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.skill.SkillCatalog;
+import com.envisione.progressiveskills.common.transaction.CascadePlan;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
@@ -51,10 +54,11 @@ public final class ClassRuntime {
         Context context = context(player);
         var snapshot = context.transactions().service().snapshot(player.getUUID());
         var preview = ClassProgression.previewSelect(context.classes(), context.skills(), snapshot, classId);
-        var plan = ClassProgression.select(
+        CascadePlan primary = ClassProgression.select(
                 player.getUUID(), player.getUUID(), context.classes(), context.skills(), snapshot,
                 context.definition(), classId, idempotencyKey, ProgressionCause.GAMEPLAY
         );
+        CascadePlan plan = appendAbilityReconciliation(context, primary);
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
@@ -83,10 +87,11 @@ public final class ClassRuntime {
         var preview = ClassProgression.previewRespec(
                 context.classes(), context.skills(), snapshot, context.definition(), classId
         );
-        var plan = ClassProgression.respec(
+        CascadePlan primary = ClassProgression.respec(
                 player.getUUID(), player.getUUID(), context.classes(), context.skills(), snapshot,
                 context.definition(), classId, previewDigest, idempotencyKey, ProgressionCause.GAMEPLAY
         );
+        CascadePlan plan = appendAbilityReconciliation(context, primary);
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
@@ -118,11 +123,12 @@ public final class ClassRuntime {
                 context.classes(), context.skills(), snapshot, context.definition(),
                 removedClassId, replacementClassId
         );
-        var plan = ClassProgression.swap(
+        CascadePlan primary = ClassProgression.swap(
                 player.getUUID(), player.getUUID(), context.classes(), context.skills(), snapshot,
                 context.definition(), removedClassId, replacementClassId, previewDigest,
                 idempotencyKey, ProgressionCause.GAMEPLAY
         );
+        CascadePlan plan = appendAbilityReconciliation(context, primary);
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
@@ -143,11 +149,17 @@ public final class ClassRuntime {
         var canonical = service.live().snapshot().canonicalIr();
         SkillCatalog skills = SkillCatalog.from(canonical);
         ClassCatalog classes = ClassCatalog.from(canonical, skills, TreeCatalog.from(canonical, skills));
+        AbilityCatalog abilities = AbilityCatalog.from(canonical, skills, classes);
         for (int attempt = 0; attempt < MAX_RECONCILE_TRANSACTIONS; attempt++) {
             var snapshot = transactions.service().snapshot(player.getUUID());
-            var plan = ClassProgression.reconcile(
+            Optional<CascadePlan> classPlan = ClassProgression.reconcile(
                     player.getUUID(), classes, skills, snapshot, definition
             );
+            Optional<CascadePlan> plan = classPlan.map(primary -> appendAbilityReconciliation(
+                    transactions, abilities, definition, primary
+            )).or(() -> AbilityProgression.reconcile(
+                    player.getUUID(), abilities, snapshot, definition
+            ));
             if (plan.isEmpty()) {
                 return;
             }
@@ -171,6 +183,7 @@ public final class ClassRuntime {
         var canonical = service.live().snapshot().canonicalIr();
         SkillCatalog skills = SkillCatalog.from(canonical);
         ClassCatalog classes = ClassCatalog.from(canonical, skills, TreeCatalog.from(canonical, skills));
+        AbilityCatalog abilities = AbilityCatalog.from(canonical, skills, classes);
         TransactionRuntime.Context transactions = TransactionRuntime.context(player.getServer())
                 .orElseThrow(() -> new IllegalStateException("Transaction runtime is unavailable"));
         if (!transactions.ready(player)) {
@@ -178,7 +191,26 @@ public final class ClassRuntime {
         }
         DefinitionRevision definition = TransactionRuntime.currentDefinition()
                 .orElseThrow(() -> new IllegalStateException("Live definitions are unavailable"));
-        return new Context(skills, classes, transactions, definition);
+        return new Context(skills, classes, abilities, transactions, definition);
+    }
+
+    private static CascadePlan appendAbilityReconciliation(
+            Context context,
+            CascadePlan primary
+    ) {
+        return appendAbilityReconciliation(
+                context.transactions(), context.abilities(), context.definition(), primary);
+    }
+
+    private static CascadePlan appendAbilityReconciliation(
+            TransactionRuntime.Context transactions,
+            AbilityCatalog abilities,
+            DefinitionRevision definition,
+            CascadePlan primary
+    ) {
+        var postPrimarySnapshot = transactions.service().previewSnapshot(primary, definition);
+        return AbilityProgression.appendReconciliation(
+                primary, abilities, postPrimarySnapshot, definition);
     }
 
     static void requireActivePlayerData(ProgressiveSkillsData data) {
@@ -201,6 +233,7 @@ public final class ClassRuntime {
     private record Context(
             SkillCatalog skills,
             ClassCatalog classes,
+            AbilityCatalog abilities,
             TransactionRuntime.Context transactions,
             DefinitionRevision definition
     ) {

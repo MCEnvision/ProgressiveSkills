@@ -2,6 +2,7 @@ package com.envisione.progressiveskills.common.skill;
 
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.CanonicalIr;
+import com.envisione.progressiveskills.common.transaction.InternalBalanceIds;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
@@ -39,6 +40,9 @@ public final class SkillCatalog {
         var currencies = new TreeMap<ResourceLocation, CurrencyDefinition>(ResourceLocation::compareNamespaced);
         ir.definitions().forEach((key, canonical) -> {
             if (key.kind().equals(DefinitionKinds.CURRENCY)) {
+                if (InternalBalanceIds.isReserved(key.id())) {
+                    throw new IllegalArgumentException("Currency id is reserved for internal state " + key.id());
+                }
                 currencies.put(key.id(), SkillCanonicalCodec.decodeCurrency(canonical));
             }
         });

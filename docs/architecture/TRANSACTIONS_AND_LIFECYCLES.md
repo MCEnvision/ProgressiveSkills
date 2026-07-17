@@ -1,6 +1,6 @@
 # Transactions and Output Lifecycles
 
-Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, synchronized by the Phase 6 bounded protocol, and used by the Phase 7 through Phase 11 gameplay paths.
+Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, synchronized by the Phase 6 bounded protocol, and used by the Phase 7 through Phase 12 gameplay paths.
 
 ## Scope and boundary
 

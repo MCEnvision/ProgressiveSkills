@@ -291,6 +291,63 @@ class ServerNetworkSessionsTest {
         assertEquals(0, calls.get());
     }
 
+    @Test
+    void validatedAbilityExecutorRunsOnceBehindReplayRevisionRateAndQuarantineGuards() {
+        var server = ServerNetworkSessions.systemClock();
+        var client = ClientNetworkState.systemClock();
+        DefinitionProjection definitions = NetworkFixtures.abilityDefinitions();
+        String presentation = BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions));
+        VisiblePlayerState state = new VisiblePlayerState(
+                NetworkFixtures.PLAYER, 0, 6,
+                new com.envisione.progressiveskills.common.transaction.DefinitionRevision(
+                        1, NetworkFixtures.SEMANTIC),
+                1, presentation, Map.of(), Map.of(), Map.of(), Map.of(),
+                Map.of(NetworkFixtures.ABILITY_GUARD,
+                        new VisiblePlayerState.AbilityState(false, 2, 2, 0)),
+                Map.of(0, NetworkFixtures.ABILITY_GUARD), 0, 0, 0, false
+        );
+        NetworkPayloads.ServerHello hello = server.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        completePayloadExchange(server, client, server.handleClientHello(
+                NetworkFixtures.PLAYER, client.receiveHello(hello)));
+        var calls = new AtomicInteger();
+        var request = new NetworkPayloads.Intent(
+                hello.sessionId(), 0, 1, NetworkFixtures.SEMANTIC, 6,
+                NetworkPayloads.IntentType.ABILITY_ACTIVATE,
+                AbilityIntentPayload.activate(0).encode(
+                        NetworkPayloads.IntentType.ABILITY_ACTIVATE));
+        ServerNetworkSessions.AbilityIntentExecutor executor = (playerId, intent, payload) -> {
+            calls.incrementAndGet();
+            assertEquals(0, payload.slot().orElseThrow());
+            return ServerNetworkSessions.IntentExecution.accepted("Ability activated");
+        };
+
+        List<CustomPacketPayload> accepted = server.handleIntent(
+                NetworkFixtures.PLAYER, request,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS,
+                ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS,
+                executor);
+        List<CustomPacketPayload> replayed = server.handleIntent(
+                NetworkFixtures.PLAYER, request,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS,
+                ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS,
+                executor);
+        assertEquals(accepted, replayed);
+        assertEquals(1, calls.get());
+        assertEquals(NetworkPayloads.IntentStatus.ACCEPTED, result(accepted).status());
+
+        var malformed = new NetworkPayloads.Intent(
+                hello.sessionId(), 1, 1, NetworkFixtures.SEMANTIC, 6,
+                NetworkPayloads.IntentType.ABILITY_ASSIGN, "bad");
+        assertEquals(NetworkPayloads.IntentStatus.INVALID, result(server.handleIntent(
+                NetworkFixtures.PLAYER, malformed,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS,
+                ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS,
+                executor)).status());
+        assertEquals(1, calls.get());
+    }
+
     private static NetworkPayloads.Intent intent(
             NetworkPayloads.ServerHello hello,
             long requestId,

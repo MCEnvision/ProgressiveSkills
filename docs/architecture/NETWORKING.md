@@ -1,10 +1,10 @@
 # Networking and Client Projection
 
-Status: Phase 11 protocol version 3 beta. Phase 6 remains accepted; tree and class extensions remain on the cumulative beta train until the final mass check.
+Status: Phase 12 protocol version 4 beta. Phase 6 remains accepted; tree, class, and ability extensions remain on the cumulative beta train until the final mass check.
 
 ## Authority and handshake
 
-The server remains the only progression authority. NeoForge first negotiates non-optional registrar version `3`, then ProgressiveSkills performs a play-phase application handshake with protocol version `3` and a required feature bitset. The required features are sanitized definition projection, full state, semantic deltas, bounded intents, Core trees, and Core classes. The server hello includes:
+The server remains the only progression authority. NeoForge first negotiates non-optional registrar version `4`, then ProgressiveSkills performs a play-phase application handshake with protocol version `4` and a required feature bitset. The required features are sanitized definition projection, full state, semantic deltas, bounded intents, Core trees, Core classes, and Core abilities. The server hello includes:
 
 - a persistent random world/server UUID plus an ephemeral connection session UUID;
 - gameplay definition generation and semantic SHA-256;
@@ -43,7 +43,8 @@ Login and respawn begin this flow after attachment restore/reconciliation. Dimen
 - disclosed Core tree graph, costs, direct requirements, and currency bounds without grants or paid records;
 - class slot capacity and swap policy;
 - class slot use, disclosed prerequisites, costs, starter item counts, and typed grant target, operation, resolver, and value; and
-- named synergy presentation, required class IDs, and typed grant summaries.
+- named synergy presentation, required class IDs, and typed grant summaries; and
+- ability kind, slot policy, persistent effect and cost summaries, targeting, cooldown group, charge timing, and ordered native action summaries.
 
 Rules, commands, hidden server values, raw entitlement source owners, paid records, receipt bodies, audit bodies, provider secrets, provenance, source paths, merge metadata, and source maps have no field in this DTO or its codec. Staging encodes the exact projection under the two MiB ceiling before publication. Tests encode server-only command, provenance, and ownership markers and prove they do not enter wire bytes.
 
@@ -69,13 +70,13 @@ Every collection/string length is checked before allocation. Enum ordinals fail 
 
 ## Full state and semantic deltas
 
-The full owner-visible state contains storage/sync revision, transaction state revision, gameplay definition generation/digest, presentation revision/digest, bounded balance/effective-value maps, owned Core node ranks, selected classes mapped to slot ID, slot cost, and explicit active or suspended state, orphan/operation-receipt counts, and quarantine status. Durable paid records, receipt bodies, idempotency results, audits, raw entitlement source owners, raw attachment data, and orphan payloads remain server-only.
+The full owner-visible state contains storage/sync revision, transaction state revision, gameplay definition generation/digest, presentation revision/digest, bounded balance/effective-value maps, owned Core node ranks, selected classes mapped to slot ID, slot cost, and explicit active or suspended state, owned abilities with toggle, charge, and remaining cooldown state, fixed assignments, selected ability slot, orphan/operation-receipt counts, and quarantine status. Durable paid records, receipt bodies, idempotency results, audits, raw entitlement source owners, raw internal ability balance ids, raw attachment data, and orphan payloads remain server-only.
 
-After activation, an attachment revision increase normally produces one semantic delta with exact `baseRevision -> newRevision`, new transaction revision, closed changed/removed balance, effective-value, node-rank, and selected-class sets, diagnostic counts, and resulting full-state SHA-256. The client applies only an exact player/generation/presentation/base continuation. A gap, out-of-order edge, malformed body, or result-digest mismatch requests a bounded full snapshot. An already-applied identical delta is ACKed without applying twice. A delta over 64 KiB falls back to the same bounded full-state envelope.
+After activation, an attachment revision increase normally produces one semantic delta with exact `baseRevision -> newRevision`, new transaction revision, closed changed/removed balance, effective-value, node-rank, selected-class, ability-state, and ability-slot sets, resulting selected slot, diagnostic counts, and resulting full-state SHA-256. The client applies only an exact player/generation/presentation/base continuation. A gap, out-of-order edge, malformed body, or result-digest mismatch requests a bounded full snapshot. An already-applied identical delta is ACKed without applying twice. A delta over 64 KiB falls back to the same bounded full-state envelope.
 
 ## Serverbound intent safety
 
-Protocol version 3 has a closed intent family for the nonmutating protocol test, tree purchase and refund, plus class select, respec preview and confirmation, and swap preview and confirmation. Every intent carries the active session, monotonic request ID, definition generation/digest, and authoritative state revision. The server:
+Protocol version 4 has a closed intent family for the nonmutating protocol test, tree purchase and refund, class select, respec preview and confirmation, class swap preview and confirmation, plus ability assign, unassign, select, toggle, and activate. Every intent carries the active session, monotonic request ID, definition generation/digest, and authoritative state revision. The server:
 
 - returns the exact cached result/result UUID for a retained duplicate;
 - rejects an uncached request at or below the highest request ID;
@@ -85,7 +86,7 @@ Protocol version 3 has a closed intent family for the nonmutating protocol test,
 - rejects stale definition/state revisions and sends a targeted full resync;
 - derives all validity, costs, amounts, targets, and effects from server authority.
 
-Tree and class bodies have canonical field counts and type-specific optional fields. Class previews return only affected class IDs, sorted authoritative currency charges, bounded public blockers, and a digest. The followup must exactly match its session, request, definition, state, intent family, and selected IDs before it can enter the replay cache. Quarantined or inactive progression rejects before either gameplay executor runs.
+Tree, class, and ability bodies have canonical field counts and type-specific optional fields. Ability assign carries an owned ability id and fixed slot, toggle carries one owned ability id, and unassign, select, and activate carry one fixed slot. Class previews return only affected class IDs, sorted authoritative currency charges, bounded public blockers, and a digest. Any followup must exactly match its session, request, definition, state, intent family, and selected IDs before it can enter the replay cache. Quarantined or inactive progression rejects before any gameplay executor runs.
 
 Reconnect-safe value delivery uses durable transaction receipts and the bounded retained transaction-result window. The ephemeral connection replay cache handles in-session duplicates and rejects requests older than its retained window.
 
@@ -106,7 +107,7 @@ Reconnect-safe value delivery uses durable transaction receipts and the bounded 
 
 Use the same cheats-enabled client/world used for Phase 5:
 
-1. Join and run `/ps network status`. Expect `Protocol 3 session ACTIVE`, matching sent/acknowledged storage revisions, and no timeout/rejection.
+1. Join and run `/ps network status`. Expect `Protocol 4 session ACTIVE`, matching sent/acknowledged storage revisions, and no timeout/rejection.
 2. Run `/ps lifecycle demo`, then `/ps network status`. If this world's stable demo transaction was already used, use the existing lifecycle commands to create one fresh committed mutation (for example co-owner/revoke). Expect the delta count to increase and sent/acknowledged storage revisions to match.
 3. Save and quit to the title screen, reopen the same world, and run `/ps network status`. Expect `ACTIVE` and `Definition cache hit true`; no player authority should have crossed the disconnect.
 4. Run `/ps reload --dry-run`, review `/ps diff`, then `/ps reload --publish`. Run `/ps network status` after the ACK. Expect the new definition generation in an `ACTIVE` session with matching sent/acknowledged revisions.

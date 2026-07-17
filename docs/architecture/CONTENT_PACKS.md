@@ -1,6 +1,6 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 staging implemented, with Phase 11 skill, currency, rule, requirement, rounding, tree, class slot, and class support in the TOML adapter.
+Status: Phase 3 staging implemented, with Phase 12 skill, currency, rule, requirement, rounding, tree, class slot, class, and ability support in the TOML adapter.
 
 Phase 10 tree authoring is implemented as a beta checkpoint. The supported boundary is documented in [TREES_AND_REFUNDS.md](TREES_AND_REFUNDS.md), with automated evidence in [PHASE-10.md](../verification/PHASE-10.md).
 
@@ -212,4 +212,4 @@ The implementation currently enforces, among the lower per-record bounds inherit
 
 ## Deferred boundaries
 
-The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, Phase 9 direct rule requirements and rounding, Phase 10 Core tree lifecycle, and Phase 11 Core class slot, class, grant, and synergy schemas are implemented on the cumulative beta train. Phase 11 remains a beta checkpoint until the final player mass test is approved. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, advanced classes, abilities, locale tables, datapack JSON, physical external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.
+The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, Phase 9 direct rule requirements and rounding, Phase 10 Core tree lifecycle, Phase 11 Core class slot, class, grant, and synergy schemas, and Phase 12 Core passive, toggle, and active ability schemas are implemented on the cumulative beta train. Phase 12 remains a beta checkpoint until the final player mass test is approved. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, advanced classes and abilities, locale tables, datapack JSON, physical external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.

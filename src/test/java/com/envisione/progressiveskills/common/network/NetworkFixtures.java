@@ -22,6 +22,8 @@ final class NetworkFixtures {
     static final ResourceLocation CLASS_MAGE = ResourceLocation.parse("example:mage");
     static final ResourceLocation CLASS_WARRIOR = ResourceLocation.parse("example:warrior");
     static final ResourceLocation CLASS_SYNERGY = ResourceLocation.parse("example:spellblade");
+    static final ResourceLocation ABILITY_GUARD = ResourceLocation.parse("example:guard");
+    static final ResourceLocation ABILITY_FOCUS = ResourceLocation.parse("example:focus");
 
     private NetworkFixtures() {
     }
@@ -131,5 +133,55 @@ final class NetworkFixtures {
                         Optional.of(text), Optional.empty(), Optional.of(icon), List.of(),
                         Optional.empty(), Optional.empty(), Optional.of(classView))
         ), Map.of(CLASS_SYNERGY, synergy));
+    }
+
+    static DefinitionProjection abilityDefinitions() {
+        var text = new DefinitionProjection.Text(Optional.empty(), "Guard");
+        var icon = new DefinitionProjection.Icon(
+                "item", List.of(ResourceLocation.parse("minecraft:shield")),
+                ResourceLocation.parse("minecraft:barrier"), text, text
+        );
+        var active = new DefinitionProjection.AbilityView(
+                true, "active", true, false, List.of(),
+                List.of(
+                        new DefinitionProjection.AbilityCostView(
+                                ResourceLocation.parse("example:guard/points"), "currency",
+                                Optional.of(CURRENCY), 2),
+                        new DefinitionProjection.AbilityCostView(
+                                ResourceLocation.parse("example:guard/hunger"), "hunger",
+                                Optional.empty(), 1)
+                ),
+                new DefinitionProjection.AbilityTargetView("self", 0, false),
+                ResourceLocation.parse("example:defense"), 20, 2, 40,
+                List.of(
+                        new DefinitionProjection.AbilityActionView(
+                                ResourceLocation.parse("example:guard/heal"), "heal",
+                                Optional.empty(), Optional.empty(), 2_000, 0,
+                                false, false, false),
+                        new DefinitionProjection.AbilityActionView(
+                                ResourceLocation.parse("example:guard/effect"), "vanilla_effect",
+                                Optional.empty(), Optional.of(
+                                ResourceLocation.parse("minecraft:resistance")), 1, 100,
+                                false, true, true)
+                )
+        );
+        var toggle = new DefinitionProjection.AbilityView(
+                true, "toggle", true, true,
+                List.of(new DefinitionProjection.AbilityEffectView(
+                        ResourceLocation.parse("example:focus/effect"), "flag",
+                        ResourceLocation.parse("example:focused"), "owned", "highest", 1)),
+                List.of(), new DefinitionProjection.AbilityTargetView("self", 0, false),
+                ResourceLocation.parse("example:focus"), 0, 1, 0, List.of()
+        );
+        return new DefinitionProjection(Map.of(
+                new DefinitionKey(DefinitionKinds.ABILITY, ABILITY_GUARD),
+                new DefinitionProjection.Entry(
+                        Optional.of(text), Optional.empty(), Optional.of(icon), List.of("defense"),
+                        Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(active)),
+                new DefinitionKey(DefinitionKinds.ABILITY, ABILITY_FOCUS),
+                new DefinitionProjection.Entry(
+                        Optional.of(text), Optional.empty(), Optional.of(icon), List.of("stance"),
+                        Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(toggle))
+        ));
     }
 }

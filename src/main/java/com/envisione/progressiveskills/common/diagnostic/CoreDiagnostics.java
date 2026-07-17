@@ -69,6 +69,12 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode CLASS_RESPEC_DENIED = code("PS-CLASS-005");
     public static final DiagnosticCode CLASS_RECONCILIATION_REQUIRED = code("PS-CLASS-006");
     public static final DiagnosticCode CLASS_ENTITLEMENT_INVALID = code("PS-CLASS-007");
+    public static final DiagnosticCode INVALID_ABILITY = code("PS-ABILITY-001");
+    public static final DiagnosticCode INVALID_ABILITY_EFFECT = code("PS-ABILITY-002");
+    public static final DiagnosticCode INVALID_ABILITY_COST = code("PS-ABILITY-003");
+    public static final DiagnosticCode INVALID_ABILITY_TARGET = code("PS-ABILITY-004");
+    public static final DiagnosticCode INVALID_ABILITY_ACTION = code("PS-ABILITY-005");
+    public static final DiagnosticCode ABILITY_INTENT_DENIED = code("PS-ABILITY-006");
     public static final DiagnosticCode INVALID_RULE = code("PS-RULE-001");
     public static final DiagnosticCode UNKNOWN_RULE_TRIGGER = code("PS-RULE-002");
     public static final DiagnosticCode INVALID_RULE_MATCHER = code("PS-RULE-003");
@@ -341,6 +347,30 @@ public final class CoreDiagnostics {
                         "Class entitlement projection is invalid",
                         "A malformed grant, resolver, source identity, or target would make class ownership unsafe.",
                         "Use supported attribute, ability, spell, stage, tree access, or class access grants.", false))
+                .register(descriptor(INVALID_ABILITY, DiagnosticSeverity.ERROR,
+                        "Ability definition is invalid",
+                        "Ability kind, lifecycle fields, slot eligibility, cooldown, and charges must form one bounded Core definition.",
+                        "Use a passive, toggle, or active ability with only fields valid for that lifecycle.", true))
+                .register(descriptor(INVALID_ABILITY_EFFECT, DiagnosticSeverity.ERROR,
+                        "Ability persistent effect is invalid",
+                        "Persistent effects require source owned stable ids and a supported attribute or boolean flag target.",
+                        "Use an attribute or flag effect on a passive or toggle ability.", true))
+                .register(descriptor(INVALID_ABILITY_COST, DiagnosticSeverity.ERROR,
+                        "Ability activation cost is invalid",
+                        "Activation costs must be bounded named currency, vanilla hunger, or vanilla experience legs.",
+                        "Use a positive literal amount and an existing named currency when required.", true))
+                .register(descriptor(INVALID_ABILITY_TARGET, DiagnosticSeverity.ERROR,
+                        "Ability target is invalid",
+                        "Self, entity, and block targets require a bounded range and deterministic line of sight policy.",
+                        "Use self with zero range or entity or block with a range from one through sixty four.", true))
+                .register(descriptor(INVALID_ABILITY_ACTION, DiagnosticSeverity.ERROR,
+                        "Ability action is invalid",
+                        "Core active abilities execute only bounded message, heal, and vanilla effect actions.",
+                        "Remove Creator action graph fields and use one supported native action type.", true))
+                .register(descriptor(ABILITY_INTENT_DENIED, DiagnosticSeverity.WARNING,
+                        "Ability intent was denied",
+                        "Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.",
+                        "Synchronize state and review the current ability status before retrying.", true))
                 .register(descriptor(INVALID_RULE, DiagnosticSeverity.ERROR,
                         "Rule definition is invalid",
                         "A gameplay route must compile to one bounded deterministic transaction path.",

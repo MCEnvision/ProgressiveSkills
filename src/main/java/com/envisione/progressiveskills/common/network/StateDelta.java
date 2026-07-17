@@ -30,6 +30,11 @@ public record StateDelta(
         Set<ResourceLocation> removedNodeRanks,
         Map<ResourceLocation, VisiblePlayerState.ClassSelection> changedSelectedClasses,
         Set<ResourceLocation> removedSelectedClasses,
+        Map<ResourceLocation, VisiblePlayerState.AbilityState> changedAbilities,
+        Set<ResourceLocation> removedAbilities,
+        Map<Integer, ResourceLocation> changedAbilitySlots,
+        Set<Integer> removedAbilitySlots,
+        int selectedAbilitySlot,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined,
@@ -84,6 +89,34 @@ public record StateDelta(
                 resultingStateDigest);
     }
 
+    public StateDelta(
+            UUID playerId,
+            long baseSyncRevision,
+            long newSyncRevision,
+            long newStateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> changedBalances,
+            Set<String> removedBalances,
+            Map<String, Long> changedEffectiveValues,
+            Set<String> removedEffectiveValues,
+            Map<ResourceLocation, Integer> changedNodeRanks,
+            Set<ResourceLocation> removedNodeRanks,
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> changedSelectedClasses,
+            Set<ResourceLocation> removedSelectedClasses,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined,
+            String resultingStateDigest
+    ) {
+        this(playerId, baseSyncRevision, newSyncRevision, newStateRevision, definitionRevision,
+                presentationRevision, presentationDigest, changedBalances, removedBalances,
+                changedEffectiveValues, removedEffectiveValues, changedNodeRanks, removedNodeRanks,
+                changedSelectedClasses, removedSelectedClasses, Map.of(), Set.of(), Map.of(), Set.of(), -1,
+                orphanCount, operationReceiptCount, quarantined, resultingStateDigest);
+    }
+
     public StateDelta {
         Objects.requireNonNull(playerId, "playerId");
         if (baseSyncRevision < 0 || newSyncRevision <= baseSyncRevision || newStateRevision < 0
@@ -100,6 +133,13 @@ public record StateDelta(
         removedNodeRanks = copyNodeIds(removedNodeRanks);
         changedSelectedClasses = copyClassSelections(changedSelectedClasses);
         removedSelectedClasses = copyNodeIds(removedSelectedClasses);
+        changedAbilities = copyAbilities(changedAbilities);
+        removedAbilities = copyNodeIds(removedAbilities);
+        changedAbilitySlots = copyAbilitySlots(changedAbilitySlots);
+        removedAbilitySlots = copyAbilitySlotIds(removedAbilitySlots);
+        if (selectedAbilitySlot < -1 || selectedAbilitySlot >= NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IllegalArgumentException("State delta selected ability slot is invalid");
+        }
         if (!Collections.disjoint(changedBalances.keySet(), removedBalances)
                 || !Collections.disjoint(changedEffectiveValues.keySet(), removedEffectiveValues)) {
             throw new IllegalArgumentException("State delta cannot change and remove the same path");
@@ -109,6 +149,10 @@ public record StateDelta(
         }
         if (!Collections.disjoint(changedSelectedClasses.keySet(), removedSelectedClasses)) {
             throw new IllegalArgumentException("State delta cannot change and remove the same selected class");
+        }
+        if (!Collections.disjoint(changedAbilities.keySet(), removedAbilities)
+                || !Collections.disjoint(changedAbilitySlots.keySet(), removedAbilitySlots)) {
+            throw new IllegalArgumentException("State delta cannot change and remove the same ability state");
         }
         resultingStateDigest = NetworkLimits.requireDigest(resultingStateDigest, "resultingStateDigest");
     }
@@ -130,8 +174,59 @@ public record StateDelta(
                 nodeRemovals(before.nodeRanks(), after.nodeRanks()),
                 classChanges(before.selectedClasses(), after.selectedClasses()),
                 classRemovals(before.selectedClasses(), after.selectedClasses()),
+                abilityChanges(before.abilities(), after.abilities()),
+                abilityRemovals(before.abilities(), after.abilities()),
+                abilitySlotChanges(before.abilitySlots(), after.abilitySlots()),
+                abilitySlotRemovals(before.abilitySlots(), after.abilitySlots()),
+                after.selectedAbilitySlot(),
                 after.orphanCount(), after.operationReceiptCount(), after.quarantined(), digest
         );
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.AbilityState> abilityChanges(
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> before,
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> after
+    ) {
+        var changed = new TreeMap<ResourceLocation, VisiblePlayerState.AbilityState>(
+                ResourceLocation::compareNamespaced);
+        after.forEach((key, value) -> {
+            if (!Objects.equals(before.get(key), value)) {
+                changed.put(key, value);
+            }
+        });
+        return changed;
+    }
+
+    private static Set<ResourceLocation> abilityRemovals(
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> before,
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> after
+    ) {
+        var removed = new TreeSet<ResourceLocation>(ResourceLocation::compareNamespaced);
+        removed.addAll(before.keySet());
+        removed.removeAll(after.keySet());
+        return removed;
+    }
+
+    private static Map<Integer, ResourceLocation> abilitySlotChanges(
+            Map<Integer, ResourceLocation> before,
+            Map<Integer, ResourceLocation> after
+    ) {
+        var changed = new TreeMap<Integer, ResourceLocation>();
+        after.forEach((key, value) -> {
+            if (!Objects.equals(before.get(key), value)) {
+                changed.put(key, value);
+            }
+        });
+        return changed;
+    }
+
+    private static Set<Integer> abilitySlotRemovals(
+            Map<Integer, ResourceLocation> before,
+            Map<Integer, ResourceLocation> after
+    ) {
+        var removed = new TreeSet<Integer>(before.keySet());
+        removed.removeAll(after.keySet());
+        return removed;
     }
 
     private static Map<ResourceLocation, VisiblePlayerState.ClassSelection> classChanges(
@@ -259,5 +354,51 @@ public record StateDelta(
         source.forEach((classId, state) -> sorted.put(
                 StableId.requireValid(classId), Objects.requireNonNull(state, "selected class state")));
         return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.AbilityState> copyAbilities(
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> source
+    ) {
+        Objects.requireNonNull(source, "ability delta");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("State delta abilities exceed capacity");
+        }
+        var sorted = new TreeMap<ResourceLocation, VisiblePlayerState.AbilityState>(
+                ResourceLocation::compareNamespaced);
+        source.forEach((abilityId, state) -> sorted.put(
+                StableId.requireValid(abilityId), Objects.requireNonNull(state, "ability state")));
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<Integer, ResourceLocation> copyAbilitySlots(
+            Map<Integer, ResourceLocation> source
+    ) {
+        Objects.requireNonNull(source, "ability slot delta");
+        if (source.size() > NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IllegalArgumentException("State delta ability slots exceed capacity");
+        }
+        var sorted = new TreeMap<Integer, ResourceLocation>();
+        source.forEach((slot, abilityId) -> {
+            if (slot == null || slot < 0 || slot >= NetworkLimits.FIXED_ABILITY_SLOTS) {
+                throw new IllegalArgumentException("State delta ability slot is invalid");
+            }
+            sorted.put(slot, StableId.requireValid(abilityId));
+        });
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Set<Integer> copyAbilitySlotIds(Set<Integer> source) {
+        Objects.requireNonNull(source, "removed ability slots");
+        if (source.size() > NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IllegalArgumentException("State delta removed ability slots exceed capacity");
+        }
+        var sorted = new TreeSet<Integer>();
+        source.forEach(slot -> {
+            if (slot == null || slot < 0 || slot >= NetworkLimits.FIXED_ABILITY_SLOTS) {
+                throw new IllegalArgumentException("State delta removed ability slot is invalid");
+            }
+            sorted.add(slot);
+        });
+        return Collections.unmodifiableSet(sorted);
     }
 }

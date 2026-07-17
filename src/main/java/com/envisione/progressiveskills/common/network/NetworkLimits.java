@@ -4,17 +4,23 @@ import java.util.Objects;
 
 /** Hard protocol ceilings shared by codecs, transfer assembly, and tests. */
 public final class NetworkLimits {
-    public static final int PROTOCOL_VERSION = 3;
-    public static final String REGISTRAR_VERSION = "3";
+    public static final int PROTOCOL_VERSION = 4;
+    public static final String REGISTRAR_VERSION = "4";
     public static final long FEATURE_DEFINITION_PROJECTION = 1L;
     public static final long FEATURE_FULL_STATE = 1L << 1;
     public static final long FEATURE_STATE_DELTA = 1L << 2;
     public static final long FEATURE_BOUNDED_INTENTS = 1L << 3;
     public static final long FEATURE_CORE_TREES = 1L << 4;
     public static final long FEATURE_CORE_CLASSES = 1L << 5;
+    public static final long FEATURE_CORE_ABILITIES = 1L << 6;
     public static final long REQUIRED_FEATURES = FEATURE_DEFINITION_PROJECTION
             | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS
-            | FEATURE_CORE_TREES | FEATURE_CORE_CLASSES;
+            | FEATURE_CORE_TREES | FEATURE_CORE_CLASSES | FEATURE_CORE_ABILITIES;
+
+    public static final int FIXED_ABILITY_SLOTS = 8;
+    public static final int MAX_ABILITY_ACTION_SUMMARIES = 32;
+    public static final int MAX_ABILITY_COST_SUMMARIES = 16;
+    public static final int MAX_ABILITY_REQUIREMENTS = 64;
 
     public static final int MAX_DEFINITIONS = 4_096;
     public static final int MAX_VISIBLE_VALUES = 4_096;

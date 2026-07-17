@@ -14,8 +14,8 @@ import java.util.UUID;
 
 /** Strict codec for full visible state and semantic deltas. */
 public final class VisibleStateCodec {
-    private static final int FULL_VERSION = 3;
-    private static final int DELTA_VERSION = 3;
+    private static final int FULL_VERSION = 4;
+    private static final int DELTA_VERSION = 4;
 
     private VisibleStateCodec() {
     }
@@ -42,6 +42,9 @@ public final class VisibleStateCodec {
                     readMap(input),
                     readNodeRanks(input),
                     readClassSelections(input),
+                    readAbilities(input),
+                    readAbilitySlots(input),
+                    input.readInt(),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean()
@@ -80,6 +83,11 @@ public final class VisibleStateCodec {
                     readNodeIds(input),
                     readClassSelections(input),
                     readNodeIds(input),
+                    readAbilities(input),
+                    readNodeIds(input),
+                    readAbilitySlots(input),
+                    readAbilitySlotIds(input),
+                    input.readInt(),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean(),
@@ -108,6 +116,9 @@ public final class VisibleStateCodec {
         writeMap(output, state.effectiveValues());
         writeNodeRanks(output, state.nodeRanks());
         writeClassSelections(output, state.selectedClasses());
+        writeAbilities(output, state.abilities());
+        writeAbilitySlots(output, state.abilitySlots());
+        output.writeInt(state.selectedAbilitySlot());
         output.writeInt(state.orphanCount());
         output.writeInt(state.operationReceiptCount());
         output.writeBoolean(state.quarantined());
@@ -130,6 +141,11 @@ public final class VisibleStateCodec {
         writeNodeIds(output, delta.removedNodeRanks());
         writeClassSelections(output, delta.changedSelectedClasses());
         writeNodeIds(output, delta.removedSelectedClasses());
+        writeAbilities(output, delta.changedAbilities());
+        writeNodeIds(output, delta.removedAbilities());
+        writeAbilitySlots(output, delta.changedAbilitySlots());
+        writeAbilitySlotIds(output, delta.removedAbilitySlots());
+        output.writeInt(delta.selectedAbilitySlot());
         output.writeInt(delta.orphanCount());
         output.writeInt(delta.operationReceiptCount());
         output.writeBoolean(delta.quarantined());
@@ -275,6 +291,88 @@ public final class VisibleStateCodec {
             }
         }
         return classes;
+    }
+
+    private static void writeAbilities(
+            DataOutputStream output,
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> abilities
+    ) throws IOException {
+        output.writeInt(abilities.size());
+        for (var entry : abilities.entrySet()) {
+            BoundedNetworkCodec.writeString(
+                    output, entry.getKey().toString(), NetworkLimits.MAX_KEY_BYTES);
+            output.writeBoolean(entry.getValue().toggledOn());
+            output.writeInt(entry.getValue().charges());
+            output.writeInt(entry.getValue().maximumCharges());
+            output.writeLong(entry.getValue().cooldownRemainingTicks());
+        }
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.AbilityState> readAbilities(
+            DataInputStream input
+    ) throws IOException {
+        int count = readCount(input);
+        var abilities = new LinkedHashMap<ResourceLocation, VisiblePlayerState.AbilityState>();
+        for (int index = 0; index < count; index++) {
+            ResourceLocation abilityId = readNodeId(input);
+            var state = new VisiblePlayerState.AbilityState(
+                    input.readBoolean(), input.readInt(), input.readInt(), input.readLong());
+            if (abilities.putIfAbsent(abilityId, state) != null) {
+                throw new IOException("Duplicate visible ability state");
+            }
+        }
+        return abilities;
+    }
+
+    private static void writeAbilitySlots(
+            DataOutputStream output,
+            Map<Integer, ResourceLocation> slots
+    ) throws IOException {
+        output.writeInt(slots.size());
+        for (var entry : slots.entrySet()) {
+            output.writeInt(entry.getKey());
+            BoundedNetworkCodec.writeString(
+                    output, entry.getValue().toString(), NetworkLimits.MAX_KEY_BYTES);
+        }
+    }
+
+    private static Map<Integer, ResourceLocation> readAbilitySlots(DataInputStream input) throws IOException {
+        int count = readCount(input);
+        if (count > NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IOException("Visible ability slot count exceeds capacity");
+        }
+        var slots = new LinkedHashMap<Integer, ResourceLocation>();
+        for (int index = 0; index < count; index++) {
+            int slot = input.readInt();
+            if (slots.putIfAbsent(slot, readNodeId(input)) != null) {
+                throw new IOException("Duplicate visible ability slot");
+            }
+        }
+        return slots;
+    }
+
+    private static void writeAbilitySlotIds(
+            DataOutputStream output,
+            Set<Integer> slots
+    ) throws IOException {
+        output.writeInt(slots.size());
+        for (int slot : slots) {
+            output.writeInt(slot);
+        }
+    }
+
+    private static Set<Integer> readAbilitySlotIds(DataInputStream input) throws IOException {
+        int count = readCount(input);
+        if (count > NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IOException("Removed visible ability slot count exceeds capacity");
+        }
+        var slots = new LinkedHashSet<Integer>();
+        for (int index = 0; index < count; index++) {
+            if (!slots.add(input.readInt())) {
+                throw new IOException("Duplicate removed visible ability slot");
+            }
+        }
+        return slots;
     }
 
     private static int readCount(DataInputStream input) throws IOException {

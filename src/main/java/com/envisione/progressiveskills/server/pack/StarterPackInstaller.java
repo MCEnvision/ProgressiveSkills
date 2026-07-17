@@ -36,6 +36,9 @@ public final class StarterPackInstaller {
         copyIfMissing(pack, "class_slots/combat.toml");
         copyIfMissing(pack, "classes/warrior.toml");
         copyIfMissing(pack, "classes/scholar.toml");
+        copyIfMissing(pack, "abilities/warrior_guard.toml");
+        copyIfMissing(pack, "abilities/combat_insight.toml");
+        copyIfMissing(pack, "abilities/second_wind.toml");
         return pack;
     }
 

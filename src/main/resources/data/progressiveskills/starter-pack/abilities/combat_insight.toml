@@ -1,0 +1,16 @@
+schema_version = 2
+
+[ability]
+id = "progressiveskills:combat_insight"
+display = { key = "ability.progressiveskills.combat_insight", fallback = "Combat Insight" }
+description = { key = "ability.progressiveskills.combat_insight.desc", fallback = "Study and practice sharpen combat awareness." }
+icon = { type = "item", value = "minecraft:spyglass", fallback = "minecraft:barrier", alt = "Spyglass" }
+enabled = true
+kind = "passive"
+slot_allowed = false
+
+[[persistent_effects]]
+id = "progressiveskills:combat_insight/aware"
+type = "flag"
+flag = "progressiveskills:combat_aware"
+value = true

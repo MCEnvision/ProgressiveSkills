@@ -306,6 +306,55 @@ public final class ProgressionTransactionService {
         return result;
     }
 
+    public synchronized ProgressionSnapshot previewSnapshot(
+            CascadePlan cascade,
+            DefinitionRevision currentDefinition
+    ) {
+        Objects.requireNonNull(cascade, "cascade");
+        Objects.requireNonNull(currentDefinition, "currentDefinition");
+        TransactionPlan plan = cascade.transaction();
+        Account account = accounts.get(plan.targetId());
+        if (account == null && accounts.size() >= maxAccounts) {
+            throw new IllegalStateException("Session account capacity is full");
+        }
+        if (account != null && account.idempotencyResults.containsKey(plan.idempotencyKey())) {
+            return account.snapshot();
+        }
+        if (!plan.definitionRevision().equals(currentDefinition)) {
+            throw new IllegalArgumentException(
+                    "Definition generation or digest changed after the plan was captured");
+        }
+        long currentRevision = account == null ? 0 : account.revision;
+        if (plan.expectedStateRevision() != currentRevision) {
+            throw new IllegalArgumentException("Expected state revision "
+                    + plan.expectedStateRevision() + " but found " + currentRevision);
+        }
+        CoreState working = account == null
+                ? new CoreState(
+                0,
+                new TreeMap<>(ResourceLocation::compareNamespaced),
+                new TreeMap<>(),
+                new TreeMap<>(),
+                new TreeMap<>()
+        )
+                : account.copyState();
+        applyBalances(working.balances, flattenBalanceMutations(cascade));
+        applyEntitlements(working.ownership, flattenEntitlementMutations(cascade));
+        applyPaidCosts(working.paidCosts, flattenPaidCostMutations(cascade), maxPaidCostsPerAccount);
+        working.projected = resolveEffective(working.ownership);
+        long previewRevision = Math.addExact(currentRevision, 1);
+        return new ProgressionSnapshot(
+                previewRevision,
+                working.balances,
+                working.ownership,
+                working.paidCosts,
+                working.projected,
+                account == null ? 0 : account.receipts.size(),
+                account == null ? 0 : account.idempotencyResults.size(),
+                account == null ? 0 : account.auditRecords.size()
+        );
+    }
+
     public synchronized TransactionResult rollback(
             UUID actorId,
             UUID targetId,

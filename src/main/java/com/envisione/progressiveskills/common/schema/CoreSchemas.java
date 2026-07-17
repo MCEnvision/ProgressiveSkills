@@ -1,5 +1,10 @@
 package com.envisione.progressiveskills.common.schema;
 
+import com.envisione.progressiveskills.common.ability.AbilityActionType;
+import com.envisione.progressiveskills.common.ability.AbilityCostType;
+import com.envisione.progressiveskills.common.ability.AbilityEffectType;
+import com.envisione.progressiveskills.common.ability.AbilityKind;
+import com.envisione.progressiveskills.common.ability.AbilityTargetMode;
 import com.envisione.progressiveskills.common.classdef.ClassGrantType;
 import com.envisione.progressiveskills.common.classdef.ClassSpellLearningPolicy;
 import com.envisione.progressiveskills.common.classdef.ClassSwapPolicy;
@@ -61,6 +66,11 @@ public final class CoreSchemas {
         builder.register(classDefinition());
         builder.register(classGrant());
         builder.register(classSynergy());
+        builder.register(abilityDefinition());
+        builder.register(abilityPersistentEffect());
+        builder.register(abilityCost());
+        builder.register(abilityTargeting());
+        builder.register(abilityAction());
         builder.register(ruleDefinition());
         builder.register(requirementExpression());
         builder.register(numericExpression());
@@ -85,6 +95,9 @@ public final class CoreSchemas {
         builder.register(classIntent());
         builder.register(classChangePreview());
         builder.register(visibleClassSelection());
+        builder.register(abilityIntent());
+        builder.register(visibleAbilityState());
+        builder.register(visibleAbilitySlot());
         return builder.build();
     }
 
@@ -827,6 +840,209 @@ public final class CoreSchemas {
                 List.of(SchemaConstraint.requiredTogether(
                         CoreDiagnostics.INVALID_CLASS_SYNERGY,
                         "Synergy display and icon are declared together.", "display", "icon"))
+        );
+    }
+
+    private static SchemaDescriptor abilityDefinition() {
+        return schema(
+                "ability_definition",
+                SchemaAudience.AUTHORING,
+                "Ability definition",
+                "Bounded Core passive, toggle, or active behavior assigned through fixed registered slots.",
+                List.of(
+                        field("actions", SchemaValueType.LIST, false,
+                                "Authored order of up to sixteen active message, heal, or vanilla effect actions.",
+                                "[{ id = \"mypack:second_wind/heal\", type = \"heal\", amount = 4.0 }]",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.LIST, 160)
+                                .defaultEmptyList().diff(DiffPolicy.ORDERED).omitWhenDefault().build(),
+                        field("cooldown_group", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Shared cooldown identity. Omission uses the ability id.", "mypack:recovery",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.RESOURCE_LOCATION, 120).build(),
+                        field("cooldown_ticks", SchemaValueType.INTEGER, false,
+                                "Nonnegative activation cooldown up to seventy two thousand ticks.", "400",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.INTEGER, 125)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("costs", SchemaValueType.LIST, false,
+                                "Up to three stable named currency, hunger, or experience activation costs.",
+                                "[{ id = \"mypack:second_wind/hunger\", type = \"hunger\", amount = 4 }]",
+                                CoreDiagnostics.INVALID_ABILITY_COST, EditorWidget.LIST, 140)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("default_on", SchemaValueType.BOOLEAN, false,
+                                "Initial enabled state for an owned toggle ability.", "false",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.CHECKBOX, 100)
+                                .defaultBoolean(false).omitWhenDefault().build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized ability description.", "{ fallback = \"Recover health.\" }",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized ability name.", "{ fallback = \"Second Wind\" }",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.COMPONENT, 20).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether ownership may become usable under the current definition.", "true",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.CHECKBOX, 60)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Ability icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:shield\", fallback = \"minecraft:barrier\", alt = \"Shield\" }",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.ICON, 40).build(),
+                        field("kind", SchemaValueType.ENUM, true,
+                                "Closed Core ability lifecycle.", "active",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.SELECT, 70)
+                                .allowedValues(Arrays.stream(AbilityKind.values())
+                                        .map(AbilityKind::serializedName).toArray(String[]::new)).build(),
+                        field("max_charges", SchemaValueType.INTEGER, false,
+                                "Maximum available charges from one through sixteen.", "2",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.INTEGER, 130)
+                                .defaultInteger(1).omitWhenDefault().build(),
+                        field("persistent_effects", SchemaValueType.LIST, false,
+                                "Up to sixteen source owned attribute or boolean flag effects for passive and toggle abilities.",
+                                "[{ id = \"mypack:guard/armor\", type = \"attribute\", attribute = \"minecraft:generic.armor\", operation = \"add_value\", value = 2.0 }]",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.LIST, 110)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("recharge_ticks", SchemaValueType.INTEGER, false,
+                                "Nonnegative charge recharge duration up to seventy two thousand ticks.", "200",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.INTEGER, 135)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate ability search terms.", "[\"Recovery\"]",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.LIST, 45)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("slot_allowed", SchemaValueType.BOOLEAN, false,
+                                "Whether the runtime ability may be assigned to one of eight fixed action slots.", "true",
+                                CoreDiagnostics.INVALID_ABILITY, EditorWidget.CHECKBOX, 80).build(),
+                        field("targeting", SchemaValueType.OBJECT, false,
+                                "Validated self, entity, or block targeting policy for active abilities.",
+                                "{ mode = \"self\" }",
+                                CoreDiagnostics.INVALID_ABILITY_TARGET, EditorWidget.OBJECT, 150).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor abilityPersistentEffect() {
+        return schema(
+                "ability_persistent_effect",
+                SchemaAudience.AUTHORING,
+                "Ability persistent effect",
+                "Stable source owned attribute or boolean flag contribution active with a passive or enabled toggle.",
+                List.of(
+                        field("attribute", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Attribute target for an attribute effect.", "minecraft:generic.armor",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.RESOURCE_LOCATION, 30).build(),
+                        field("flag", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Namespaced boolean flag target for a flag effect.", "mypack:guarding",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.RESOURCE_LOCATION, 60).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable effect source identity unique within its ability.", "mypack:guard/armor",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("operation", SchemaValueType.ENUM, false,
+                                "Deterministic attribute operation.", "add_value",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.SELECT, 40)
+                                .allowedValues(Arrays.stream(AttributeOperation.values())
+                                        .map(AttributeOperation::serializedName).toArray(String[]::new)).build(),
+                        field("type", SchemaValueType.ENUM, true,
+                                "Closed Core persistent effect type.", "attribute",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.SELECT, 20)
+                                .allowedValues(Arrays.stream(AbilityEffectType.values())
+                                        .map(AbilityEffectType::serializedName).toArray(String[]::new)).build(),
+                        field("value", SchemaValueType.ANY, true,
+                                "Nonzero fixed point attribute value or explicit boolean flag value.", "2.0",
+                                CoreDiagnostics.INVALID_ABILITY_EFFECT, EditorWidget.SINGLE_LINE, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor abilityCost() {
+        return schema(
+                "ability_cost",
+                SchemaAudience.AUTHORING,
+                "Ability activation cost",
+                "Stable positive literal named currency, vanilla hunger, or vanilla experience cost.",
+                List.of(
+                        field("amount", SchemaValueType.INTEGER, true,
+                                "Positive bounded cost amount.", "4",
+                                CoreDiagnostics.INVALID_ABILITY_COST, EditorWidget.INTEGER, 40).build(),
+                        field("currency", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Existing named currency required only for currency costs.", "progressiveskills:global_points",
+                                CoreDiagnostics.INVALID_ABILITY_COST, EditorWidget.RESOURCE_LOCATION, 30).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable cost leg identity unique within its ability.", "mypack:surge/points",
+                                CoreDiagnostics.INVALID_ABILITY_COST, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("type", SchemaValueType.ENUM, true,
+                                "Closed Core cost source.", "currency",
+                                CoreDiagnostics.INVALID_ABILITY_COST, EditorWidget.SELECT, 20)
+                                .allowedValues(Arrays.stream(AbilityCostType.values())
+                                        .map(AbilityCostType::serializedName).toArray(String[]::new)).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor abilityTargeting() {
+        return schema(
+                "ability_targeting",
+                SchemaAudience.AUTHORING,
+                "Ability targeting",
+                "Bounded server validated self, entity, or block target contract.",
+                List.of(
+                        field("line_of_sight", SchemaValueType.BOOLEAN, false,
+                                "Require an unobstructed server ray check for a nonself target.", "true",
+                                CoreDiagnostics.INVALID_ABILITY_TARGET, EditorWidget.CHECKBOX, 30).build(),
+                        field("mode", SchemaValueType.ENUM, false,
+                                "Closed Core target mode. Omission selects self.", "entity",
+                                CoreDiagnostics.INVALID_ABILITY_TARGET, EditorWidget.SELECT, 10)
+                                .allowedValues(Arrays.stream(AbilityTargetMode.values())
+                                        .map(AbilityTargetMode::serializedName).toArray(String[]::new))
+                                .defaultString("self").omitWhenDefault().build(),
+                        field("range", SchemaValueType.INTEGER, false,
+                                "Zero for self or one through sixty four blocks for entity and block targets.", "16",
+                                CoreDiagnostics.INVALID_ABILITY_TARGET, EditorWidget.INTEGER, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor abilityAction() {
+        return schema(
+                "ability_action",
+                SchemaAudience.AUTHORING,
+                "Ability native action",
+                "One ordered message, heal, or vanilla effect action from the Core action subset.",
+                List.of(
+                        field("ambient", SchemaValueType.BOOLEAN, false,
+                                "Vanilla effect ambient rendering flag.", "false",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.CHECKBOX, 80)
+                                .defaultBoolean(false).omitWhenDefault().build(),
+                        field("amplifier", SchemaValueType.INTEGER, false,
+                                "Vanilla effect amplifier from zero through two hundred fifty five.", "0",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.INTEGER, 60)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("amount", SchemaValueType.DECIMAL, false,
+                                "Positive literal heal amount.", "4.0",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.DECIMAL, 40).build(),
+                        field("duration_ticks", SchemaValueType.INTEGER, false,
+                                "Vanilla effect duration from one through seventy two thousand ticks.", "100",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.INTEGER, 70).build(),
+                        field("effect", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Vanilla mob effect registry target.", "minecraft:speed",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.RESOURCE_LOCATION, 50).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable action identity. Authored list order is execution order.", "mypack:second_wind/heal",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("message", SchemaValueType.COMPONENT, false,
+                                "Safe localized chat or action feedback component.", "{ fallback = \"Ready.\" }",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.COMPONENT, 35).build(),
+                        field("show_icon", SchemaValueType.BOOLEAN, false,
+                                "Show the vanilla effect icon.", "true",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.CHECKBOX, 100)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("show_particles", SchemaValueType.BOOLEAN, false,
+                                "Show vanilla effect particles.", "true",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.CHECKBOX, 90)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("type", SchemaValueType.ENUM, true,
+                                "Closed Core native action type.", "heal",
+                                CoreDiagnostics.INVALID_ABILITY_ACTION, EditorWidget.SELECT, 20)
+                                .allowedValues(Arrays.stream(AbilityActionType.values())
+                                        .map(AbilityActionType::serializedName).toArray(String[]::new)).build()
+                )
         );
     }
 
@@ -1631,6 +1847,10 @@ public final class CoreSchemas {
                 "Sanitized definition projection",
                 "Client-safe identity, presentation, disclosed tree graph, class selection semantics, and synergy summaries without authority internals.",
                 List.of(
+                        networkOptionalField("ability", SchemaValueType.OBJECT,
+                                "Bounded ability kind, lifecycle, cost, target, cooldown, charge, effect, and action summaries.",
+                                "{ kind = \"active\", slot_allowed = true, cooldown_ticks = 400 }",
+                                CoreDiagnostics.INVALID_ABILITY, 65).build(),
                         networkOptionalField("class_definition", SchemaValueType.OBJECT,
                                 "Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries.",
                                 "{ slot_id = \"mypack:combat\", slot_cost = 1, enabled = true }",
@@ -1712,6 +1932,14 @@ public final class CoreSchemas {
                 "Visible player state",
                 "Owner-only authoritative state projection without durable ledgers, provenance, or hidden definitions.",
                 List.of(
+                        networkField("abilities", SchemaValueType.MAP,
+                                "Owned ability ids mapped to visible toggle, charge, and cooldown state.",
+                                "{ \"mypack:second_wind\" = { charges = 1, maximum_charges = 1 } }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 67).build(),
+                        networkField("ability_slots", SchemaValueType.MAP,
+                                "Assigned fixed slot numbers mapped to owned ability ids.",
+                                "{ 0 = \"mypack:second_wind\" }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 68).build(),
                         networkField("balances", SchemaValueType.MAP,
                                 "Bounded namespaced visible balances.", "{ \"mypack:points\" = 4 }",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 70).build(),
@@ -1745,6 +1973,9 @@ public final class CoreSchemas {
                                 "Selected class ids mapped to visible slot use and active or suspended state.",
                                 "{ \"mypack:mage\" = { slot_id = \"mypack:combat\", slot_cost = 1, activity = \"active\" } }",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 87).build(),
+                        networkField("selected_ability_slot", SchemaValueType.INTEGER,
+                                "Selected fixed slot from zero through seven or negative one when no slot is selected.",
+                                "0", CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 69).build(),
                         networkField("state_revision", SchemaValueType.INTEGER,
                                 "Authoritative transaction compare-and-swap revision.", "3",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
@@ -1768,6 +1999,12 @@ public final class CoreSchemas {
                         networkField("changed_balances", SchemaValueType.MAP,
                                 "Changed or added visible balance paths.", "{ \"mypack:points\" = 5 }",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 40).build(),
+                        networkField("changed_abilities", SchemaValueType.MAP,
+                                "Changed or added owned visible ability states.", "{}",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 32).build(),
+                        networkField("changed_ability_slots", SchemaValueType.MAP,
+                                "Changed or added fixed ability slot assignments.", "{}",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 34).build(),
                         networkField("changed_effective_values", SchemaValueType.MAP,
                                 "Changed or added effective-value paths.", "{}",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 60).build(),
@@ -1783,6 +2020,12 @@ public final class CoreSchemas {
                         networkField("removed_balances", SchemaValueType.LIST,
                                 "Removed visible balance paths.", "[]",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 50).build(),
+                        networkField("removed_abilities", SchemaValueType.LIST,
+                                "Removed visible ability ids.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 42).build(),
+                        networkField("removed_ability_slots", SchemaValueType.LIST,
+                                "Cleared fixed ability slot numbers.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 44).build(),
                         networkField("removed_effective_values", SchemaValueType.LIST,
                                 "Removed effective-value paths.", "[]",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 70).build(),
@@ -1794,7 +2037,10 @@ public final class CoreSchemas {
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 74).build(),
                         networkField("resulting_state_digest", SchemaValueType.STRING,
                                 "SHA-256 of the exact post-application full visible state.", "d".repeat(64),
-                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 80).build()
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 80).build(),
+                        networkField("selected_ability_slot", SchemaValueType.INTEGER,
+                                "Resulting selected fixed slot or negative one for no selection.", "0",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 30).build()
                 )
         );
     }
@@ -1815,7 +2061,9 @@ public final class CoreSchemas {
                                 .allowedValues(
                                         "noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm",
                                         "class_select", "class_respec_preview", "class_respec_confirm",
-                                        "class_swap_preview", "class_swap_confirm")
+                                        "class_swap_preview", "class_swap_confirm",
+                                        "ability_assign", "ability_unassign", "ability_select",
+                                        "ability_toggle", "ability_activate")
                                 .build(),
                         runtimeField("payload", SchemaValueType.STRING,
                                 "Small type-specific bounded selection payload; never effect amounts or commands.", "\"\"",
@@ -2041,6 +2289,66 @@ public final class CoreSchemas {
                         networkOptionalField("slot_id", SchemaValueType.RESOURCE_LOCATION,
                                 "Slot occupied by a known selected class. Missing definitions remain visibly suspended.", "mypack:combat",
                                 CoreDiagnostics.INVALID_CLASS_SLOT, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor abilityIntent() {
+        return schema(
+                "ability_intent",
+                SchemaAudience.INTERNAL,
+                "Ability mutation intent payload",
+                "Bounded serverbound assignment, selection, toggle, or activation identity without client supplied outcomes.",
+                List.of(
+                        runtimeOptionalField("ability_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Ability required by assign and toggle and forbidden by slot only intents.",
+                                "mypack:second_wind", CoreDiagnostics.ABILITY_INTENT_DENIED, 10).build(),
+                        runtimeOptionalField("slot", SchemaValueType.INTEGER,
+                                "Fixed slot from zero through seven required by assign, unassign, select, and activate.",
+                                "0", CoreDiagnostics.ABILITY_INTENT_DENIED, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor visibleAbilityState() {
+        return schema(
+                "visible_ability_state",
+                SchemaAudience.INTERNAL,
+                "Visible owned ability state",
+                "Owner visible toggle, charge, and cooldown status without raw source ownership or internal balances.",
+                List.of(
+                        networkField("ability_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Owned stable ability identity.", "mypack:second_wind",
+                                CoreDiagnostics.INVALID_ABILITY, 10).build(),
+                        networkField("charges", SchemaValueType.INTEGER,
+                                "Currently available bounded charges.", "1",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 30).build(),
+                        networkField("cooldown_remaining_ticks", SchemaValueType.INTEGER,
+                                "Nonnegative shared cooldown ticks remaining.", "80",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 50).build(),
+                        networkField("maximum_charges", SchemaValueType.INTEGER,
+                                "Definition bounded maximum charges from one through sixteen.", "2",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 40).build(),
+                        networkField("toggled_on", SchemaValueType.BOOLEAN,
+                                "Current effective toggle state. Passive and active abilities report false.", "false",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor visibleAbilitySlot() {
+        return schema(
+                "visible_ability_slot",
+                SchemaAudience.INTERNAL,
+                "Visible fixed ability slot",
+                "One owner visible fixed slot assignment using startup registered input mappings.",
+                List.of(
+                        networkField("ability_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Owned slottable ability assigned to this position.", "mypack:second_wind",
+                                CoreDiagnostics.INVALID_ABILITY, 20).build(),
+                        networkField("slot", SchemaValueType.INTEGER,
+                                "Fixed slot number from zero through seven.", "0",
+                                CoreDiagnostics.ABILITY_INTENT_DENIED, 10).build()
                 )
         );
     }

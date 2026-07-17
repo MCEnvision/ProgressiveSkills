@@ -16,7 +16,7 @@ import java.util.TreeMap;
 
 /** Deterministic bounded codec for sanitized definition presentation DTOs. */
 public final class DefinitionProjectionCodec {
-    private static final int FORMAT_VERSION = 3;
+    private static final int FORMAT_VERSION = 4;
 
     private DefinitionProjectionCodec() {
     }
@@ -55,9 +55,12 @@ public final class DefinitionProjectionCodec {
                         ? Optional.of(readClassSlot(input)) : Optional.empty();
                 Optional<DefinitionProjection.ClassView> classDefinition = input.readBoolean()
                         ? Optional.of(readClass(input)) : Optional.empty();
+                Optional<DefinitionProjection.AbilityView> ability = input.readBoolean()
+                        ? Optional.of(readAbility(input)) : Optional.empty();
                 if (definitions.putIfAbsent(key,
                         new DefinitionProjection.Entry(
-                                display, description, icon, aliases, tree, classSlot, classDefinition)) != null) {
+                                display, description, icon, aliases, tree, classSlot,
+                                classDefinition, ability)) != null) {
                     throw new IOException("Duplicate projected definition " + key);
                 }
             }
@@ -108,6 +111,10 @@ public final class DefinitionProjectionCodec {
             output.writeBoolean(definition.getValue().classDefinition().isPresent());
             if (definition.getValue().classDefinition().isPresent()) {
                 writeClass(output, definition.getValue().classDefinition().orElseThrow());
+            }
+            output.writeBoolean(definition.getValue().ability().isPresent());
+            if (definition.getValue().ability().isPresent()) {
+                writeAbility(output, definition.getValue().ability().orElseThrow());
             }
         }
         output.writeInt(projection.classSynergies().size());
@@ -190,6 +197,105 @@ public final class DefinitionProjectionCodec {
                 enabled, slotId, slotCost, accessRequired, exclusiveTags, minimumSkills,
                 requiredNodes, requiredClasses, selectionCost, respecAllowed,
                 respecCost, starterKit, readGrants(input));
+    }
+
+    private static void writeAbility(
+            DataOutputStream output,
+            DefinitionProjection.AbilityView ability
+    ) throws IOException {
+        output.writeBoolean(ability.enabled());
+        BoundedNetworkCodec.writeString(output, ability.kind(), 32);
+        output.writeBoolean(ability.slotAllowed());
+        output.writeBoolean(ability.defaultOn());
+        output.writeInt(ability.persistentEffects().size());
+        for (DefinitionProjection.AbilityEffectView effect : ability.persistentEffects()) {
+            writeId(output, effect.id());
+            BoundedNetworkCodec.writeString(output, effect.type(), 32);
+            writeId(output, effect.target());
+            BoundedNetworkCodec.writeString(output, effect.operation(), 32);
+            BoundedNetworkCodec.writeString(output, effect.resolver(), 32);
+            output.writeLong(effect.value());
+        }
+        output.writeInt(ability.costs().size());
+        for (DefinitionProjection.AbilityCostView cost : ability.costs()) {
+            writeId(output, cost.id());
+            BoundedNetworkCodec.writeString(output, cost.type(), 32);
+            output.writeBoolean(cost.currency().isPresent());
+            if (cost.currency().isPresent()) {
+                writeId(output, cost.currency().orElseThrow());
+            }
+            output.writeLong(cost.amount());
+        }
+        BoundedNetworkCodec.writeString(output, ability.targeting().mode(), 32);
+        output.writeInt(ability.targeting().range());
+        output.writeBoolean(ability.targeting().lineOfSight());
+        writeId(output, ability.cooldownGroup());
+        output.writeInt(ability.cooldownTicks());
+        output.writeInt(ability.maximumCharges());
+        output.writeInt(ability.rechargeTicks());
+        output.writeInt(ability.actions().size());
+        for (DefinitionProjection.AbilityActionView action : ability.actions()) {
+            writeId(output, action.id());
+            BoundedNetworkCodec.writeString(output, action.type(), 32);
+            writeOptionalText(output, action.message());
+            output.writeBoolean(action.target().isPresent());
+            if (action.target().isPresent()) {
+                writeId(output, action.target().orElseThrow());
+            }
+            output.writeLong(action.value());
+            output.writeInt(action.durationTicks());
+            output.writeBoolean(action.ambient());
+            output.writeBoolean(action.showParticles());
+            output.writeBoolean(action.showIcon());
+        }
+    }
+
+    private static DefinitionProjection.AbilityView readAbility(DataInputStream input) throws IOException {
+        boolean enabled = input.readBoolean();
+        String kind = BoundedNetworkCodec.readString(input, 32);
+        boolean slotAllowed = input.readBoolean();
+        boolean defaultOn = input.readBoolean();
+        int effectCount = readCount(
+                input, NetworkLimits.MAX_ABILITY_ACTION_SUMMARIES, "ability persistent effect");
+        var effects = new ArrayList<DefinitionProjection.AbilityEffectView>(effectCount);
+        for (int index = 0; index < effectCount; index++) {
+            effects.add(new DefinitionProjection.AbilityEffectView(
+                    readId(input), BoundedNetworkCodec.readString(input, 32), readId(input),
+                    BoundedNetworkCodec.readString(input, 32),
+                    BoundedNetworkCodec.readString(input, 32), input.readLong()));
+        }
+        int costCount = readCount(input, NetworkLimits.MAX_ABILITY_COST_SUMMARIES, "ability cost");
+        var costs = new ArrayList<DefinitionProjection.AbilityCostView>(costCount);
+        for (int index = 0; index < costCount; index++) {
+            ResourceLocation id = readId(input);
+            String type = BoundedNetworkCodec.readString(input, 32);
+            Optional<ResourceLocation> currency = input.readBoolean()
+                    ? Optional.of(readId(input)) : Optional.empty();
+            costs.add(new DefinitionProjection.AbilityCostView(
+                    id, type, currency, input.readLong()));
+        }
+        var targeting = new DefinitionProjection.AbilityTargetView(
+                BoundedNetworkCodec.readString(input, 32), input.readInt(), input.readBoolean());
+        ResourceLocation cooldownGroup = readId(input);
+        int cooldownTicks = input.readInt();
+        int maximumCharges = input.readInt();
+        int rechargeTicks = input.readInt();
+        int actionCount = readCount(
+                input, NetworkLimits.MAX_ABILITY_ACTION_SUMMARIES, "ability action");
+        var actions = new ArrayList<DefinitionProjection.AbilityActionView>(actionCount);
+        for (int index = 0; index < actionCount; index++) {
+            ResourceLocation id = readId(input);
+            String type = BoundedNetworkCodec.readString(input, 32);
+            Optional<DefinitionProjection.Text> message = readOptionalText(input);
+            Optional<ResourceLocation> target = input.readBoolean()
+                    ? Optional.of(readId(input)) : Optional.empty();
+            actions.add(new DefinitionProjection.AbilityActionView(
+                    id, type, message, target, input.readLong(), input.readInt(),
+                    input.readBoolean(), input.readBoolean(), input.readBoolean()));
+        }
+        return new DefinitionProjection.AbilityView(
+                enabled, kind, slotAllowed, defaultOn, effects, costs, targeting,
+                cooldownGroup, cooldownTicks, maximumCharges, rechargeTicks, actions);
     }
 
     private static void writeSynergy(

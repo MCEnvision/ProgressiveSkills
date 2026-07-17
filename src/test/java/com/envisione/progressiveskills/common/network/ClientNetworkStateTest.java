@@ -6,6 +6,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.resources.ResourceLocation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -184,6 +185,57 @@ class ClientNetworkStateTest {
         assertThrows(IllegalArgumentException.class, () -> client.prepareClassIntent(
                 NetworkPayloads.IntentType.CLASS_SELECT,
                 ClassIntentPayload.select(net.minecraft.resources.ResourceLocation.parse("example:missing"))));
+    }
+
+    @Test
+    void activeClientPreparesOnlyOwnedAndTypeCorrectAbilityIntents() {
+        DefinitionProjection definitions = NetworkFixtures.abilityDefinitions();
+        String presentation = BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions));
+        VisiblePlayerState state = new VisiblePlayerState(
+                NetworkFixtures.PLAYER, 0, 12,
+                new com.envisione.progressiveskills.common.transaction.DefinitionRevision(
+                        1, NetworkFixtures.SEMANTIC),
+                1, presentation, Map.of(), Map.of(), Map.of(), Map.of(),
+                Map.of(
+                        NetworkFixtures.ABILITY_GUARD,
+                        new VisiblePlayerState.AbilityState(false, 2, 2, 0),
+                        NetworkFixtures.ABILITY_FOCUS,
+                        new VisiblePlayerState.AbilityState(false, 1, 1, 0)
+                ),
+                Map.of(0, NetworkFixtures.ABILITY_GUARD, 1, NetworkFixtures.ABILITY_FOCUS),
+                0, 0, 0, false
+        );
+        var sessions = ServerNetworkSessions.systemClock();
+        NetworkPayloads.ServerHello hello = sessions.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        var client = ClientNetworkState.systemClock();
+        client.receiveHello("ability-test", NetworkFixtures.PLAYER, hello);
+        receiveFullClientState(client, hello, definitions, state);
+
+        NetworkPayloads.Intent assign = client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_ASSIGN,
+                AbilityIntentPayload.assign(NetworkFixtures.ABILITY_GUARD, 2)).orElseThrow();
+        NetworkPayloads.Intent toggle = client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE,
+                AbilityIntentPayload.toggle(NetworkFixtures.ABILITY_FOCUS)).orElseThrow();
+        NetworkPayloads.Intent activate = client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_ACTIVATE,
+                AbilityIntentPayload.activate(0)).orElseThrow();
+
+        assertEquals(0, assign.requestId());
+        assertEquals(1, toggle.requestId());
+        assertEquals(2, activate.requestId());
+        assertEquals(state.stateRevision(), activate.stateRevision());
+        assertThrows(IllegalArgumentException.class, () -> client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_ACTIVATE,
+                AbilityIntentPayload.activate(1)));
+        assertThrows(IllegalArgumentException.class, () -> client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE,
+                AbilityIntentPayload.toggle(NetworkFixtures.ABILITY_GUARD)));
+        assertThrows(IllegalArgumentException.class, () -> client.prepareAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE,
+                AbilityIntentPayload.toggle(ResourceLocation.parse("example:missing"))));
     }
 
     private static void cacheDefinitions(

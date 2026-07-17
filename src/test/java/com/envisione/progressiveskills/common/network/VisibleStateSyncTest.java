@@ -104,4 +104,51 @@ class VisibleStateSyncTest {
         assertThrows(IllegalArgumentException.class, () -> new VisiblePlayerState.ClassSelection(
                 Optional.empty(), 0, VisiblePlayerState.Activity.ACTIVE));
     }
+
+    @Test
+    void abilityOwnershipAssignmentsToggleChargesAndCooldownRoundTripAsDelta() {
+        DefinitionProjection definitions = NetworkFixtures.abilityDefinitions();
+        String presentation = BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions));
+        var before = new VisiblePlayerState(
+                NetworkFixtures.PLAYER, 10, 8,
+                new com.envisione.progressiveskills.common.transaction.DefinitionRevision(
+                        1, NetworkFixtures.SEMANTIC),
+                1, presentation, Map.of(), Map.of(), Map.of(), Map.of(),
+                Map.of(
+                        NetworkFixtures.ABILITY_GUARD,
+                        new VisiblePlayerState.AbilityState(false, 2, 2, 0),
+                        NetworkFixtures.ABILITY_FOCUS,
+                        new VisiblePlayerState.AbilityState(false, 1, 1, 0)
+                ),
+                Map.of(0, NetworkFixtures.ABILITY_GUARD, 1, NetworkFixtures.ABILITY_FOCUS),
+                0, 0, 0, false
+        );
+        var after = new VisiblePlayerState(
+                NetworkFixtures.PLAYER, 11, 9, before.definitionRevision(),
+                before.presentationRevision(), before.presentationDigest(),
+                Map.of(), Map.of(), Map.of(), Map.of(),
+                Map.of(
+                        NetworkFixtures.ABILITY_FOCUS,
+                        new VisiblePlayerState.AbilityState(true, 1, 1, 0)
+                ),
+                Map.of(1, NetworkFixtures.ABILITY_FOCUS), 1, 0, 0, false
+        );
+
+        assertEquals(before, VisibleStateCodec.decode(VisibleStateCodec.encode(before)));
+        StateDelta delta = StateDelta.between(before, after, VisibleStateCodec.digest(after));
+        assertEquals(Set.of(NetworkFixtures.ABILITY_GUARD), delta.removedAbilities());
+        assertEquals(Set.of(0), delta.removedAbilitySlots());
+        assertEquals(1, delta.selectedAbilitySlot());
+        assertEquals(after, before.apply(VisibleStateCodec.decodeDelta(
+                VisibleStateCodec.encodeDelta(delta))));
+        assertEquals(true, before.abilities().get(NetworkFixtures.ABILITY_GUARD).ready());
+        assertEquals(false, new VisiblePlayerState.AbilityState(false, 0, 0, 0).ready());
+        assertThrows(IllegalArgumentException.class, () -> new VisiblePlayerState.AbilityState(
+                false, 2, 1, 0));
+        assertThrows(IllegalArgumentException.class, () -> new VisiblePlayerState(
+                NetworkFixtures.PLAYER, 12, 9, before.definitionRevision(),
+                before.presentationRevision(), before.presentationDigest(),
+                Map.of(), Map.of(), Map.of(), Map.of(), after.abilities(),
+                Map.of(0, NetworkFixtures.ABILITY_FOCUS), 1, 0, 0, false));
+    }
 }

@@ -653,7 +653,12 @@ public final class NetworkPayloads {
         CLASS_RESPEC_PREVIEW,
         CLASS_RESPEC_CONFIRM,
         CLASS_SWAP_PREVIEW,
-        CLASS_SWAP_CONFIRM
+        CLASS_SWAP_CONFIRM,
+        ABILITY_ASSIGN,
+        ABILITY_UNASSIGN,
+        ABILITY_SELECT,
+        ABILITY_TOGGLE,
+        ABILITY_ACTIVATE
     }
 
     public enum IntentStatus {

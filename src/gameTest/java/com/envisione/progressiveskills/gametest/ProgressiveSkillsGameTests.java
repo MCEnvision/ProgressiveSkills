@@ -3,6 +3,10 @@ package com.envisione.progressiveskills.gametest;
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.classdef.ClassGrantType;
 import com.envisione.progressiveskills.common.classdef.ClassProgression;
+import com.envisione.progressiveskills.common.ability.AbilityFlagEffect;
+import com.envisione.progressiveskills.common.ability.AbilityState;
+import com.envisione.progressiveskills.common.ability.AbilityTargetMode;
+import com.envisione.progressiveskills.common.ability.AbilityTargeting;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
@@ -19,6 +23,8 @@ import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.TransactionPlan;
 import com.envisione.progressiveskills.common.transaction.TransactionStep;
 import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
+import com.envisione.progressiveskills.server.ability.AbilityRuntime;
+import com.envisione.progressiveskills.server.ability.AbilityTargetResolver;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.offline.PendingOperationSavedData;
 import com.envisione.progressiveskills.server.offline.PendingProgressionOperation;
@@ -41,6 +47,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
@@ -716,6 +723,136 @@ public final class ProgressiveSkillsGameTests {
                             && player.getInventory().countItem(Items.BOOK) == initialBooks + 1,
                     "Scholar reselection must restore coownership without repeating its starter kit"
             );
+
+            var secondWind = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "second_wind");
+            var combatAware = new EntitlementKey(
+                    AbilityFlagEffect.FLAG_ENTITLEMENT_TYPE,
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "combat_aware")
+            );
+            var abilityState = AbilityRuntime.state(player);
+            helper.assertTrue(
+                    abilityState.ownedAbilities().equals(java.util.Set.of(
+                            warriorGuard.targetId(), combatInsight.targetId(), secondWind)),
+                    "Class and synergy sources must expose all three starter abilities"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps ability list", playerSource) == 3,
+                    "The live Core ability catalog must list all three starter abilities"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability info " + secondWind, playerSource) == 1,
+                    "Second Wind must be inspectable through the ability command route"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).projectedValues()
+                            .getOrDefault(combatAware, 0L) == 1,
+                    "The owned passive ability must project its source owned flag"
+            );
+            double armorBeforeGuard = player.getAttributeValue(Attributes.ARMOR);
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability assign " + warriorGuard.targetId() + " 1", playerSource) == 1,
+                    "Warrior Guard must assign to the first fixed ability slot"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability toggle " + warriorGuard.targetId(), playerSource) == 1,
+                    "Warrior Guard must toggle on through the authoritative planner"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.ARMOR) - armorBeforeGuard - 2.0D)
+                            < 0.000001D,
+                    "The enabled guard toggle must project two armor"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability toggle " + warriorGuard.targetId(), playerSource) == 1,
+                    "Warrior Guard must toggle off through the same planner"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.ARMOR) - armorBeforeGuard) < 0.000001D,
+                    "Disabling the guard toggle must remove only its owned armor source"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability assign " + secondWind + " 2", playerSource) == 1,
+                    "Second Wind must assign to the second fixed ability slot"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability select 2", playerSource) == 1,
+                    "The second fixed ability slot must become selected"
+            );
+            player.getFoodData().setFoodLevel(20);
+            player.setHealth(Math.max(1.0F, player.getMaxHealth() - 8.0F));
+            float healthBeforeAbility = player.getHealth();
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps ability activate 2", playerSource) == 1,
+                    "Second Wind must activate on a valid self target"
+            );
+            helper.assertTrue(
+                    player.getFoodData().getFoodLevel() == 16,
+                    "Second Wind must consume exactly four hunger"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getHealth() - healthBeforeAbility - 4.0F) < 0.000001F,
+                    "Second Wind must heal exactly four health"
+            );
+            var speed = BuiltInRegistries.MOB_EFFECT.getHolder(
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "speed")).orElseThrow();
+            helper.assertTrue(player.hasEffect(speed), "Second Wind must apply its bounded speed effect");
+            AbilityState activatedAbilities = AbilityRuntime.state(player);
+            helper.assertTrue(
+                    activatedAbilities.selectedSlot().orElseThrow().equals(AbilityState.slotId(1))
+                            && activatedAbilities.charges().get(secondWind).current() == 1
+                            && activatedAbilities.charges().get(secondWind).maximum() == 2
+                            && activatedAbilities.cooldownRemaining(
+                            ResourceLocation.fromNamespaceAndPath("progressiveskills", "recovery"),
+                            player.serverLevel().getGameTime()) > 0,
+                    "Ability selection and cooldown state must remain authoritative after activation"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps ability activate 2", playerSource) == 0
+                            && player.getFoodData().getFoodLevel() == 16,
+                    "Cooldown rejection must happen before another vanilla cost is consumed"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps ability status", playerSource) == 1,
+                    "Ability slots and runtime state must remain inspectable through chat"
+            );
+            player.setYRot(0.0F);
+            player.setXRot(0.0F);
+            player.setYHeadRot(0.0F);
+            var entityTarget = makeMockPlayer(helper);
+            entityTarget.setPos(player.getX(), player.getY(), player.getZ() + 4.0D);
+            var entityResolution = AbilityTargetResolver.resolve(
+                    player, new AbilityTargeting(AbilityTargetMode.ENTITY, 8, true));
+            helper.assertTrue(
+                    entityResolution.accepted()
+                            && entityResolution.target().orElseThrow().entityId().orElseThrow()
+                            .equals(entityTarget.getUUID()),
+                    "Entity targeting must resolve the server ray and line of sight"
+            );
+            entityTarget.setPos(player.getX() + 16.0D, player.getY(), player.getZ());
+            BlockPos abilityBlock = BlockPos.containing(
+                    player.getX(), player.getEyeY(), player.getZ() + 4.0D);
+            player.serverLevel().setBlockAndUpdate(abilityBlock, Blocks.STONE.defaultBlockState());
+            var blockResolution = AbilityTargetResolver.resolve(
+                    player, new AbilityTargeting(AbilityTargetMode.BLOCK, 8, true));
+            helper.assertTrue(
+                    blockResolution.accepted()
+                            && blockResolution.target().orElseThrow().blockPos().orElseThrow()
+                            .equals(abilityBlock),
+                    "Block targeting must resolve the server ray and line of sight"
+            );
+            helper.assertTrue(
+                    !AbilityTargetResolver.resolve(
+                            player, new AbilityTargeting(AbilityTargetMode.BLOCK, 2, true)).accepted(),
+                    "Targets outside the configured range must fail before activation"
+            );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,
                     "The in-game persistence status must inspect the active attachment"
@@ -818,8 +955,9 @@ public final class ProgressiveSkillsGameTests {
     private static ServerPlayer makeMockPlayer(GameTestHelper helper) {
         var level = helper.getLevel();
         var server = level.getServer();
+        UUID playerId = UUID.randomUUID();
         var cookie = CommonListenerCookie.createInitial(
-                new GameProfile(UUID.randomUUID(), "phase4-test-player"),
+                new GameProfile(playerId, "ps-" + playerId.toString().substring(0, 8)),
                 false
         );
         var player = new ServerPlayer(server, level, cookie.gameProfile(), cookie.clientInformation()) {

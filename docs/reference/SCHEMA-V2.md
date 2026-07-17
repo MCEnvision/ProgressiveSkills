@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 11. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 12. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -40,6 +40,113 @@ Schema v2 includes the shared immutable IR, authoring schemas, and internal runt
 | `progressiveskills:theme` | `themes` |
 | `progressiveskills:tree` | `trees` |
 | `progressiveskills:variable` | `variables` |
+
+## Ability native action
+
+- Schema ID: `progressiveskills:ability_action`
+- Version: `2`
+- Audience: `authoring`
+
+One ordered message, heal, or vanilla effect action from the Core action subset.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `ambient` | `boolean` | — | `false` | Vanilla effect ambient rendering flag. | `false` | `PS-ABILITY-005` | `checkbox` | `client_visible` | `replace` |
+| `amount` | `decimal` | — | — | Positive literal heal amount. | `4.0` | `PS-ABILITY-005` | `decimal` | `client_visible` | `replace` |
+| `amplifier` | `integer` | — | `0` | Vanilla effect amplifier from zero through two hundred fifty five. | `0` | `PS-ABILITY-005` | `integer` | `client_visible` | `replace` |
+| `duration_ticks` | `integer` | — | — | Vanilla effect duration from one through seventy two thousand ticks. | `100` | `PS-ABILITY-005` | `integer` | `client_visible` | `replace` |
+| `effect` | `resource_location` | — | — | Vanilla mob effect registry target. | `minecraft:speed` | `PS-ABILITY-005` | `resource_location` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Stable action identity. Authored list order is execution order. | `mypack:second_wind/heal` | `PS-ABILITY-005` | `resource_location` | `client_visible` | `replace` |
+| `message` | `component` | — | — | Safe localized chat or action feedback component. | `{ fallback = "Ready." }` | `PS-ABILITY-005` | `component` | `client_visible` | `replace` |
+| `show_icon` | `boolean` | — | `true` | Show the vanilla effect icon. | `true` | `PS-ABILITY-005` | `checkbox` | `client_visible` | `replace` |
+| `show_particles` | `boolean` | — | `true` | Show vanilla effect particles. | `true` | `PS-ABILITY-005` | `checkbox` | `client_visible` | `replace` |
+| `type` (required) | `enum` | `message \| heal \| vanilla_effect` | — | Closed Core native action type. | `heal` | `PS-ABILITY-005` | `select` | `client_visible` | `replace` |
+
+## Ability activation cost
+
+- Schema ID: `progressiveskills:ability_cost`
+- Version: `2`
+- Audience: `authoring`
+
+Stable positive literal named currency, vanilla hunger, or vanilla experience cost.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `amount` (required) | `integer` | — | — | Positive bounded cost amount. | `4` | `PS-ABILITY-003` | `integer` | `client_visible` | `replace` |
+| `currency` | `resource_location` | — | — | Existing named currency required only for currency costs. | `progressiveskills:global_points` | `PS-ABILITY-003` | `resource_location` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Stable cost leg identity unique within its ability. | `mypack:surge/points` | `PS-ABILITY-003` | `resource_location` | `client_visible` | `replace` |
+| `type` (required) | `enum` | `currency \| hunger \| experience` | — | Closed Core cost source. | `currency` | `PS-ABILITY-003` | `select` | `client_visible` | `replace` |
+
+## Ability definition
+
+- Schema ID: `progressiveskills:ability_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Bounded Core passive, toggle, or active behavior assigned through fixed registered slots.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `actions` | `list` | — | `[]` | Authored order of up to sixteen active message, heal, or vanilla effect actions. | `[{ id = "mypack:second_wind/heal", type = "heal", amount = 4.0 }]` | `PS-ABILITY-005` | `list` | `client_visible` | `ordered` |
+| `cooldown_group` | `resource_location` | — | — | Shared cooldown identity. Omission uses the ability id. | `mypack:recovery` | `PS-ABILITY-001` | `resource_location` | `client_visible` | `replace` |
+| `cooldown_ticks` | `integer` | — | `0` | Nonnegative activation cooldown up to seventy two thousand ticks. | `400` | `PS-ABILITY-001` | `integer` | `client_visible` | `replace` |
+| `costs` | `list` | — | `[]` | Up to three stable named currency, hunger, or experience activation costs. | `[{ id = "mypack:second_wind/hunger", type = "hunger", amount = 4 }]` | `PS-ABILITY-003` | `list` | `client_visible` | `merge_by_key` |
+| `default_on` | `boolean` | — | `false` | Initial enabled state for an owned toggle ability. | `false` | `PS-ABILITY-001` | `checkbox` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized ability description. | `{ fallback = "Recover health." }` | `PS-ABILITY-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized ability name. | `{ fallback = "Second Wind" }` | `PS-ABILITY-001` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether ownership may become usable under the current definition. | `true` | `PS-ABILITY-001` | `checkbox` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Ability icon with fallback and alternative text. | `{ type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Shield" }` | `PS-ABILITY-001` | `icon` | `client_visible` | `replace` |
+| `kind` (required) | `enum` | `passive \| toggle \| active` | — | Closed Core ability lifecycle. | `active` | `PS-ABILITY-001` | `select` | `client_visible` | `replace` |
+| `max_charges` | `integer` | — | `1` | Maximum available charges from one through sixteen. | `2` | `PS-ABILITY-001` | `integer` | `client_visible` | `replace` |
+| `persistent_effects` | `list` | — | `[]` | Up to sixteen source owned attribute or boolean flag effects for passive and toggle abilities. | `[{ id = "mypack:guard/armor", type = "attribute", attribute = "minecraft:generic.armor", operation = "add_value", value = 2.0 }]` | `PS-ABILITY-002` | `list` | `client_visible` | `merge_by_key` |
+| `recharge_ticks` | `integer` | — | `0` | Nonnegative charge recharge duration up to seventy two thousand ticks. | `200` | `PS-ABILITY-001` | `integer` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate ability search terms. | `["Recovery"]` | `PS-ABILITY-001` | `list` | `client_visible` | `set` |
+| `slot_allowed` | `boolean` | — | — | Whether the runtime ability may be assigned to one of eight fixed action slots. | `true` | `PS-ABILITY-001` | `checkbox` | `client_visible` | `replace` |
+| `targeting` | `object` | — | — | Validated self, entity, or block targeting policy for active abilities. | `{ mode = "self" }` | `PS-ABILITY-004` | `object` | `client_visible` | `replace` |
+
+## Ability mutation intent payload
+
+- Schema ID: `progressiveskills:ability_intent`
+- Version: `2`
+- Audience: `internal`
+
+Bounded serverbound assignment, selection, toggle, or activation identity without client supplied outcomes.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `ability_id` | `resource_location` | — | — | Ability required by assign and toggle and forbidden by slot only intents. | `mypack:second_wind` | `PS-ABILITY-006` | `object` | `server_only` | `replace` |
+| `slot` | `integer` | — | — | Fixed slot from zero through seven required by assign, unassign, select, and activate. | `0` | `PS-ABILITY-006` | `object` | `server_only` | `replace` |
+
+## Ability persistent effect
+
+- Schema ID: `progressiveskills:ability_persistent_effect`
+- Version: `2`
+- Audience: `authoring`
+
+Stable source owned attribute or boolean flag contribution active with a passive or enabled toggle.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `attribute` | `resource_location` | — | — | Attribute target for an attribute effect. | `minecraft:generic.armor` | `PS-ABILITY-002` | `resource_location` | `client_visible` | `replace` |
+| `flag` | `resource_location` | — | — | Namespaced boolean flag target for a flag effect. | `mypack:guarding` | `PS-ABILITY-002` | `resource_location` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Stable effect source identity unique within its ability. | `mypack:guard/armor` | `PS-ABILITY-002` | `resource_location` | `client_visible` | `replace` |
+| `operation` | `enum` | `add_value \| add_multiplied_base \| add_multiplied_total` | — | Deterministic attribute operation. | `add_value` | `PS-ABILITY-002` | `select` | `client_visible` | `replace` |
+| `type` (required) | `enum` | `attribute \| flag` | — | Closed Core persistent effect type. | `attribute` | `PS-ABILITY-002` | `select` | `client_visible` | `replace` |
+| `value` (required) | `any` | — | — | Nonzero fixed point attribute value or explicit boolean flag value. | `2.0` | `PS-ABILITY-002` | `single_line` | `client_visible` | `replace` |
+
+## Ability targeting
+
+- Schema ID: `progressiveskills:ability_targeting`
+- Version: `2`
+- Audience: `authoring`
+
+Bounded server validated self, entity, or block target contract.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `line_of_sight` | `boolean` | — | — | Require an unobstructed server ray check for a nonself target. | `true` | `PS-ABILITY-004` | `checkbox` | `client_visible` | `replace` |
+| `mode` | `enum` | `self \| entity \| block` | `"self"` | Closed Core target mode. Omission selects self. | `entity` | `PS-ABILITY-004` | `select` | `client_visible` | `replace` |
+| `range` | `integer` | — | — | Zero for self or one through sixty four blocks for entity and block targets. | `16` | `PS-ABILITY-004` | `integer` | `client_visible` | `replace` |
 
 ## Definition alias
 
@@ -325,6 +432,7 @@ Client-safe identity, presentation, disclosed tree graph, class selection semant
 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
+| `ability` | `object` | — | — | Bounded ability kind, lifecycle, cost, target, cooldown, charge, effect, and action summaries. | `{ kind = "active", slot_allowed = true, cooldown_ticks = 400 }` | `PS-ABILITY-001` | `object` | `client_visible` | `replace` |
 | `class_definition` | `object` | — | — | Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries. | `{ slot_id = "mypack:combat", slot_cost = 1, enabled = true }` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
 | `class_slot` | `object` | — | — | Bounded capacity and swap policy for a class slot definition. | `{ capacity = 2, swap_policy = "allowed" }` | `PS-CLASS-001` | `object` | `client_visible` | `replace` |
 | `class_synergies` (required) | `map` | — | — | Bounded named class synergy summaries keyed by stable synergy id. | `{ "mypack:spellblade" = { required_classes = ["mypack:mage", "mypack:warrior"] } }` | `PS-CLASS-003` | `object` | `client_visible` | `replace` |
@@ -383,10 +491,10 @@ Connection-scoped protocol, feature, server identity, and semantic/presentation 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Monotonic server gameplay-definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `63` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `127` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `presentation_digest` (required) | `string` | — | — | SHA-256 of the exact sanitized definition projection bytes. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-NET-002` | `object` | `client_visible` | `replace` |
 | `presentation_revision` (required) | `integer` | — | — | Monotonic presentation generation negotiated independently. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `3` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `4` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | SHA-256 of the authoritative gameplay definition snapshot. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `server_identity` (required) | `string` | — | — | Persistent world/server UUID that scopes the local definition cache. | `00000000-0000-0000-0000-000000000601` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `session_id` (required) | `string` | — | — | Ephemeral connection session UUID required on every later payload. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `client_visible` | `replace` |
@@ -402,7 +510,7 @@ Serverbound request identity and stale guards; clients never provide costs, XP, 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Client-observed gameplay definition generation. | `7` | `PS-NET-003` | `object` | `server_only` | `replace` |
-| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm \| class_select \| class_respec_preview \| class_respec_confirm \| class_swap_preview \| class_swap_confirm` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
+| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm \| class_select \| class_respec_preview \| class_respec_confirm \| class_swap_preview \| class_swap_confirm \| ability_assign \| ability_unassign \| ability_select \| ability_toggle \| ability_activate` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
 | `payload` (required) | `string` | — | — | Small type-specific bounded selection payload; never effect amounts or commands. | `""` | `PS-NET-002` | `object` | `server_only` | `replace` |
 | `request_id` (required) | `integer` | — | — | Monotonic request id covered by the bounded replay/result window. | `12` | `PS-NET-004` | `object` | `server_only` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Client-observed gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `server_only` | `replace` |
@@ -678,16 +786,21 @@ Typed changed/removed paths applied only across an exact base-to-new revision ed
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `base_revision` (required) | `integer` | — | — | Required current client storage revision. | `5` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_abilities` (required) | `map` | — | — | Changed or added owned visible ability states. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_ability_slots` (required) | `map` | — | — | Changed or added fixed ability slot assignments. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_balances` (required) | `map` | — | — | Changed or added visible balance paths. | `{ "mypack:points" = 5 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_effective_values` (required) | `map` | — | — | Changed or added effective-value paths. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_node_ranks` (required) | `map` | — | — | Changed or added visible Core node ranks. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_selected_classes` (required) | `map` | — | — | Changed or added visible selected class states. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `new_revision` (required) | `integer` | — | — | Strictly newer resulting storage revision. | `6` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_abilities` (required) | `list` | — | — | Removed visible ability ids. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_ability_slots` (required) | `list` | — | — | Cleared fixed ability slot numbers. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_balances` (required) | `list` | — | — | Removed visible balance paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_effective_values` (required) | `list` | — | — | Removed effective-value paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_node_ranks` (required) | `list` | — | — | Removed visible Core node ids. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_selected_classes` (required) | `list` | — | — | Removed selected class ids. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `resulting_state_digest` (required) | `string` | — | — | SHA-256 of the exact post-application full visible state. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `selected_ability_slot` (required) | `integer` | — | — | Resulting selected fixed slot or negative one for no selection. | `0` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 
 ## Stored definition state
 
@@ -867,6 +980,35 @@ Clientbound revision pinned affected nodes, exact historical refunds, blockers, 
 | `state_revision` (required) | `integer` | — | — | Authoritative player state revision used to calculate the preview. | `8` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `tree_id` (required) | `resource_location` | — | — | Tree containing every affected purchase. | `mypack:mining` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
 
+## Visible fixed ability slot
+
+- Schema ID: `progressiveskills:visible_ability_slot`
+- Version: `2`
+- Audience: `internal`
+
+One owner visible fixed slot assignment using startup registered input mappings.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `ability_id` (required) | `resource_location` | — | — | Owned slottable ability assigned to this position. | `mypack:second_wind` | `PS-ABILITY-001` | `object` | `client_visible` | `replace` |
+| `slot` (required) | `integer` | — | — | Fixed slot number from zero through seven. | `0` | `PS-ABILITY-006` | `object` | `client_visible` | `replace` |
+
+## Visible owned ability state
+
+- Schema ID: `progressiveskills:visible_ability_state`
+- Version: `2`
+- Audience: `internal`
+
+Owner visible toggle, charge, and cooldown status without raw source ownership or internal balances.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `ability_id` (required) | `resource_location` | — | — | Owned stable ability identity. | `mypack:second_wind` | `PS-ABILITY-001` | `object` | `client_visible` | `replace` |
+| `charges` (required) | `integer` | — | — | Currently available bounded charges. | `1` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `cooldown_remaining_ticks` (required) | `integer` | — | — | Nonnegative shared cooldown ticks remaining. | `80` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `maximum_charges` (required) | `integer` | — | — | Definition bounded maximum charges from one through sixteen. | `2` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `toggled_on` (required) | `boolean` | — | — | Current effective toggle state. Passive and active abilities report false. | `false` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+
 ## Visible selected class state
 
 - Schema ID: `progressiveskills:visible_class_selection`
@@ -892,6 +1034,8 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
+| `abilities` (required) | `map` | — | — | Owned ability ids mapped to visible toggle, charge, and cooldown state. | `{ "mypack:second_wind" = { charges = 1, maximum_charges = 1 } }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `ability_slots` (required) | `map` | — | — | Assigned fixed slot numbers mapped to owned ability ids. | `{ 0 = "mypack:second_wind" }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `balances` (required) | `map` | — | — | Bounded namespaced visible balances. | `{ "mypack:points" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `definition_generation` (required) | `integer` | — | — | Pinned gameplay definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `effective_values` (required) | `map` | — | — | Bounded effective values needed by current client presentation. | `{ "minecraft:attribute[minecraft:generic.max_health]" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
@@ -900,6 +1044,7 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 | `orphan_count` (required) | `integer` | — | — | Visible diagnostic count without orphan payload contents. | `0` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `player_id` (required) | `string` | — | — | UUID of the session owner. | `00000000-0000-0000-0000-000000000601` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `presentation_revision` (required) | `integer` | — | — | Pinned sanitized presentation generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `selected_ability_slot` (required) | `integer` | — | — | Selected fixed slot from zero through seven or negative one when no slot is selected. | `0` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `selected_classes` (required) | `map` | — | — | Selected class ids mapped to visible slot use and active or suspended state. | `{ "mypack:mage" = { slot_id = "mypack:combat", slot_cost = 1, activity = "active" } }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Pinned gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `state_revision` (required) | `integer` | — | — | Authoritative transaction compare-and-swap revision. | `3` | `PS-NET-003` | `object` | `client_visible` | `replace` |
@@ -915,6 +1060,60 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `true`
 - Why it matters: Icons require a textual equivalent for narration and nonvisual use.
 - Suggested fix: Add a short, meaningful alt component.
+
+<a id="ps-ability-001"></a>
+
+### PS-ABILITY-001 — Ability definition is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: Ability kind, lifecycle fields, slot eligibility, cooldown, and charges must form one bounded Core definition.
+- Suggested fix: Use a passive, toggle, or active ability with only fields valid for that lifecycle.
+
+<a id="ps-ability-002"></a>
+
+### PS-ABILITY-002 — Ability persistent effect is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: Persistent effects require source owned stable ids and a supported attribute or boolean flag target.
+- Suggested fix: Use an attribute or flag effect on a passive or toggle ability.
+
+<a id="ps-ability-003"></a>
+
+### PS-ABILITY-003 — Ability activation cost is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: Activation costs must be bounded named currency, vanilla hunger, or vanilla experience legs.
+- Suggested fix: Use a positive literal amount and an existing named currency when required.
+
+<a id="ps-ability-004"></a>
+
+### PS-ABILITY-004 — Ability target is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: Self, entity, and block targets require a bounded range and deterministic line of sight policy.
+- Suggested fix: Use self with zero range or entity or block with a range from one through sixty four.
+
+<a id="ps-ability-005"></a>
+
+### PS-ABILITY-005 — Ability action is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: Core active abilities execute only bounded message, heal, and vanilla effect actions.
+- Suggested fix: Remove Creator action graph fields and use one supported native action type.
+
+<a id="ps-ability-006"></a>
+
+### PS-ABILITY-006 — Ability intent was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.
+- Suggested fix: Synchronize state and review the current ability status before retrying.
 
 <a id="ps-class-001"></a>
 

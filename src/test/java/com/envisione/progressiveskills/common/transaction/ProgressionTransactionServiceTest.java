@@ -78,6 +78,40 @@ class ProgressionTransactionServiceTest {
     }
 
     @Test
+    void previewSnapshotAppliesTheCascadeWithoutMutationAndRejectsStaleInputs() {
+        var service = service();
+        CascadePlan plan = plan(
+                "test/preview",
+                0,
+                List.of(new BalanceMutation(POINTS, 2, 0, 10)),
+                List.of(EntitlementMutation.grant(
+                        HEALTH, SOURCE_A, 4, EntitlementResolver.HIGHEST)),
+                List.of()
+        );
+
+        ProgressionSnapshot preview = service.previewSnapshot(plan, DEFINITIONS);
+
+        assertEquals(1, preview.stateRevision());
+        assertEquals(2, preview.balances().get(POINTS));
+        assertEquals(4, preview.projectedValues().get(HEALTH));
+        assertFalse(service.hasAccount(TARGET));
+        assertEquals(ProgressionSnapshot.empty(), service.snapshot(TARGET));
+        assertThrows(IllegalArgumentException.class, () -> service.previewSnapshot(
+                plan("test/preview-stale-state", 1, List.of(), List.of(), List.of()),
+                DEFINITIONS
+        ));
+        assertThrows(IllegalArgumentException.class, () -> service.previewSnapshot(
+                plan,
+                new DefinitionRevision(DEFINITIONS.generation() + 1, DEFINITIONS.semanticDigest())
+        ));
+
+        TransactionResult committed = service.execute(
+                plan, DEFINITIONS, new RecordingProjector(), new RecordingExecutor());
+        assertTrue(committed.status().committed());
+        assertEquals(service.snapshot(TARGET), service.previewSnapshot(plan, DEFINITIONS));
+    }
+
+    @Test
     void permanentReceiptSkipsSameActionAcrossDifferentTransactions() {
         var service = service();
         var executor = new RecordingExecutor();

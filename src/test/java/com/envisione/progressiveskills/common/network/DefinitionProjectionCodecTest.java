@@ -127,6 +127,33 @@ class DefinitionProjectionCodecTest {
     }
 
     @Test
+    void sanitizedAbilityViewsRoundTripWithBoundedCostsTargetsAndActions() {
+        DefinitionProjection projection = NetworkFixtures.abilityDefinitions();
+        byte[] encoded = DefinitionProjectionCodec.encode(projection);
+        DefinitionProjection decoded = DefinitionProjectionCodec.decode(encoded);
+
+        assertEquals(projection, decoded);
+        DefinitionProjection.AbilityView guard = decoded.definitions().get(
+                new DefinitionKey(DefinitionKinds.ABILITY, NetworkFixtures.ABILITY_GUARD))
+                .ability().orElseThrow();
+        assertEquals("active", guard.kind());
+        assertEquals(2, guard.maximumCharges());
+        assertEquals(List.of("hunger", "currency"), guard.costs().stream()
+                .map(DefinitionProjection.AbilityCostView::type).toList());
+        assertEquals(List.of("heal", "vanilla_effect"), guard.actions().stream()
+                .map(DefinitionProjection.AbilityActionView::type).toList());
+        assertThrows(IllegalArgumentException.class, () -> new DefinitionProjection.AbilityView(
+                guard.enabled(), guard.kind(), false, guard.defaultOn(), guard.persistentEffects(),
+                guard.costs(), guard.targeting(), guard.cooldownGroup(), guard.cooldownTicks(),
+                guard.maximumCharges(), guard.rechargeTicks(), guard.actions()
+        ));
+        String wire = new String(encoded, StandardCharsets.UTF_8);
+        assertFalse(wire.contains("ownerKind"));
+        assertFalse(wire.contains("cooldownReadyTick"));
+        assertFalse(wire.contains("actionExecutor"));
+    }
+
+    @Test
     void starterKitProjectionRejectsDuplicateItemIds() {
         DefinitionProjection.ClassView source = NetworkFixtures.classDefinitions().definitions().entrySet().stream()
                 .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS))

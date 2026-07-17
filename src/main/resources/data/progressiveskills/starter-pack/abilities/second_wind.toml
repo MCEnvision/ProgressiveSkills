@@ -1,0 +1,42 @@
+schema_version = 2
+
+[ability]
+id = "progressiveskills:second_wind"
+display = { key = "ability.progressiveskills.second_wind", fallback = "Second Wind" }
+description = { key = "ability.progressiveskills.second_wind.desc", fallback = "Spend hunger to recover and gain a brief burst of speed." }
+icon = { type = "item", value = "minecraft:cooked_beef", fallback = "minecraft:barrier", alt = "Cooked beef" }
+enabled = true
+kind = "active"
+slot_allowed = true
+cooldown_group = "progressiveskills:recovery"
+cooldown_ticks = 400
+max_charges = 2
+recharge_ticks = 200
+
+[targeting]
+mode = "self"
+
+[[costs]]
+id = "progressiveskills:second_wind/hunger"
+type = "hunger"
+amount = 4
+
+[[actions]]
+id = "progressiveskills:second_wind/message"
+type = "message"
+message = { key = "ability.progressiveskills.second_wind.used", fallback = "You catch a second wind." }
+
+[[actions]]
+id = "progressiveskills:second_wind/heal"
+type = "heal"
+amount = 4.0
+
+[[actions]]
+id = "progressiveskills:second_wind/speed"
+type = "vanilla_effect"
+effect = "minecraft:speed"
+amplifier = 0
+duration_ticks = 100
+ambient = false
+show_particles = true
+show_icon = true

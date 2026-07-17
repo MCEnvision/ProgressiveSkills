@@ -133,6 +133,851 @@
   ],
   "schemas": [
     {
+      "id": "progressiveskills:ability_action",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Ability native action",
+      "description": "One ordered message, heal, or vanilla effect action from the Core action subset.",
+      "fields": [
+        {
+          "path": "ambient",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Vanilla effect ambient rendering flag.",
+          "example": "false",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 80,
+            "help": "Vanilla effect ambient rendering flag."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "amount",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive literal heal amount.",
+          "example": "4.0",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 40,
+            "help": "Positive literal heal amount."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "amplifier",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Vanilla effect amplifier from zero through two hundred fifty five.",
+          "example": "0",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 60,
+            "help": "Vanilla effect amplifier from zero through two hundred fifty five."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "duration_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Vanilla effect duration from one through seventy two thousand ticks.",
+          "example": "100",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Vanilla effect duration from one through seventy two thousand ticks."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "effect",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Vanilla mob effect registry target.",
+          "example": "minecraft:speed",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 50,
+            "help": "Vanilla mob effect registry target."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable action identity. Authored list order is execution order.",
+          "example": "mypack:second_wind/heal",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Stable action identity. Authored list order is execution order."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "message",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Safe localized chat or action feedback component.",
+          "example": "{ fallback = \"Ready.\" }",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 35,
+            "help": "Safe localized chat or action feedback component."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "show_icon",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Show the vanilla effect icon.",
+          "example": "true",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 100,
+            "help": "Show the vanilla effect icon."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "show_particles",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Show vanilla effect particles.",
+          "example": "true",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 90,
+            "help": "Show vanilla effect particles."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["message", "heal", "vanilla_effect"],
+          "default": null,
+          "description": "Closed Core native action type.",
+          "example": "heal",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Closed Core native action type."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:ability_cost",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Ability activation cost",
+      "description": "Stable positive literal named currency, vanilla hunger, or vanilla experience cost.",
+      "fields": [
+        {
+          "path": "amount",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive bounded cost amount.",
+          "example": "4",
+          "diagnostic": "PS-ABILITY-003",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 40,
+            "help": "Positive bounded cost amount."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "currency",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Existing named currency required only for currency costs.",
+          "example": "progressiveskills:global_points",
+          "diagnostic": "PS-ABILITY-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Existing named currency required only for currency costs."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable cost leg identity unique within its ability.",
+          "example": "mypack:surge/points",
+          "diagnostic": "PS-ABILITY-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Stable cost leg identity unique within its ability."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["currency", "hunger", "experience"],
+          "default": null,
+          "description": "Closed Core cost source.",
+          "example": "currency",
+          "diagnostic": "PS-ABILITY-003",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Closed Core cost source."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:ability_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Ability definition",
+      "description": "Bounded Core passive, toggle, or active behavior assigned through fixed registered slots.",
+      "fields": [
+        {
+          "path": "actions",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Authored order of up to sixteen active message, heal, or vanilla effect actions.",
+          "example": "[{ id = \"mypack:second_wind/heal\", type = \"heal\", amount = 4.0 }]",
+          "diagnostic": "PS-ABILITY-005",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 160,
+            "help": "Authored order of up to sixteen active message, heal, or vanilla effect actions."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": true
+        },
+        {
+          "path": "cooldown_group",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Shared cooldown identity. Omission uses the ability id.",
+          "example": "mypack:recovery",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 120,
+            "help": "Shared cooldown identity. Omission uses the ability id."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "cooldown_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Nonnegative activation cooldown up to seventy two thousand ticks.",
+          "example": "400",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 125,
+            "help": "Nonnegative activation cooldown up to seventy two thousand ticks."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "costs",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Up to three stable named currency, hunger, or experience activation costs.",
+          "example": "[{ id = \"mypack:second_wind/hunger\", type = \"hunger\", amount = 4 }]",
+          "diagnostic": "PS-ABILITY-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 140,
+            "help": "Up to three stable named currency, hunger, or experience activation costs."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "default_on",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Initial enabled state for an owned toggle ability.",
+          "example": "false",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 100,
+            "help": "Initial enabled state for an owned toggle ability."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized ability description.",
+          "example": "{ fallback = \"Recover health.\" }",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized ability description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized ability name.",
+          "example": "{ fallback = \"Second Wind\" }",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized ability name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether ownership may become usable under the current definition.",
+          "example": "true",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 60,
+            "help": "Whether ownership may become usable under the current definition."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ability icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:shield\", fallback = \"minecraft:barrier\", alt = \"Shield\" }",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Ability icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["passive", "toggle", "active"],
+          "default": null,
+          "description": "Closed Core ability lifecycle.",
+          "example": "active",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 70,
+            "help": "Closed Core ability lifecycle."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "max_charges",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 1,
+          "description": "Maximum available charges from one through sixteen.",
+          "example": "2",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 130,
+            "help": "Maximum available charges from one through sixteen."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "persistent_effects",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Up to sixteen source owned attribute or boolean flag effects for passive and toggle abilities.",
+          "example": "[{ id = \"mypack:guard/armor\", type = \"attribute\", attribute = \"minecraft:generic.armor\", operation = \"add_value\", value = 2.0 }]",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 110,
+            "help": "Up to sixteen source owned attribute or boolean flag effects for passive and toggle abilities."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "recharge_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Nonnegative charge recharge duration up to seventy two thousand ticks.",
+          "example": "200",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 135,
+            "help": "Nonnegative charge recharge duration up to seventy two thousand ticks."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate ability search terms.",
+          "example": "[\"Recovery\"]",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 45,
+            "help": "Bounded alternate ability search terms."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "slot_allowed",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Whether the runtime ability may be assigned to one of eight fixed action slots.",
+          "example": "true",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 80,
+            "help": "Whether the runtime ability may be assigned to one of eight fixed action slots."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "targeting",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Validated self, entity, or block targeting policy for active abilities.",
+          "example": "{ mode = \"self\" }",
+          "diagnostic": "PS-ABILITY-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 150,
+            "help": "Validated self, entity, or block targeting policy for active abilities."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:ability_intent",
+      "version": 2,
+      "audience": "internal",
+      "title": "Ability mutation intent payload",
+      "description": "Bounded serverbound assignment, selection, toggle, or activation identity without client supplied outcomes.",
+      "fields": [
+        {
+          "path": "ability_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ability required by assign and toggle and forbidden by slot only intents.",
+          "example": "mypack:second_wind",
+          "diagnostic": "PS-ABILITY-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Ability required by assign and toggle and forbidden by slot only intents."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Fixed slot from zero through seven required by assign, unassign, select, and activate.",
+          "example": "0",
+          "diagnostic": "PS-ABILITY-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Fixed slot from zero through seven required by assign, unassign, select, and activate."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:ability_persistent_effect",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Ability persistent effect",
+      "description": "Stable source owned attribute or boolean flag contribution active with a passive or enabled toggle.",
+      "fields": [
+        {
+          "path": "attribute",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Attribute target for an attribute effect.",
+          "example": "minecraft:generic.armor",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Attribute target for an attribute effect."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "flag",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Namespaced boolean flag target for a flag effect.",
+          "example": "mypack:guarding",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 60,
+            "help": "Namespaced boolean flag target for a flag effect."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable effect source identity unique within its ability.",
+          "example": "mypack:guard/armor",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Stable effect source identity unique within its ability."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "operation",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["add_value", "add_multiplied_base", "add_multiplied_total"],
+          "default": null,
+          "description": "Deterministic attribute operation.",
+          "example": "add_value",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 40,
+            "help": "Deterministic attribute operation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["attribute", "flag"],
+          "default": null,
+          "description": "Closed Core persistent effect type.",
+          "example": "attribute",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Closed Core persistent effect type."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "value",
+          "type": "any",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonzero fixed point attribute value or explicit boolean flag value.",
+          "example": "2.0",
+          "diagnostic": "PS-ABILITY-002",
+          "editor": {
+            "widget": "single_line",
+            "group": "core",
+            "order": 50,
+            "help": "Nonzero fixed point attribute value or explicit boolean flag value."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:ability_targeting",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Ability targeting",
+      "description": "Bounded server validated self, entity, or block target contract.",
+      "fields": [
+        {
+          "path": "line_of_sight",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Require an unobstructed server ray check for a nonself target.",
+          "example": "true",
+          "diagnostic": "PS-ABILITY-004",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 30,
+            "help": "Require an unobstructed server ray check for a nonself target."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "mode",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["self", "entity", "block"],
+          "default": "self",
+          "description": "Closed Core target mode. Omission selects self.",
+          "example": "entity",
+          "diagnostic": "PS-ABILITY-004",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 10,
+            "help": "Closed Core target mode. Omission selects self."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "range",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Zero for self or one through sixty four blocks for entity and block targets.",
+          "example": "16",
+          "diagnostic": "PS-ABILITY-004",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 20,
+            "help": "Zero for self or one through sixty four blocks for entity and block targets."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:alias",
       "version": 2,
       "audience": "authoring",
@@ -2274,6 +3119,25 @@
       "description": "Client-safe identity, presentation, disclosed tree graph, class selection semantics, and synergy summaries without authority internals.",
       "fields": [
         {
+          "path": "ability",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded ability kind, lifecycle, cost, target, cooldown, charge, effect, and action summaries.",
+          "example": "{ kind = \"active\", slot_allowed = true, cooldown_ticks = 400 }",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 65,
+            "help": "Bounded ability kind, lifecycle, cost, target, cooldown, charge, effect, and action summaries."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "class_definition",
           "type": "object",
           "required": false,
@@ -2719,7 +3583,7 @@
           "allowed_values": [],
           "default": null,
           "description": "Required bounded protocol feature bitset.",
-          "example": "63",
+          "example": "127",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -2776,7 +3640,7 @@
           "allowed_values": [],
           "default": null,
           "description": "ProgressiveSkills application protocol version.",
-          "example": "3",
+          "example": "4",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -2879,7 +3743,7 @@
           "path": "intent_type",
           "type": "enum",
           "required": true,
-          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm", "class_select", "class_respec_preview", "class_respec_confirm", "class_swap_preview", "class_swap_confirm"],
+          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm", "class_select", "class_respec_preview", "class_respec_confirm", "class_swap_preview", "class_swap_confirm", "ability_assign", "ability_unassign", "ability_select", "ability_toggle", "ability_activate"],
           "default": null,
           "description": "Closed server-registered intent family.",
           "example": "tree_buy",
@@ -5744,6 +6608,44 @@
           "omit_when_default": false
         },
         {
+          "path": "changed_abilities",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added owned visible ability states.",
+          "example": "{}",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 32,
+            "help": "Changed or added owned visible ability states."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "changed_ability_slots",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added fixed ability slot assignments.",
+          "example": "{}",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 34,
+            "help": "Changed or added fixed ability slot assignments."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "changed_balances",
           "type": "map",
           "required": true,
@@ -5839,6 +6741,44 @@
           "omit_when_default": false
         },
         {
+          "path": "removed_abilities",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Removed visible ability ids.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 42,
+            "help": "Removed visible ability ids."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "removed_ability_slots",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Cleared fixed ability slot numbers.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 44,
+            "help": "Cleared fixed ability slot numbers."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "removed_balances",
           "type": "list",
           "required": true,
@@ -5928,6 +6868,25 @@
             "group": "core",
             "order": 80,
             "help": "SHA-256 of the exact post-application full visible state."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "selected_ability_slot",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Resulting selected fixed slot or negative one for no selection.",
+          "example": "0",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Resulting selected fixed slot or negative one for no selection."
           },
           "projection": "client_visible",
           "diff": "replace",
@@ -7538,6 +8497,161 @@
       ]
     },
     {
+      "id": "progressiveskills:visible_ability_slot",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible fixed ability slot",
+      "description": "One owner visible fixed slot assignment using startup registered input mappings.",
+      "fields": [
+        {
+          "path": "ability_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owned slottable ability assigned to this position.",
+          "example": "mypack:second_wind",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Owned slottable ability assigned to this position."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Fixed slot number from zero through seven.",
+          "example": "0",
+          "diagnostic": "PS-ABILITY-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Fixed slot number from zero through seven."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:visible_ability_state",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible owned ability state",
+      "description": "Owner visible toggle, charge, and cooldown status without raw source ownership or internal balances.",
+      "fields": [
+        {
+          "path": "ability_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owned stable ability identity.",
+          "example": "mypack:second_wind",
+          "diagnostic": "PS-ABILITY-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Owned stable ability identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "charges",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Currently available bounded charges.",
+          "example": "1",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Currently available bounded charges."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "cooldown_remaining_ticks",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonnegative shared cooldown ticks remaining.",
+          "example": "80",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Nonnegative shared cooldown ticks remaining."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "maximum_charges",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition bounded maximum charges from one through sixteen.",
+          "example": "2",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Definition bounded maximum charges from one through sixteen."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "toggled_on",
+          "type": "boolean",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Current effective toggle state. Passive and active abilities report false.",
+          "example": "false",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Current effective toggle state. Passive and active abilities report false."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:visible_class_selection",
       "version": 2,
       "audience": "internal",
@@ -7631,6 +8745,44 @@
       "title": "Visible player state",
       "description": "Owner-only authoritative state projection without durable ledgers, provenance, or hidden definitions.",
       "fields": [
+        {
+          "path": "abilities",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owned ability ids mapped to visible toggle, charge, and cooldown state.",
+          "example": "{ \"mypack:second_wind\" = { charges = 1, maximum_charges = 1 } }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 67,
+            "help": "Owned ability ids mapped to visible toggle, charge, and cooldown state."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "ability_slots",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Assigned fixed slot numbers mapped to owned ability ids.",
+          "example": "{ 0 = \"mypack:second_wind\" }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 68,
+            "help": "Assigned fixed slot numbers mapped to owned ability ids."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
         {
           "path": "balances",
           "type": "map",
@@ -7784,6 +8936,25 @@
           "omit_when_default": false
         },
         {
+          "path": "selected_ability_slot",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected fixed slot from zero through seven or negative one when no slot is selected.",
+          "example": "0",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 69,
+            "help": "Selected fixed slot from zero through seven or negative one when no slot is selected."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "selected_classes",
           "type": "map",
           "required": true,
@@ -7872,6 +9043,60 @@
       "why": "Icons require a textual equivalent for narration and nonvisual use.",
       "fix": "Add a short, meaningful alt component.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-a11y-001",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-001",
+      "severity": "error",
+      "title": "Ability definition is invalid",
+      "why": "Ability kind, lifecycle fields, slot eligibility, cooldown, and charges must form one bounded Core definition.",
+      "fix": "Use a passive, toggle, or active ability with only fields valid for that lifecycle.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-001",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-002",
+      "severity": "error",
+      "title": "Ability persistent effect is invalid",
+      "why": "Persistent effects require source owned stable ids and a supported attribute or boolean flag target.",
+      "fix": "Use an attribute or flag effect on a passive or toggle ability.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-002",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-003",
+      "severity": "error",
+      "title": "Ability activation cost is invalid",
+      "why": "Activation costs must be bounded named currency, vanilla hunger, or vanilla experience legs.",
+      "fix": "Use a positive literal amount and an existing named currency when required.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-003",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-004",
+      "severity": "error",
+      "title": "Ability target is invalid",
+      "why": "Self, entity, and block targets require a bounded range and deterministic line of sight policy.",
+      "fix": "Use self with zero range or entity or block with a range from one through sixty four.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-004",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-005",
+      "severity": "error",
+      "title": "Ability action is invalid",
+      "why": "Core active abilities execute only bounded message, heal, and vanilla effect actions.",
+      "fix": "Remove Creator action graph fields and use one supported native action type.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-005",
+      "suppressible": true
+    },
+    {
+      "code": "PS-ABILITY-006",
+      "severity": "warning",
+      "title": "Ability intent was denied",
+      "why": "Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.",
+      "fix": "Synchronize state and review the current ability status before retrying.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-ability-006",
       "suppressible": true
     },
     {

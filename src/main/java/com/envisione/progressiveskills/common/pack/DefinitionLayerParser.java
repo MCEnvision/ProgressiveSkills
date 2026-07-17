@@ -25,6 +25,9 @@ public final class DefinitionLayerParser {
     );
     private static final Set<String> TREE_COMPANION_FIELDS = Set.of("nodes");
     private static final Set<String> CLASS_COMPANION_FIELDS = Set.of("grants", "synergy");
+    private static final Set<String> ABILITY_COMPANION_FIELDS = Set.of(
+            "targeting", "persistent_effects", "costs", "actions"
+    );
 
     public ParsedDefinitionLayer parse(
             PackLayer pack,
@@ -47,6 +50,8 @@ public final class DefinitionLayerParser {
             companionFields = TREE_COMPANION_FIELDS;
         } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS)) {
             companionFields = CLASS_COMPANION_FIELDS;
+        } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY)) {
+            companionFields = ABILITY_COMPANION_FIELDS;
         } else {
             companionFields = Set.of();
         }

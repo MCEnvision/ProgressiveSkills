@@ -39,6 +39,8 @@ public final class TypedDefinitionCompiler {
             return ClassTomlCompiler.slot(key, fields, provenance, sourceMap);
         } else if (key.kind().equals(DefinitionKinds.CLASS)) {
             return ClassTomlCompiler.classDefinition(key, fields, provenance, sourceMap);
+        } else if (key.kind().equals(DefinitionKinds.ABILITY)) {
+            return AbilityTomlCompiler.ability(key, fields, provenance, sourceMap);
         } else {
             throw new UnsupportedDefinitionSchemaException(
                     "Definition kind " + key.kind().id() + " is reserved but its typed compiler is not implemented yet"

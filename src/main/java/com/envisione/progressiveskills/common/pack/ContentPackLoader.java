@@ -121,6 +121,7 @@ public final class ContentPackLoader {
         if (problems.stream().noneMatch(problem -> problem.severity() == DiagnosticSeverity.ERROR)) {
             com.envisione.progressiveskills.common.tree.TreeCatalog trees = null;
             com.envisione.progressiveskills.common.classdef.ClassCatalog classes = null;
+            com.envisione.progressiveskills.common.ability.AbilityCatalog abilities = null;
             try {
                 var skills = com.envisione.progressiveskills.common.skill.SkillCatalog.from(
                         definitions.canonicalIr()
@@ -134,6 +135,9 @@ public final class ContentPackLoader {
                 classes = com.envisione.progressiveskills.common.classdef.ClassCatalog.from(
                         definitions.canonicalIr(), skills, trees
                 );
+                abilities = com.envisione.progressiveskills.common.ability.AbilityCatalog.from(
+                        definitions.canonicalIr(), skills, classes
+                );
             } catch (IllegalArgumentException | ArithmeticException exception) {
                 definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
                         problems.add(PackProblem.error(
@@ -143,10 +147,10 @@ public final class ContentPackLoader {
                         ))
                 );
             }
-            if (trees != null && classes != null) {
+            if (trees != null && classes != null && abilities != null) {
                 try {
                     var projection = com.envisione.progressiveskills.common.network.DefinitionProjection.from(
-                            definitions.canonicalIr(), trees, classes
+                            definitions.canonicalIr(), trees, classes, abilities
                     );
                     com.envisione.progressiveskills.common.network.DefinitionProjectionCodec.encode(projection);
                 } catch (IllegalArgumentException | ArithmeticException exception) {

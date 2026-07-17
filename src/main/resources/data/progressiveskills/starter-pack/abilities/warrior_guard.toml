@@ -1,0 +1,24 @@
+schema_version = 2
+
+[ability]
+id = "progressiveskills:warrior_guard"
+display = { key = "ability.progressiveskills.warrior_guard", fallback = "Warrior Guard" }
+description = { key = "ability.progressiveskills.warrior_guard.desc", fallback = "Brace into a defensive guard." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Shield" }
+enabled = true
+kind = "toggle"
+slot_allowed = true
+default_on = false
+
+[[persistent_effects]]
+id = "progressiveskills:warrior_guard/armor"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 2.0
+
+[[persistent_effects]]
+id = "progressiveskills:warrior_guard/guarding"
+type = "flag"
+flag = "progressiveskills:guarding"
+value = true

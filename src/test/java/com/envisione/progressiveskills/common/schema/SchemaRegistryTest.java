@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(42, ids.size());
+        assertEquals(50, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(
@@ -145,7 +145,9 @@ class SchemaRegistryTest {
                 List.of(
                         "noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm",
                         "class_select", "class_respec_preview", "class_respec_confirm",
-                        "class_swap_preview", "class_swap_confirm"),
+                        "class_swap_preview", "class_swap_confirm",
+                        "ability_assign", "ability_unassign", "ability_select",
+                        "ability_toggle", "ability_activate"),
                 networkIntent.fields().stream().filter(field -> field.path().equals("intent_type"))
                         .findFirst().orElseThrow().allowedValues()
         );
@@ -206,6 +208,65 @@ class SchemaRegistryTest {
         assertFalse(projectionFields.get("description").required());
         assertFalse(projectionFields.get("icon").required());
         assertTrue(projectionFields.get("class_synergies").required());
+    }
+
+    @Test
+    void phaseTwelveAbilityAuthoringContractsExposeOnlyTheCoreSubset() {
+        var registry = CoreSchemas.createRegistry();
+        var ability = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_definition"));
+        var abilityFields = ability.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var effect = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_persistent_effect"));
+        var effectFields = effect.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var cost = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_cost"));
+        var costFields = cost.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var targeting = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_targeting"));
+        var targetFields = targeting.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var action = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_action"));
+        var actionFields = action.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+
+        assertEquals(List.of("passive", "toggle", "active"), abilityFields.get("kind").allowedValues());
+        assertEquals(DiffPolicy.ORDERED, abilityFields.get("actions").diffPolicy());
+        assertEquals(DiffPolicy.MERGE_BY_KEY, abilityFields.get("persistent_effects").diffPolicy());
+        assertEquals(List.of("attribute", "flag"), effectFields.get("type").allowedValues());
+        assertEquals(List.of("currency", "hunger", "experience"), costFields.get("type").allowedValues());
+        assertEquals(List.of("self", "entity", "block"), targetFields.get("mode").allowedValues());
+        assertEquals(List.of("message", "heal", "vanilla_effect"), actionFields.get("type").allowedValues());
+        assertFalse(actionFields.containsKey("command"));
+        assertFalse(actionFields.containsKey("formula"));
+        assertFalse(abilityFields.containsKey("triggers"));
+        assertEquals(CoreDiagnostics.INVALID_ABILITY_ACTION,
+                actionFields.get("type").diagnosticCode());
+
+        var projection = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "definition_projection"));
+        var visible = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "visible_player_state"));
+        var delta = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "state_delta"));
+        var intent = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "ability_intent"));
+        assertTrue(projection.fields().stream().anyMatch(field -> field.path().equals("ability")));
+        assertTrue(visible.fields().stream().map(FieldDescriptor::path).toList().containsAll(List.of(
+                "abilities", "ability_slots", "selected_ability_slot"
+        )));
+        assertTrue(delta.fields().stream().map(FieldDescriptor::path).toList().containsAll(List.of(
+                "changed_abilities", "removed_abilities", "changed_ability_slots",
+                "removed_ability_slots", "selected_ability_slot"
+        )));
+        assertEquals(List.of("ability_id", "slot"),
+                intent.fields().stream().map(FieldDescriptor::path).toList());
+        assertTrue(intent.fields().stream().noneMatch(FieldDescriptor::required));
+        assertEquals(4, com.envisione.progressiveskills.common.network.NetworkLimits.PROTOCOL_VERSION);
     }
 
     @Test

@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -24,6 +25,9 @@ public record VisiblePlayerState(
         Map<String, Long> effectiveValues,
         Map<ResourceLocation, Integer> nodeRanks,
         Map<ResourceLocation, ClassSelection> selectedClasses,
+        Map<ResourceLocation, AbilityState> abilities,
+        Map<Integer, ResourceLocation> abilitySlots,
+        int selectedAbilitySlot,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined
@@ -42,7 +46,8 @@ public record VisiblePlayerState(
             boolean quarantined
     ) {
         this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
-                presentationDigest, balances, effectiveValues, Map.of(), orphanCount,
+                presentationDigest, balances, effectiveValues, Map.of(), Map.of(), Map.of(), Map.of(), -1,
+                orphanCount,
                 operationReceiptCount, quarantined);
     }
 
@@ -61,8 +66,29 @@ public record VisiblePlayerState(
             boolean quarantined
     ) {
         this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
-                presentationDigest, balances, effectiveValues, nodeRanks, Map.of(), orphanCount,
+                presentationDigest, balances, effectiveValues, nodeRanks, Map.of(), Map.of(), Map.of(), -1,
+                orphanCount,
                 operationReceiptCount, quarantined);
+    }
+
+    public VisiblePlayerState(
+            UUID playerId,
+            long syncRevision,
+            long stateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> balances,
+            Map<String, Long> effectiveValues,
+            Map<ResourceLocation, Integer> nodeRanks,
+            Map<ResourceLocation, ClassSelection> selectedClasses,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined
+    ) {
+        this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
+                presentationDigest, balances, effectiveValues, nodeRanks, selectedClasses,
+                Map.of(), Map.of(), -1, orphanCount, operationReceiptCount, quarantined);
     }
 
     public VisiblePlayerState {
@@ -77,6 +103,12 @@ public record VisiblePlayerState(
         effectiveValues = immutableValues(effectiveValues, "effective value");
         nodeRanks = immutableNodeRanks(nodeRanks);
         selectedClasses = immutableClassSelections(selectedClasses);
+        abilities = immutableAbilities(abilities);
+        abilitySlots = immutableAbilitySlots(abilitySlots, abilities);
+        if (selectedAbilitySlot < -1 || selectedAbilitySlot >= NetworkLimits.FIXED_ABILITY_SLOTS
+                || selectedAbilitySlot >= 0 && !abilitySlots.containsKey(selectedAbilitySlot)) {
+            throw new IllegalArgumentException("Visible selected ability slot is invalid");
+        }
     }
 
     public VisiblePlayerState apply(StateDelta delta) {
@@ -109,10 +141,29 @@ public record VisiblePlayerState(
                 nextValues,
                 nextNodeRanks,
                 applyClassSelections(delta),
+                applyAbilities(delta),
+                applyAbilitySlots(delta),
+                delta.selectedAbilitySlot(),
                 delta.orphanCount(),
                 delta.operationReceiptCount(),
                 delta.quarantined()
         );
+    }
+
+    private Map<ResourceLocation, AbilityState> applyAbilities(StateDelta delta) {
+        var next = new TreeMap<ResourceLocation, AbilityState>(ResourceLocation::compareNamespaced);
+        next.putAll(abilities);
+        delta.removedAbilities().forEach(next::remove);
+        next.putAll(delta.changedAbilities());
+        return next;
+    }
+
+    private Map<Integer, ResourceLocation> applyAbilitySlots(StateDelta delta) {
+        var next = new TreeMap<Integer, ResourceLocation>();
+        next.putAll(abilitySlots);
+        delta.removedAbilitySlots().forEach(next::remove);
+        next.putAll(delta.changedAbilitySlots());
+        return next;
     }
 
     private Map<ResourceLocation, ClassSelection> applyClassSelections(StateDelta delta) {
@@ -133,6 +184,40 @@ public record VisiblePlayerState(
         var sorted = new TreeMap<ResourceLocation, ClassSelection>(ResourceLocation::compareNamespaced);
         source.forEach((classId, state) -> sorted.put(
                 StableId.requireValid(classId), Objects.requireNonNull(state, "selected class state")));
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<ResourceLocation, AbilityState> immutableAbilities(
+            Map<ResourceLocation, AbilityState> source
+    ) {
+        Objects.requireNonNull(source, "abilities");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("Visible ability count exceeds capacity");
+        }
+        var sorted = new TreeMap<ResourceLocation, AbilityState>(ResourceLocation::compareNamespaced);
+        source.forEach((abilityId, state) -> sorted.put(
+                StableId.requireValid(abilityId), Objects.requireNonNull(state, "ability state")));
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<Integer, ResourceLocation> immutableAbilitySlots(
+            Map<Integer, ResourceLocation> source,
+            Map<ResourceLocation, AbilityState> abilities
+    ) {
+        Objects.requireNonNull(source, "abilitySlots");
+        if (source.size() > NetworkLimits.FIXED_ABILITY_SLOTS) {
+            throw new IllegalArgumentException("Visible ability slot count exceeds capacity");
+        }
+        var sorted = new TreeMap<Integer, ResourceLocation>();
+        var assigned = new HashSet<ResourceLocation>();
+        source.forEach((slot, abilityId) -> {
+            ResourceLocation stable = StableId.requireValid(abilityId);
+            if (slot == null || slot < 0 || slot >= NetworkLimits.FIXED_ABILITY_SLOTS
+                    || !abilities.containsKey(stable) || !assigned.add(stable)) {
+                throw new IllegalArgumentException("Visible ability slot assignment is invalid");
+            }
+            sorted.put(slot, stable);
+        });
         return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }
 
@@ -183,6 +268,24 @@ public record VisiblePlayerState(
             if (slotId.isEmpty() && (slotCost != 0 || activity != Activity.SUSPENDED)) {
                 throw new IllegalArgumentException("Missing class definitions must remain visibly suspended");
             }
+        }
+    }
+
+    public record AbilityState(
+            boolean toggledOn,
+            int charges,
+            int maximumCharges,
+            long cooldownRemainingTicks
+    ) {
+        public AbilityState {
+            if (charges < 0 || maximumCharges < 0 || charges > maximumCharges
+                    || cooldownRemainingTicks < 0) {
+                throw new IllegalArgumentException("Visible ability state is invalid");
+            }
+        }
+
+        public boolean ready() {
+            return maximumCharges > 0 && charges > 0 && cooldownRemainingTicks == 0;
         }
     }
 

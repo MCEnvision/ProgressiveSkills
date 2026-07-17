@@ -1,5 +1,6 @@
 package com.envisione.progressiveskills.server.transaction;
 
+import com.envisione.progressiveskills.common.ability.AbilityEntitlementTypes;
 import com.envisione.progressiveskills.common.classdef.ClassEntitlementTypes;
 import com.envisione.progressiveskills.common.classdef.ClassGrantType;
 import com.envisione.progressiveskills.common.transaction.EntitlementKey;
@@ -23,6 +24,22 @@ class PlayerPersistentProjectorTest {
                 ClassGrantType.STAGE.entitlementType().orElseThrow(),
                 ClassGrantType.TREE_ACCESS.entitlementType().orElseThrow(),
                 ClassGrantType.CLASS_ACCESS.entitlementType().orElseThrow()
+        );
+        List<ProjectionChange> changes = logicalTypes.stream().map(type -> new ProjectionChange(
+                new EntitlementKey(type, id("test:target")), OptionalLong.empty(), OptionalLong.of(1)
+        )).toList();
+
+        assertTrue(PlayerPersistentProjector.validateProjectionTypes(changes).isEmpty());
+    }
+
+    @Test
+    void logicalAbilityEntitlementsAreAcceptedWithoutAPhysicalAdapter() {
+        List<ResourceLocation> logicalTypes = List.of(
+                AbilityEntitlementTypes.OWNED,
+                AbilityEntitlementTypes.SLOT_ASSIGNMENT,
+                AbilityEntitlementTypes.SELECTED_SLOT,
+                AbilityEntitlementTypes.TOGGLE_STATE,
+                com.envisione.progressiveskills.common.ability.AbilityFlagEffect.FLAG_ENTITLEMENT_TYPE
         );
         List<ProjectionChange> changes = logicalTypes.stream().map(type -> new ProjectionChange(
                 new EntitlementKey(type, id("test:target")), OptionalLong.empty(), OptionalLong.of(1)

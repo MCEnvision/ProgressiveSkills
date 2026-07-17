@@ -64,6 +64,30 @@ Architecture: [CLASSES_AND_ENTITLEMENTS.md](../architecture/CLASSES_AND_ENTITLEM
 
 Automated evidence and focused fallback checklist: [PHASE-11.md](../verification/PHASE-11.md).
 
+## Phase 12 checkpoint contract
+
+Status: automated Phase 12 beta checkpoint complete. The checkpoint remains off `main` until the cumulative final mass check is approved.
+
+The Phase 12 checkpoint is cumulative with Phases 9 through 11 and must add one complete Core ability lifecycle:
+
+1. Compile stable passive, toggle, and active abilities with source owned persistent effects, fixed slot policy, literal costs, bounded targeting, cooldown groups, charges, and an ordered minimal native action list.
+2. Preserve overlapping ability owners and reconcile passive and toggle effects without acquisition replay or premature revoke.
+3. Assign, move, unassign, and select abilities across exactly eight startup registered fixed slots through revision pinned transactions.
+4. Toggle explicit state and its persistent effects in one transaction while using the configured default only before explicit state exists.
+5. Activate through one server planner that validates ownership, assignment, cooldown, charges, named currency, vanilla hunger or experience, authoritative target, and physical actions before spending anything.
+6. Persist internal cooldown and charge state, run bounded deterministic recharge, and redact internal ability state balances from the generic client balance map.
+7. Synchronize truthful ability definition summaries, ownership, assignments, selected slot, toggles, charges, and remaining cooldown without raw sources, provenance, receipts, internal ids, or executors.
+8. Negotiate protocol version 4 and route strict assign, unassign, select, toggle, and activate intents through session, replay, revision, rate, and quarantine guards.
+9. Register Ability Wheel, Previous Ability, Next Ability, Use Selected Ability, and eight direct slot mappings at client startup. Runtime definitions never create Controls entries.
+10. Provide stable narrator friendly ability list, info, status, assignment, selection, toggle, and activation commands usable entirely through keyboard and chat.
+11. Keep the integrated ability screen, rendered wheel, targeting preview, and HUD deferred to Phase 14 and provider backed actions deferred to Phase 15.
+
+Reactive procs, channelled casts, combo graphs, custom resources, formulas, loadouts, unlimited mappings, and the general action graph remain Creator features. A legal full ability reconciliation or activation that cannot fit transaction, persistence, targeting, or action ceilings must fail before mutation.
+
+Architecture: [ABILITIES_AND_ACTIONS.md](../architecture/ABILITIES_AND_ACTIONS.md).
+
+Automated evidence and focused fallback checklist: [PHASE-12.md](../verification/PHASE-12.md).
+
 ## Added feature set
 
 The following twenty features extend the planned phases. They are part of the delivery train and not replacements for the original phase scope.

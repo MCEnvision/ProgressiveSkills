@@ -28,6 +28,11 @@ id = "progressiveskills:warrior/guard"
 type = "ability"
 ability = "progressiveskills:warrior_guard"
 
+[[grants]]
+id = "progressiveskills:warrior/second_wind"
+type = "ability"
+ability = "progressiveskills:second_wind"
+
 [[synergy]]
 id = "progressiveskills:student_of_war"
 display = { key = "class_synergy.progressiveskills.student_of_war", fallback = "Student of War" }

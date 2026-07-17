@@ -177,7 +177,8 @@ public final class ServerNetworkSessions {
     ) {
         return handleIntent(
                 playerId, payload, IntentExecutor.REJECT_TREE_INTENTS,
-                ClassIntentExecutor.REJECT_CLASS_INTENTS);
+                ClassIntentExecutor.REJECT_CLASS_INTENTS,
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -185,7 +186,8 @@ public final class ServerNetworkSessions {
             NetworkPayloads.Intent payload,
             IntentExecutor executor
     ) {
-        return handleIntent(playerId, payload, executor, ClassIntentExecutor.REJECT_CLASS_INTENTS);
+        return handleIntent(playerId, payload, executor, ClassIntentExecutor.REJECT_CLASS_INTENTS,
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -194,10 +196,22 @@ public final class ServerNetworkSessions {
             IntentExecutor executor,
             ClassIntentExecutor classExecutor
     ) {
+        return handleIntent(playerId, payload, executor, classExecutor,
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
+    }
+
+    public synchronized List<CustomPacketPayload> handleIntent(
+            UUID playerId,
+            NetworkPayloads.Intent payload,
+            IntentExecutor executor,
+            ClassIntentExecutor classExecutor,
+            AbilityIntentExecutor abilityExecutor
+    ) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(payload, "payload");
         Objects.requireNonNull(executor, "executor");
         Objects.requireNonNull(classExecutor, "classExecutor");
+        Objects.requireNonNull(abilityExecutor, "abilityExecutor");
         Session session = sessions.get(playerId);
         if (session == null) {
             return List.of(staleSessionResult(payload.sessionId(), payload.requestId(), 0));
@@ -257,11 +271,16 @@ public final class ServerNetworkSessions {
         }
         try {
             boolean classIntent = isClassIntent(payload.intentType());
-            TreeIntentPayload treePayload = classIntent ? null
+            boolean abilityIntent = isAbilityIntent(payload.intentType());
+            TreeIntentPayload treePayload = classIntent || abilityIntent ? null
                     : TreeIntentPayload.decode(payload.intentType(), payload.payload());
             ClassIntentPayload classPayload = classIntent
                     ? ClassIntentPayload.decode(payload.intentType(), payload.payload()) : null;
-            IntentExecution execution = Objects.requireNonNull(classIntent
+            AbilityIntentPayload abilityPayload = abilityIntent
+                    ? AbilityIntentPayload.decode(payload.intentType(), payload.payload()) : null;
+            IntentExecution execution = Objects.requireNonNull(abilityIntent
+                            ? abilityExecutor.execute(playerId, payload, abilityPayload)
+                            : classIntent
                             ? classExecutor.execute(playerId, payload, classPayload)
                             : executor.execute(playerId, payload, treePayload),
                     "intent execution");
@@ -508,6 +527,14 @@ public final class ServerNetworkSessions {
                 || type == NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM;
     }
 
+    private static boolean isAbilityIntent(NetworkPayloads.IntentType type) {
+        return type == NetworkPayloads.IntentType.ABILITY_ASSIGN
+                || type == NetworkPayloads.IntentType.ABILITY_UNASSIGN
+                || type == NetworkPayloads.IntentType.ABILITY_SELECT
+                || type == NetworkPayloads.IntentType.ABILITY_TOGGLE
+                || type == NetworkPayloads.IntentType.ABILITY_ACTIVATE;
+    }
+
     private static String safeIntentMessage(RuntimeException exception) {
         String message = exception.getMessage();
         if (message == null || message.isBlank()) {
@@ -547,6 +574,18 @@ public final class ServerNetworkSessions {
                 UUID playerId,
                 NetworkPayloads.Intent intent,
                 ClassIntentPayload payload
+        );
+    }
+
+    @FunctionalInterface
+    public interface AbilityIntentExecutor {
+        AbilityIntentExecutor REJECT_ABILITY_INTENTS = (playerId, intent, payload) ->
+                IntentExecution.invalid("Ability intents are not configured on this server");
+
+        IntentExecution execute(
+                UUID playerId,
+                NetworkPayloads.Intent intent,
+                AbilityIntentPayload payload
         );
     }
 

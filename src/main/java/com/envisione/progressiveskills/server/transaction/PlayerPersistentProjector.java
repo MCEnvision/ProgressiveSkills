@@ -1,8 +1,10 @@
 package com.envisione.progressiveskills.server.transaction;
 
+import com.envisione.progressiveskills.common.ability.AbilityEntitlementTypes;
 import com.envisione.progressiveskills.common.classdef.ClassEntitlementTypes;
 import com.envisione.progressiveskills.common.transaction.PersistentProjector;
 import com.envisione.progressiveskills.common.transaction.ProjectionChange;
+import com.envisione.progressiveskills.common.transaction.AttributeProjectionSafety;
 import com.envisione.progressiveskills.common.skill.AttributeOperation;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,8 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Projects the Phase 4 source-resolved health fixture through one owned transient modifier. */
 public final class PlayerPersistentProjector implements PersistentProjector {
-    private static final long MAX_ADD_VALUE_UNITS = 1_000L * FixedPoint.SCALE;
-    private static final long MAX_MULTIPLIER_UNITS = 16L * FixedPoint.SCALE;
     private static final Map<UUID, Set<ModifierBinding>> KNOWN_MODIFIERS = new ConcurrentHashMap<>();
     private final MinecraftServer server;
 
@@ -41,7 +41,7 @@ public final class PlayerPersistentProjector implements PersistentProjector {
             return Optional.of("Target player is not online");
         }
         for (ProjectionChange change : changes) {
-            if (ClassEntitlementTypes.isLogical(change.key().targetType())) {
+            if (isLogical(change.key().targetType())) {
                 continue;
             }
             if (change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)) {
@@ -55,11 +55,9 @@ public final class PlayerPersistentProjector implements PersistentProjector {
             if (operation.isEmpty()) {
                 return Optional.of("No physical projector is registered for " + change.key());
             }
-            long bound = operation.orElseThrow() == AttributeOperation.ADD_VALUE
-                    ? MAX_ADD_VALUE_UNITS : MAX_MULTIPLIER_UNITS;
             if (change.after().isPresent()) {
                 long value = change.after().getAsLong();
-                if (value < -bound || value > bound) {
+                if (!AttributeProjectionSafety.isWithinBounds(operation.orElseThrow(), value)) {
                     return Optional.of("Attribute projection exceeds its safety bound");
                 }
             }
@@ -75,7 +73,7 @@ public final class PlayerPersistentProjector implements PersistentProjector {
         Objects.requireNonNull(changes, "changes");
         for (ProjectionChange change : changes) {
             Objects.requireNonNull(change, "projection change");
-            if (ClassEntitlementTypes.isLogical(change.key().targetType())
+            if (isLogical(change.key().targetType())
                     || change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)
                     || operation(change).isPresent()) {
                 continue;
@@ -95,7 +93,7 @@ public final class PlayerPersistentProjector implements PersistentProjector {
                 "Target player disconnected after projection validation"
         );
         for (ProjectionChange change : changes) {
-            if (ClassEntitlementTypes.isLogical(change.key().targetType())) {
+            if (isLogical(change.key().targetType())) {
                 continue;
             }
             if (change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)) {
@@ -163,6 +161,11 @@ public final class PlayerPersistentProjector implements PersistentProjector {
         return java.util.Arrays.stream(AttributeOperation.values())
                 .filter(candidate -> candidate.targetType().equals(change.key().targetType()))
                 .findFirst();
+    }
+
+    private static boolean isLogical(net.minecraft.resources.ResourceLocation targetType) {
+        return ClassEntitlementTypes.isLogical(targetType)
+                || AbilityEntitlementTypes.isLogical(targetType);
     }
 
     private static AttributeModifier.Operation vanillaOperation(AttributeOperation operation) {

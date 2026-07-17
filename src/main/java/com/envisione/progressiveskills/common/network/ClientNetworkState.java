@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.common.network;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -291,6 +292,62 @@ public final class ClientNetworkState {
         ));
     }
 
+    public synchronized Optional<NetworkPayloads.Intent> prepareAbilityIntent(
+            NetworkPayloads.IntentType intentType,
+            AbilityIntentPayload payload
+    ) {
+        Objects.requireNonNull(intentType, "intentType");
+        Objects.requireNonNull(payload, "payload");
+        if (phase != ClientPhase.ACTIVE || hello.isEmpty() || visibleState.isEmpty()
+                || activeDefinitions.isEmpty()) {
+            return Optional.empty();
+        }
+        payload.abilityId().ifPresent(abilityId -> {
+            if (!containsAbility(activeDefinitions.orElseThrow(), abilityId)) {
+                throw new IllegalArgumentException("Ability intent references an unavailable ability");
+            }
+            if (!visibleState.orElseThrow().abilities().containsKey(abilityId)) {
+                throw new IllegalArgumentException("Ability intent references an unowned ability");
+            }
+        });
+        if (intentType == NetworkPayloads.IntentType.ABILITY_ASSIGN
+                && payload.abilityId().flatMap(abilityId -> abilityView(
+                activeDefinitions.orElseThrow(), abilityId)).filter(
+                view -> view.enabled() && view.slotAllowed()).isEmpty()) {
+            throw new IllegalArgumentException("Ability cannot be assigned to a fixed slot");
+        }
+        if (intentType == NetworkPayloads.IntentType.ABILITY_TOGGLE
+                && payload.abilityId().flatMap(abilityId -> abilityView(
+                activeDefinitions.orElseThrow(), abilityId)).filter(
+                view -> view.enabled() && view.kind().equals("toggle")).isEmpty()) {
+            throw new IllegalArgumentException("Ability toggle intent requires a toggle ability");
+        }
+        if (intentType != NetworkPayloads.IntentType.ABILITY_ASSIGN
+                && intentType != NetworkPayloads.IntentType.ABILITY_TOGGLE
+                && payload.slot().isPresent()
+                && !visibleState.orElseThrow().abilitySlots().containsKey(payload.slot().getAsInt())) {
+            throw new IllegalArgumentException("Ability intent references an empty slot");
+        }
+        if (intentType == NetworkPayloads.IntentType.ABILITY_ACTIVATE) {
+            ResourceLocation assigned = visibleState.orElseThrow().abilitySlots().get(
+                    payload.slot().orElseThrow());
+            if (abilityView(activeDefinitions.orElseThrow(), assigned)
+                    .filter(view -> view.enabled() && view.kind().equals("active")).isEmpty()) {
+                throw new IllegalArgumentException("Ability activation intent requires an active ability");
+            }
+        }
+        if (nextRequestId == Long.MAX_VALUE) {
+            throw new IllegalStateException("Ability intent request sequence is exhausted");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        return Optional.of(new NetworkPayloads.Intent(
+                currentHello.sessionId(), nextRequestId++, currentHello.definitionGeneration(),
+                currentHello.semanticDigest(), currentState.stateRevision(), intentType,
+                payload.encode(intentType)
+        ));
+    }
+
     public synchronized void disconnect() {
         clearAuthoritativeState();
         hello = Optional.empty();
@@ -400,6 +457,29 @@ public final class ClientNetworkState {
         return projection.definitions().entrySet().stream()
                 .anyMatch(entry -> entry.getKey().id().equals(classId)
                         && entry.getValue().classDefinition().isPresent());
+    }
+
+    private static boolean containsAbility(
+            DefinitionProjection projection,
+            net.minecraft.resources.ResourceLocation abilityId
+    ) {
+        return projection.definitions().keySet().stream()
+                .anyMatch(key -> key.kind().equals(
+                        com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY)
+                        && key.id().equals(abilityId));
+    }
+
+    private static Optional<DefinitionProjection.AbilityView> abilityView(
+            DefinitionProjection projection,
+            net.minecraft.resources.ResourceLocation abilityId
+    ) {
+        return projection.definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(
+                        com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY)
+                        && entry.getKey().id().equals(abilityId))
+                .map(Map.Entry::getValue)
+                .flatMap(entry -> entry.ability().stream())
+                .findFirst();
     }
 
     public enum ClientPhase {

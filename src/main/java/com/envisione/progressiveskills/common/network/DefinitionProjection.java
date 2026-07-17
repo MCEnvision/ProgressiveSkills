@@ -1,5 +1,16 @@
 package com.envisione.progressiveskills.common.network;
 
+import com.envisione.progressiveskills.common.ability.AbilityAction;
+import com.envisione.progressiveskills.common.ability.AbilityAttributeEffect;
+import com.envisione.progressiveskills.common.ability.AbilityCatalog;
+import com.envisione.progressiveskills.common.ability.AbilityCost;
+import com.envisione.progressiveskills.common.ability.AbilityCurrencyCost;
+import com.envisione.progressiveskills.common.ability.AbilityDefinition;
+import com.envisione.progressiveskills.common.ability.AbilityFlagEffect;
+import com.envisione.progressiveskills.common.ability.AbilityHealAction;
+import com.envisione.progressiveskills.common.ability.AbilityMessageAction;
+import com.envisione.progressiveskills.common.ability.AbilityPersistentEffect;
+import com.envisione.progressiveskills.common.ability.AbilityVanillaEffectAction;
 import com.envisione.progressiveskills.common.classdef.ClassAttributeGrant;
 import com.envisione.progressiveskills.common.classdef.ClassCatalog;
 import com.envisione.progressiveskills.common.classdef.ClassCurrencyCost;
@@ -30,6 +41,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 /** Client safe definition identity and presentation. Gameplay fields and provenance stay on the server. */
 public record DefinitionProjection(
@@ -67,14 +79,17 @@ public record DefinitionProjection(
     private static void validateViewKind(DefinitionKey key, Entry entry) {
         int viewCount = (entry.tree().isPresent() ? 1 : 0)
                 + (entry.classSlot().isPresent() ? 1 : 0)
-                + (entry.classDefinition().isPresent() ? 1 : 0);
+                + (entry.classDefinition().isPresent() ? 1 : 0)
+                + (entry.ability().isPresent() ? 1 : 0);
         if (viewCount > 1
                 || (entry.tree().isPresent()
                 && !key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.TREE))
                 || (entry.classSlot().isPresent()
                 && !key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS_SLOT))
                 || (entry.classDefinition().isPresent()
-                && !key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS))) {
+                && !key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS))
+                || (entry.ability().isPresent()
+                && !key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY))) {
             throw new IllegalArgumentException("Projected gameplay view does not match its definition kind");
         }
     }
@@ -84,12 +99,13 @@ public record DefinitionProjection(
         boolean typedGameplay = ir.definitions().keySet().stream().anyMatch(key ->
                 key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.TREE)
                         || key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS)
-                        || key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS_SLOT));
+                        || key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS_SLOT)
+                        || key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY));
         if (!typedGameplay) {
             var result = new TreeMap<DefinitionKey, Entry>();
             ir.definitions().forEach((key, definition) -> result.put(key, entry(
                     definition.header().presentation(), Optional.empty(),
-                    Optional.empty(), Optional.empty())));
+                    Optional.empty(), Optional.empty(), Optional.empty())));
             return new DefinitionProjection(result);
         }
         SkillCatalog skills = SkillCatalog.from(ir);
@@ -110,9 +126,20 @@ public record DefinitionProjection(
             TreeCatalog trees,
             ClassCatalog classes
     ) {
+        SkillCatalog skills = SkillCatalog.from(ir);
+        return from(ir, trees, classes, AbilityCatalog.from(ir, skills, classes));
+    }
+
+    public static DefinitionProjection from(
+            CanonicalIr ir,
+            TreeCatalog trees,
+            ClassCatalog classes,
+            AbilityCatalog abilities
+    ) {
         Objects.requireNonNull(ir, "ir");
         Objects.requireNonNull(trees, "trees");
         Objects.requireNonNull(classes, "classes");
+        Objects.requireNonNull(abilities, "abilities");
         SkillCatalog skills = SkillCatalog.from(ir);
         var result = new TreeMap<DefinitionKey, Entry>();
         ir.definitions().forEach((key, definition) -> {
@@ -130,8 +157,13 @@ public record DefinitionProjection(
                     ? Optional.of(ClassView.from(classes.classDefinition(key.id()).orElseThrow(
                     () -> new IllegalArgumentException("Class catalog is missing " + key.id())
             ))) : Optional.empty();
+            Optional<AbilityView> ability = key.kind().equals(
+                    com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY)
+                    ? Optional.of(AbilityView.from(abilities.ability(key.id()).orElseThrow(
+                    () -> new IllegalArgumentException("Ability catalog is missing " + key.id())
+            ))) : Optional.empty();
             result.put(key, entry(
-                    definition.header().presentation(), tree, classSlot, classDefinition));
+                    definition.header().presentation(), tree, classSlot, classDefinition, ability));
         });
         var synergies = new TreeMap<ResourceLocation, SynergyView>(ResourceLocation::compareNamespaced);
         classes.synergies().forEach((id, synergy) -> synergies.put(id, SynergyView.from(synergy)));
@@ -142,7 +174,8 @@ public record DefinitionProjection(
             Optional<com.envisione.progressiveskills.common.ir.DefinitionPresentation> presentation,
             Optional<TreeView> tree,
             Optional<ClassSlotView> classSlot,
-            Optional<ClassView> classDefinition
+            Optional<ClassView> classDefinition,
+            Optional<AbilityView> ability
     ) {
         return presentation.map(value -> new Entry(
                 Optional.of(Text.from(value.display())),
@@ -151,10 +184,11 @@ public record DefinitionProjection(
                 List.copyOf(value.searchAliases()),
                 tree,
                 classSlot,
-                classDefinition
+                classDefinition,
+                ability
         )).orElseGet(() -> new Entry(
                 Optional.empty(), Optional.empty(), Optional.empty(), List.of(),
-                tree, classSlot, classDefinition));
+                tree, classSlot, classDefinition, ability));
     }
 
     public record Entry(
@@ -164,7 +198,8 @@ public record DefinitionProjection(
             List<String> searchAliases,
             Optional<TreeView> tree,
             Optional<ClassSlotView> classSlot,
-            Optional<ClassView> classDefinition
+            Optional<ClassView> classDefinition,
+            Optional<AbilityView> ability
     ) {
         public Entry(
                 Optional<Text> display,
@@ -173,7 +208,7 @@ public record DefinitionProjection(
                 List<String> searchAliases
         ) {
             this(display, description, icon, searchAliases,
-                    Optional.empty(), Optional.empty(), Optional.empty());
+                    Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
         }
 
         public Entry(
@@ -184,7 +219,20 @@ public record DefinitionProjection(
                 Optional<TreeView> tree
         ) {
             this(display, description, icon, searchAliases,
-                    tree, Optional.empty(), Optional.empty());
+                    tree, Optional.empty(), Optional.empty(), Optional.empty());
+        }
+
+        public Entry(
+                Optional<Text> display,
+                Optional<Text> description,
+                Optional<Icon> icon,
+                List<String> searchAliases,
+                Optional<TreeView> tree,
+                Optional<ClassSlotView> classSlot,
+                Optional<ClassView> classDefinition
+        ) {
+            this(display, description, icon, searchAliases,
+                    tree, classSlot, classDefinition, Optional.empty());
         }
 
         public Entry {
@@ -194,6 +242,7 @@ public record DefinitionProjection(
             tree = Objects.requireNonNull(tree, "tree");
             classSlot = Objects.requireNonNull(classSlot, "classSlot");
             classDefinition = Objects.requireNonNull(classDefinition, "classDefinition");
+            ability = Objects.requireNonNull(ability, "ability");
             Objects.requireNonNull(searchAliases, "searchAliases");
             if (searchAliases.size() > NetworkLimits.MAX_ALIASES_PER_DEFINITION) {
                 throw new IllegalArgumentException("Projected search aliases exceed capacity");
@@ -212,6 +261,242 @@ public record DefinitionProjection(
         static Entry withoutPresentation() {
             return new Entry(Optional.empty(), Optional.empty(), Optional.empty(), List.of());
         }
+    }
+
+    public record AbilityView(
+            boolean enabled,
+            String kind,
+            boolean slotAllowed,
+            boolean defaultOn,
+            List<AbilityEffectView> persistentEffects,
+            List<AbilityCostView> costs,
+            AbilityTargetView targeting,
+            ResourceLocation cooldownGroup,
+            int cooldownTicks,
+            int maximumCharges,
+            int rechargeTicks,
+            List<AbilityActionView> actions
+    ) {
+        public AbilityView {
+            kind = NetworkLimits.requireBoundedText(kind, 32, "projected ability kind");
+            if (!List.of("passive", "toggle", "active").contains(kind)) {
+                throw new IllegalArgumentException("Projected ability kind is invalid");
+            }
+            persistentEffects = boundedAbilityValues(
+                    persistentEffects, NetworkLimits.MAX_ABILITY_ACTION_SUMMARIES,
+                    "persistent ability effect", AbilityEffectView::id, true);
+            costs = boundedAbilityValues(
+                    costs, NetworkLimits.MAX_ABILITY_COST_SUMMARIES, "ability cost",
+                    AbilityCostView::id, true);
+            targeting = Objects.requireNonNull(targeting, "targeting");
+            cooldownGroup = StableId.requireValid(cooldownGroup);
+            if (cooldownTicks < 0 || cooldownTicks > AbilityDefinition.MAX_COOLDOWN_TICKS
+                    || rechargeTicks < 0 || rechargeTicks > AbilityDefinition.MAX_RECHARGE_TICKS
+                    || maximumCharges < 1 || maximumCharges > AbilityDefinition.MAX_CHARGES
+                    || maximumCharges > 1 && rechargeTicks == 0) {
+                throw new IllegalArgumentException("Projected ability timing is invalid");
+            }
+            actions = boundedAbilityValues(
+                    actions, NetworkLimits.MAX_ABILITY_ACTION_SUMMARIES, "ability action",
+                    AbilityActionView::id, false);
+            boolean active = kind.equals("active");
+            if (active && (!slotAllowed || defaultOn || !persistentEffects.isEmpty() || actions.isEmpty())
+                    || !active && (!costs.isEmpty() || !actions.isEmpty()
+                    || !targeting.mode().equals("self") || cooldownTicks != 0
+                    || maximumCharges != 1 || rechargeTicks != 0)
+                    || kind.equals("passive") && (slotAllowed || defaultOn)
+                    || !active && persistentEffects.isEmpty()) {
+                throw new IllegalArgumentException("Projected ability lifecycle is invalid");
+            }
+        }
+
+        static AbilityView from(AbilityDefinition definition) {
+            return new AbilityView(
+                    definition.enabled(),
+                    definition.kind().serializedName(),
+                    definition.slotAllowed(),
+                    definition.defaultOn(),
+                    definition.persistentEffects().stream().map(AbilityEffectView::from).toList(),
+                    definition.costs().stream().map(AbilityCostView::from).toList(),
+                    AbilityTargetView.from(definition.targeting()),
+                    definition.cooldownGroup(),
+                    definition.cooldownTicks(),
+                    definition.maxCharges(),
+                    definition.rechargeTicks(),
+                    definition.actions().stream().map(AbilityActionView::from).toList()
+            );
+        }
+    }
+
+    public record AbilityEffectView(
+            ResourceLocation id,
+            String type,
+            ResourceLocation target,
+            String operation,
+            String resolver,
+            long value
+    ) implements Comparable<AbilityEffectView> {
+        public AbilityEffectView {
+            id = StableId.requireValid(id);
+            type = NetworkLimits.requireBoundedText(type, 32, "projected ability effect type");
+            target = StableId.requireValid(target);
+            operation = NetworkLimits.requireBoundedText(
+                    operation, 32, "projected ability effect operation");
+            resolver = NetworkLimits.requireBoundedText(
+                    resolver, 32, "projected ability effect resolver");
+            if (type.isBlank() || operation.isBlank() || resolver.isBlank()) {
+                throw new IllegalArgumentException("Projected ability effect summary is blank");
+            }
+            if (type.equals("attribute")
+                    && (!List.of("add_value", "add_multiplied_base", "add_multiplied_total")
+                    .contains(operation) || !resolver.equals("additive") || value == 0)
+                    || type.equals("flag")
+                    && (!operation.equals("owned") || !resolver.equals("highest")
+                    || value < 0 || value > 1)
+                    || !List.of("attribute", "flag").contains(type)) {
+                throw new IllegalArgumentException("Projected ability effect summary is invalid");
+            }
+        }
+
+        static AbilityEffectView from(AbilityPersistentEffect effect) {
+            String operation = effect instanceof AbilityAttributeEffect attribute
+                    ? attribute.operation().serializedName() : "owned";
+            return new AbilityEffectView(
+                    effect.id(), effect.type().serializedName(), effect.targetId(), operation,
+                    effect.resolver().name().toLowerCase(Locale.ROOT), effect.value());
+        }
+
+        @Override
+        public int compareTo(AbilityEffectView other) {
+            return id.compareNamespaced(other.id);
+        }
+    }
+
+    public record AbilityCostView(
+            ResourceLocation id,
+            String type,
+            Optional<ResourceLocation> currency,
+            long amount
+    ) implements Comparable<AbilityCostView> {
+        public AbilityCostView {
+            id = StableId.requireValid(id);
+            type = NetworkLimits.requireBoundedText(type, 32, "projected ability cost type");
+            currency = Objects.requireNonNull(currency, "currency").map(StableId::requireValid);
+            long maximum = type.equals("currency") ? AbilityCurrencyCost.MAX_AMOUNT
+                    : type.equals("hunger")
+                    ? com.envisione.progressiveskills.common.ability.AbilityVanillaCost.MAX_HUNGER
+                    : com.envisione.progressiveskills.common.ability.AbilityVanillaCost.MAX_EXPERIENCE;
+            if (amount < 1 || amount > maximum || currency.isPresent() != type.equals("currency")
+                    || !List.of("currency", "hunger", "experience").contains(type)) {
+                throw new IllegalArgumentException("Projected ability cost is invalid");
+            }
+        }
+
+        static AbilityCostView from(AbilityCost cost) {
+            return new AbilityCostView(
+                    cost.id(), cost.type().serializedName(),
+                    cost instanceof AbilityCurrencyCost currency
+                            ? Optional.of(currency.currency()) : Optional.empty(),
+                    cost.amount());
+        }
+
+        @Override
+        public int compareTo(AbilityCostView other) {
+            return id.compareNamespaced(other.id);
+        }
+    }
+
+    public record AbilityTargetView(String mode, int range, boolean lineOfSight) {
+        public AbilityTargetView {
+            mode = NetworkLimits.requireBoundedText(mode, 32, "projected ability target mode");
+            boolean self = mode.equals("self");
+            if (!List.of("self", "entity", "block").contains(mode)
+                    || self && (range != 0 || lineOfSight)
+                    || !self && (range < 1 || range > 64)) {
+                throw new IllegalArgumentException("Projected ability targeting is invalid");
+            }
+        }
+
+        static AbilityTargetView from(com.envisione.progressiveskills.common.ability.AbilityTargeting targeting) {
+            return new AbilityTargetView(
+                    targeting.mode().serializedName(), targeting.range(), targeting.lineOfSight());
+        }
+    }
+
+    public record AbilityActionView(
+            ResourceLocation id,
+            String type,
+            Optional<Text> message,
+            Optional<ResourceLocation> target,
+            long value,
+            int durationTicks,
+            boolean ambient,
+            boolean showParticles,
+            boolean showIcon
+    ) implements Comparable<AbilityActionView> {
+        public AbilityActionView {
+            id = StableId.requireValid(id);
+            type = NetworkLimits.requireBoundedText(type, 32, "projected ability action type");
+            message = Objects.requireNonNull(message, "message");
+            target = Objects.requireNonNull(target, "target").map(StableId::requireValid);
+            boolean valid = switch (type) {
+                case "message" -> message.isPresent() && target.isEmpty() && value == 0
+                        && durationTicks == 0 && !ambient && !showParticles && !showIcon;
+                case "heal" -> message.isEmpty() && target.isEmpty() && value > 0
+                        && value <= AbilityHealAction.MAX_AMOUNT_UNITS
+                        && durationTicks == 0 && !ambient && !showParticles && !showIcon;
+                case "vanilla_effect" -> message.isEmpty() && target.isPresent()
+                        && value >= 0 && value <= AbilityVanillaEffectAction.MAX_AMPLIFIER
+                        && durationTicks > 0
+                        && durationTicks <= AbilityVanillaEffectAction.MAX_DURATION_TICKS;
+                default -> false;
+            };
+            if (!valid) {
+                throw new IllegalArgumentException("Projected ability action is invalid");
+            }
+        }
+
+        static AbilityActionView from(AbilityAction action) {
+            if (action instanceof AbilityMessageAction message) {
+                return new AbilityActionView(
+                        action.id(), action.type().serializedName(),
+                        Optional.of(Text.from(message.message())), Optional.empty(),
+                        0, 0, false, false, false);
+            }
+            if (action instanceof AbilityHealAction heal) {
+                return new AbilityActionView(
+                        action.id(), action.type().serializedName(), Optional.empty(), Optional.empty(),
+                        heal.amountUnits(), 0, false, false, false);
+            }
+            AbilityVanillaEffectAction effect = (AbilityVanillaEffectAction) action;
+            return new AbilityActionView(
+                    action.id(), action.type().serializedName(), Optional.empty(),
+                    Optional.of(effect.effect()), effect.amplifier(), effect.durationTicks(),
+                    effect.ambient(), effect.showParticles(), effect.showIcon());
+        }
+
+        @Override
+        public int compareTo(AbilityActionView other) {
+            return id.compareNamespaced(other.id);
+        }
+    }
+
+    private static <T extends Comparable<? super T>> List<T> boundedAbilityValues(
+            List<T> values,
+            int maximum,
+            String name,
+            Function<T, ResourceLocation> id,
+            boolean sorted
+    ) {
+        Objects.requireNonNull(values, name + "s");
+        if (values.size() > maximum) {
+            throw new IllegalArgumentException("Projected " + name + " count exceeds capacity");
+        }
+        List<T> checked = values.stream().map(value -> Objects.requireNonNull(value, name)).toList();
+        if (new HashSet<>(checked.stream().map(id).toList()).size() != checked.size()) {
+            throw new IllegalArgumentException("Projected " + name + " contains duplicates");
+        }
+        return sorted ? checked.stream().sorted().toList() : checked;
     }
 
     public record ClassSlotView(int capacity, String swapPolicy) {

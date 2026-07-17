@@ -86,6 +86,30 @@ class NetworkPayloadCodecTest {
     }
 
     @Test
+    void abilityIntentsAreCanonicalAndStrictlyShaped() {
+        AbilityIntentPayload assign = AbilityIntentPayload.assign(NetworkFixtures.ABILITY_GUARD, 7);
+        String encodedAssign = assign.encode(NetworkPayloads.IntentType.ABILITY_ASSIGN);
+        assertEquals(assign, AbilityIntentPayload.decode(
+                NetworkPayloads.IntentType.ABILITY_ASSIGN, encodedAssign));
+
+        AbilityIntentPayload toggle = AbilityIntentPayload.toggle(NetworkFixtures.ABILITY_FOCUS);
+        String encodedToggle = toggle.encode(NetworkPayloads.IntentType.ABILITY_TOGGLE);
+        assertEquals(toggle, AbilityIntentPayload.decode(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE, encodedToggle));
+
+        AbilityIntentPayload activate = AbilityIntentPayload.activate(0);
+        assertEquals(activate, AbilityIntentPayload.decode(
+                NetworkPayloads.IntentType.ABILITY_ACTIVATE,
+                activate.encode(NetworkPayloads.IntentType.ABILITY_ACTIVATE)));
+        assertThrows(IllegalArgumentException.class, () -> assign.encode(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE));
+        assertThrows(IllegalArgumentException.class, () -> AbilityIntentPayload.assign(
+                NetworkFixtures.ABILITY_GUARD, NetworkLimits.FIXED_ABILITY_SLOTS));
+        assertThrows(IllegalArgumentException.class, () -> AbilityIntentPayload.decode(
+                NetworkPayloads.IntentType.ABILITY_UNASSIGN, "\n01"));
+    }
+
+    @Test
     void refundPreviewPreservesCascadeOrderAtTheAcceptedBoundary() {
         UUID session = UUID.randomUUID();
         List<ResourceLocation> affected = IntStream.range(0, NetworkLimits.MAX_TREE_PREVIEW_NODES)

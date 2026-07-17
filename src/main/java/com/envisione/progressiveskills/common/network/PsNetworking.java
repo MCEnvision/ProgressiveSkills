@@ -22,6 +22,8 @@ public final class PsNetworking {
             ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS;
     private static volatile ServerNetworkSessions.ClassIntentExecutor serverClassIntentExecutor =
             ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS;
+    private static volatile ServerNetworkSessions.AbilityIntentExecutor serverAbilityIntentExecutor =
+            ServerNetworkSessions.AbilityIntentExecutor.REJECT_ABILITY_INTENTS;
 
     private PsNetworking() {
     }
@@ -106,6 +108,12 @@ public final class PsNetworking {
         serverClassIntentExecutor = Objects.requireNonNull(executor, "executor");
     }
 
+    public static void configureServerAbilityIntentExecutor(
+            ServerNetworkSessions.AbilityIntentExecutor executor
+    ) {
+        serverAbilityIntentExecutor = Objects.requireNonNull(executor, "executor");
+    }
+
     public static boolean sendTreeIntent(
             NetworkPayloads.IntentType intentType,
             TreeIntentPayload payload
@@ -178,6 +186,45 @@ public final class PsNetworking {
                 NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM,
                 ClassIntentPayload.swapConfirm(
                         removedClassId, replacementClassId, previewDigest));
+    }
+
+    public static boolean sendAbilityIntent(
+            NetworkPayloads.IntentType intentType,
+            AbilityIntentPayload payload
+    ) {
+        Optional<NetworkPayloads.Intent> intent = CLIENT.prepareAbilityIntent(intentType, payload);
+        intent.ifPresent(PacketDistributor::sendToServer);
+        return intent.isPresent();
+    }
+
+    public static boolean sendAbilityAssign(ResourceLocation abilityId, int slot) {
+        return sendAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_ASSIGN,
+                AbilityIntentPayload.assign(abilityId, slot));
+    }
+
+    public static boolean sendAbilityUnassign(int slot) {
+        return sendAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_UNASSIGN,
+                AbilityIntentPayload.unassign(slot));
+    }
+
+    public static boolean sendAbilitySelect(int slot) {
+        return sendAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_SELECT,
+                AbilityIntentPayload.select(slot));
+    }
+
+    public static boolean sendAbilityToggle(ResourceLocation abilityId) {
+        return sendAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_TOGGLE,
+                AbilityIntentPayload.toggle(abilityId));
+    }
+
+    public static boolean sendAbilityActivate(int slot) {
+        return sendAbilityIntent(
+                NetworkPayloads.IntentType.ABILITY_ACTIVATE,
+                AbilityIntentPayload.activate(slot));
     }
 
     /** Installs a client resolver for the selected world destination. */
@@ -260,7 +307,7 @@ public final class PsNetworking {
         serverHandle(context, () -> replyAll(context,
                 SERVER.handleIntent(
                         context.player().getUUID(), payload,
-                        serverIntentExecutor, serverClassIntentExecutor)));
+                        serverIntentExecutor, serverClassIntentExecutor, serverAbilityIntentExecutor)));
     }
 
     private static void replyAll(IPayloadContext context, List<CustomPacketPayload> payloads) {

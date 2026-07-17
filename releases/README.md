@@ -6,4 +6,4 @@ Each phase directory contains the exact verified JAR committed on that phase bra
 
 Every checkpoint records its SHA-256 digest in `checksums.txt`.
 
-Phase 10 is stored in `phase-10/progressiveskills-phase-10.jar` on the `envy/phase-10-trees` beta branch.
+The current cumulative beta checkpoint is stored in `phase-12/progressiveskills-phase-12.jar` on the `envy/phase-12-abilities` branch. Earlier phase directories preserve their matching checkpoint artifacts.
