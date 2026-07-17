@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -507,11 +508,152 @@ public final class NetworkPayloads {
         }
     }
 
+    public record ClassChangePreview(
+            UUID sessionId,
+            long requestId,
+            long definitionGeneration,
+            String semanticDigest,
+            long stateRevision,
+            IntentType intentType,
+            ResourceLocation classId,
+            Optional<ResourceLocation> replacementClassId,
+            List<ResourceLocation> affectedClasses,
+            Map<ResourceLocation, Long> costBalances,
+            String previewDigest,
+            List<String> blockers
+    ) implements CustomPacketPayload {
+        public static final Type<ClassChangePreview> TYPE = NetworkPayloads.type("class_change_preview");
+        public static final StreamCodec<FriendlyByteBuf, ClassChangePreview> STREAM_CODEC = StreamCodec.of(
+                (buffer, value) -> {
+                    buffer.writeUUID(value.sessionId);
+                    buffer.writeVarLong(value.requestId);
+                    buffer.writeVarLong(value.definitionGeneration);
+                    buffer.writeUtf(value.semanticDigest, 64);
+                    buffer.writeVarLong(value.stateRevision);
+                    writeEnum(buffer, value.intentType);
+                    writeId(buffer, value.classId);
+                    buffer.writeBoolean(value.replacementClassId.isPresent());
+                    value.replacementClassId.ifPresent(id -> writeId(buffer, id));
+                    buffer.writeVarInt(value.affectedClasses.size());
+                    value.affectedClasses.forEach(id -> writeId(buffer, id));
+                    buffer.writeVarInt(value.costBalances.size());
+                    value.costBalances.forEach((currency, amount) -> {
+                        writeId(buffer, currency);
+                        buffer.writeVarLong(amount);
+                    });
+                    buffer.writeUtf(value.previewDigest, 64);
+                    buffer.writeVarInt(value.blockers.size());
+                    value.blockers.forEach(blocker ->
+                            buffer.writeUtf(blocker, NetworkLimits.MAX_RESYNC_REASON_BYTES));
+                },
+                buffer -> {
+                    UUID sessionId = buffer.readUUID();
+                    long requestId = buffer.readVarLong();
+                    long definitionGeneration = buffer.readVarLong();
+                    String semanticDigest = buffer.readUtf(64);
+                    long stateRevision = buffer.readVarLong();
+                    IntentType intentType = readEnum(buffer, IntentType.values(), "class preview intent type");
+                    ResourceLocation classId = readId(buffer);
+                    Optional<ResourceLocation> replacement = buffer.readBoolean()
+                            ? Optional.of(readId(buffer)) : Optional.empty();
+                    int affectedCount = readCount(
+                            buffer, NetworkLimits.MAX_CLASS_PREVIEW_CLASSES, "affected class");
+                    var affected = new ArrayList<ResourceLocation>(affectedCount);
+                    for (int index = 0; index < affectedCount; index++) {
+                        affected.add(readId(buffer));
+                    }
+                    int balanceCount = readCount(
+                            buffer, NetworkLimits.MAX_CLASS_PREVIEW_BALANCES, "class preview balance");
+                    var costs = new LinkedHashMap<ResourceLocation, Long>();
+                    for (int index = 0; index < balanceCount; index++) {
+                        ResourceLocation currency = readId(buffer);
+                        if (costs.putIfAbsent(currency, buffer.readVarLong()) != null) {
+                            throw new IllegalArgumentException("Duplicate class preview currency");
+                        }
+                    }
+                    String previewDigest = buffer.readUtf(64);
+                    int blockerCount = readCount(
+                            buffer, NetworkLimits.MAX_CLASS_PREVIEW_BLOCKERS, "class preview blocker");
+                    var blockers = new ArrayList<String>(blockerCount);
+                    for (int index = 0; index < blockerCount; index++) {
+                        blockers.add(buffer.readUtf(NetworkLimits.MAX_RESYNC_REASON_BYTES));
+                    }
+                    return new ClassChangePreview(
+                            sessionId, requestId, definitionGeneration, semanticDigest, stateRevision,
+                            intentType, classId, replacement, affected, costs, previewDigest, blockers);
+                }
+        );
+
+        public ClassChangePreview {
+            Objects.requireNonNull(sessionId, "sessionId");
+            if (requestId < 0 || definitionGeneration < 0 || stateRevision < 0) {
+                throw new IllegalArgumentException("Class preview revisions must not be negative");
+            }
+            semanticDigest = NetworkLimits.requireDigest(semanticDigest, "semanticDigest");
+            Objects.requireNonNull(intentType, "intentType");
+            boolean swap = intentType == IntentType.CLASS_SWAP_PREVIEW;
+            if (intentType != IntentType.CLASS_RESPEC_PREVIEW && !swap) {
+                throw new IllegalArgumentException("Class preview intent type is invalid");
+            }
+            classId = StableId.requireValid(classId);
+            replacementClassId = Objects.requireNonNull(replacementClassId, "replacementClassId")
+                    .map(StableId::requireValid);
+            if (swap != replacementClassId.isPresent()
+                    || replacementClassId.filter(classId::equals).isPresent()) {
+                throw new IllegalArgumentException("Class preview replacement shape is invalid");
+            }
+            Objects.requireNonNull(affectedClasses, "affectedClasses");
+            if (affectedClasses.size() > NetworkLimits.MAX_CLASS_PREVIEW_CLASSES) {
+                throw new IllegalArgumentException("Class preview affected class count exceeds capacity");
+            }
+            var orderedClasses = new LinkedHashSet<ResourceLocation>();
+            for (ResourceLocation affected : affectedClasses) {
+                if (!orderedClasses.add(StableId.requireValid(affected))) {
+                    throw new IllegalArgumentException("Class preview contains duplicate affected classes");
+                }
+            }
+            affectedClasses = List.copyOf(orderedClasses);
+            Objects.requireNonNull(costBalances, "costBalances");
+            if (costBalances.size() > NetworkLimits.MAX_CLASS_PREVIEW_BALANCES) {
+                throw new IllegalArgumentException("Class preview balance count exceeds capacity");
+            }
+            var sortedCosts = new TreeMap<ResourceLocation, Long>(ResourceLocation::compareNamespaced);
+            costBalances.forEach((currency, amount) -> {
+                if (amount == null || amount < 0) {
+                    throw new IllegalArgumentException("Class preview cost balance is invalid");
+                }
+                sortedCosts.put(StableId.requireValid(currency), amount);
+            });
+            costBalances = Collections.unmodifiableMap(new LinkedHashMap<>(sortedCosts));
+            previewDigest = NetworkLimits.requireDigest(previewDigest, "previewDigest");
+            Objects.requireNonNull(blockers, "blockers");
+            if (blockers.size() > NetworkLimits.MAX_CLASS_PREVIEW_BLOCKERS) {
+                throw new IllegalArgumentException("Class preview blocker count exceeds capacity");
+            }
+            blockers = blockers.stream().map(blocker -> NetworkLimits.requireBoundedText(
+                    blocker, NetworkLimits.MAX_RESYNC_REASON_BYTES, "class preview blocker")).toList();
+        }
+
+        public boolean allowed() {
+            return blockers.isEmpty();
+        }
+
+        @Override
+        public Type<ClassChangePreview> type() {
+            return TYPE;
+        }
+    }
+
     public enum IntentType {
         NOOP_TEST,
         TREE_BUY,
         TREE_REFUND_PREVIEW,
-        TREE_REFUND_CONFIRM
+        TREE_REFUND_CONFIRM,
+        CLASS_SELECT,
+        CLASS_RESPEC_PREVIEW,
+        CLASS_RESPEC_CONFIRM,
+        CLASS_SWAP_PREVIEW,
+        CLASS_SWAP_CONFIRM
     }
 
     public enum IntentStatus {

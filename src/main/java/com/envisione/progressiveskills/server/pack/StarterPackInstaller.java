@@ -33,6 +33,9 @@ public final class StarterPackInstaller {
         copyIfMissing(pack, "rules/physique_stone_training.toml");
         copyIfMissing(pack, "rules/physique_first_log.toml");
         copyIfMissing(pack, "trees/physique_training.toml");
+        copyIfMissing(pack, "class_slots/combat.toml");
+        copyIfMissing(pack, "classes/warrior.toml");
+        copyIfMissing(pack, "classes/scholar.toml");
         return pack;
     }
 

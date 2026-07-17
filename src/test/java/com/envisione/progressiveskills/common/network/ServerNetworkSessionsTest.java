@@ -209,6 +209,88 @@ class ServerNetworkSessionsTest {
         assertTrue(response.message().contains("quarantined"));
     }
 
+    @Test
+    void validatedClassExecutorRunsOnceAndReplaysItsSanitizedPreview() {
+        var server = ServerNetworkSessions.systemClock();
+        var client = ClientNetworkState.systemClock();
+        DefinitionProjection definitions = NetworkFixtures.classDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(definitions, 0, 4, Map.of(), Map.of());
+        NetworkPayloads.ServerHello hello = server.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        completePayloadExchange(server, client, server.handleClientHello(
+                NetworkFixtures.PLAYER, client.receiveHello(hello)));
+        var calls = new AtomicInteger();
+        var request = new NetworkPayloads.Intent(
+                hello.sessionId(), 0, 1, NetworkFixtures.SEMANTIC, 4,
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW,
+                ClassIntentPayload.swapPreview(
+                        NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR)
+                        .encode(NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW));
+        ServerNetworkSessions.ClassIntentExecutor classExecutor = (playerId, intent, payload) -> {
+            calls.incrementAndGet();
+            var preview = new NetworkPayloads.ClassChangePreview(
+                    intent.sessionId(), intent.requestId(), intent.definitionGeneration(),
+                    intent.semanticDigest(), intent.stateRevision(), intent.intentType(),
+                    payload.classId(), payload.replacementClassId(),
+                    List.of(NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR),
+                    Map.of(NetworkFixtures.CURRENCY, 5L), "7".repeat(64), List.of());
+            return ServerNetworkSessions.IntentExecution.accepted("Class swap preview ready", preview);
+        };
+
+        List<CustomPacketPayload> accepted = server.handleIntent(
+                NetworkFixtures.PLAYER, request,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS, classExecutor);
+        List<CustomPacketPayload> replayed = server.handleIntent(
+                NetworkFixtures.PLAYER, request,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS, classExecutor);
+        assertEquals(accepted, replayed);
+        assertEquals(1, calls.get());
+        assertEquals(NetworkPayloads.IntentStatus.ACCEPTED, result(accepted).status());
+        assertEquals(NetworkFixtures.CLASS_WARRIOR,
+                assertInstanceOf(NetworkPayloads.ClassChangePreview.class, accepted.get(1))
+                        .replacementClassId().orElseThrow());
+
+        var malformed = new NetworkPayloads.Intent(
+                hello.sessionId(), 1, 1, NetworkFixtures.SEMANTIC, 4,
+                NetworkPayloads.IntentType.CLASS_SELECT, "bad");
+        assertEquals(NetworkPayloads.IntentStatus.INVALID, result(server.handleIntent(
+                NetworkFixtures.PLAYER, malformed,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS, classExecutor)).status());
+        assertEquals(1, calls.get());
+    }
+
+    @Test
+    void quarantinedStateRejectsClassIntentBeforeExecutor() {
+        var server = ServerNetworkSessions.systemClock();
+        var client = ClientNetworkState.systemClock();
+        DefinitionProjection definitions = NetworkFixtures.classDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(
+                definitions, 0, 0, Map.of(), Map.of(), true);
+        NetworkPayloads.ServerHello hello = server.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        completePayloadExchange(server, client, server.handleClientHello(
+                NetworkFixtures.PLAYER, client.receiveHello(hello)));
+        var calls = new AtomicInteger();
+        var request = new NetworkPayloads.Intent(
+                hello.sessionId(), 0, 1, NetworkFixtures.SEMANTIC, 0,
+                NetworkPayloads.IntentType.CLASS_SELECT,
+                ClassIntentPayload.select(NetworkFixtures.CLASS_MAGE)
+                        .encode(NetworkPayloads.IntentType.CLASS_SELECT));
+
+        var response = result(server.handleIntent(
+                NetworkFixtures.PLAYER, request,
+                ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS,
+                (playerId, intent, payload) -> {
+                    calls.incrementAndGet();
+                    return ServerNetworkSessions.IntentExecution.accepted("Unexpected execution");
+                }));
+
+        assertEquals(NetworkPayloads.IntentStatus.INVALID, response.status());
+        assertEquals(0, calls.get());
+    }
+
     private static NetworkPayloads.Intent intent(
             NetworkPayloads.ServerHello hello,
             long requestId,

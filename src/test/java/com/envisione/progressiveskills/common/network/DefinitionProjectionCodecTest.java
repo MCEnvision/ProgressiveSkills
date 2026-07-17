@@ -89,6 +89,59 @@ class DefinitionProjectionCodecTest {
         assertFalse(wire.contains("entitlement"));
     }
 
+    @Test
+    void sanitizedClassViewsRoundTripWithoutOwnershipSourcesOrGrantValues() {
+        DefinitionProjection projection = NetworkFixtures.classDefinitions();
+        byte[] encoded = DefinitionProjectionCodec.encode(projection);
+        DefinitionProjection decoded = DefinitionProjectionCodec.decode(encoded);
+
+        assertEquals(projection, decoded);
+        DefinitionProjection.ClassSlotView slot = decoded.definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS_SLOT))
+                .findFirst().orElseThrow().getValue().classSlot().orElseThrow();
+        assertEquals(2, slot.capacity());
+        DefinitionProjection.ClassView classView = decoded.definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS))
+                .findFirst().orElseThrow().getValue().classDefinition().orElseThrow();
+        assertEquals(0, classView.slotCost());
+        assertEquals(List.of(new DefinitionProjection.GrantSummary(
+                "ability", NetworkFixtures.CLASS_SYNERGY, "owned", "highest", 1)), classView.grants());
+        assertEquals(List.of(new DefinitionProjection.StarterItemView(
+                id("minecraft:book"), 1)), classView.starterKit());
+        assertEquals(List.of(NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR),
+                decoded.classSynergies().get(NetworkFixtures.CLASS_SYNERGY).requiredClasses());
+        String wire = new String(encoded, StandardCharsets.UTF_8);
+        assertFalse(wire.contains("ownerKind"));
+        assertFalse(wire.contains("sourceOwners"));
+        assertFalse(wire.contains("valueUnits"));
+    }
+
+    @Test
+    void projectedGameplayViewsMustMatchTheirDefinitionKinds() {
+        DefinitionProjection.Entry classEntry = NetworkFixtures.classDefinitions().definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS))
+                .findFirst().orElseThrow().getValue();
+        assertThrows(IllegalArgumentException.class, () -> new DefinitionProjection(Map.of(
+                new DefinitionKey(DefinitionKinds.SKILL, NetworkFixtures.CLASS_MAGE), classEntry
+        )));
+    }
+
+    @Test
+    void starterKitProjectionRejectsDuplicateItemIds() {
+        DefinitionProjection.ClassView source = NetworkFixtures.classDefinitions().definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS))
+                .findFirst().orElseThrow().getValue().classDefinition().orElseThrow();
+        assertThrows(IllegalArgumentException.class, () -> new DefinitionProjection.ClassView(
+                source.enabled(), source.slotId(), source.slotCost(), source.accessRequired(),
+                source.exclusiveTags(), source.minimumSkillLevels(), source.requiredNodes(),
+                source.requiredClasses(), source.selectionCost(), source.respecAllowed(),
+                source.respecCost(), List.of(
+                        new DefinitionProjection.StarterItemView(id("minecraft:book"), 1),
+                        new DefinitionProjection.StarterItemView(id("minecraft:book"), 2)
+                ), source.grants()
+        ));
+    }
+
     private static ResourceLocation id(String value) {
         return ResourceLocation.parse(value);
     }

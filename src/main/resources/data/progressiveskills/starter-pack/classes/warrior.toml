@@ -1,0 +1,41 @@
+schema_version = 2
+
+[class]
+id = "progressiveskills:warrior"
+display = { key = "class.progressiveskills.warrior", fallback = "Warrior" }
+description = { key = "class.progressiveskills.warrior.desc", fallback = "A disciplined physical combatant." }
+icon = { type = "item", value = "minecraft:iron_sword", fallback = "minecraft:barrier", alt = "Iron sword" }
+enabled = true
+access_required = false
+slot = "progressiveskills:combat"
+slot_cost = 1
+exclusive_tags = []
+prerequisites = { min_level = { "progressiveskills:physique" = 1 }, nodes = [], classes = [] }
+selection_cost = { currency = "progressiveskills:global_points", amount = 1 }
+respec_allowed = true
+respec_cost = { currency = "progressiveskills:global_points", amount = 1 }
+starter_kit = ["minecraft:wooden_sword"]
+
+[[grants]]
+id = "progressiveskills:warrior/damage"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_value"
+value = 1.0
+
+[[grants]]
+id = "progressiveskills:warrior/guard"
+type = "ability"
+ability = "progressiveskills:warrior_guard"
+
+[[synergy]]
+id = "progressiveskills:student_of_war"
+display = { key = "class_synergy.progressiveskills.student_of_war", fallback = "Student of War" }
+description = { key = "class_synergy.progressiveskills.student_of_war.desc", fallback = "Warrior and Scholar combine practice with study." }
+icon = { type = "item", value = "minecraft:enchanted_book", fallback = "minecraft:barrier", alt = "Enchanted book" }
+requires_classes = ["progressiveskills:warrior", "progressiveskills:scholar"]
+
+[[synergy.grants]]
+id = "progressiveskills:student_of_war/insight"
+type = "ability"
+ability = "progressiveskills:combat_insight"

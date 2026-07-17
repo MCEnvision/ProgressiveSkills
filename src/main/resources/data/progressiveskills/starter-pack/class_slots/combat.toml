@@ -1,0 +1,9 @@
+schema_version = 2
+
+[class_slot]
+id = "progressiveskills:combat"
+display = { key = "class_slot.progressiveskills.combat", fallback = "Combat Classes" }
+description = { key = "class_slot.progressiveskills.combat.desc", fallback = "Compatible combat classes share this capacity." }
+icon = { type = "item", value = "minecraft:armor_stand", fallback = "minecraft:barrier", alt = "Armor stand" }
+capacity = 2
+swap_policy = "allowed"

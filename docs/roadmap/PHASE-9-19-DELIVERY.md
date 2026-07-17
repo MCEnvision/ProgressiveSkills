@@ -41,6 +41,29 @@ Architecture: [TREES_AND_REFUNDS.md](../architecture/TREES_AND_REFUNDS.md).
 
 Automated evidence and focused fallback checklist: [PHASE-10.md](../verification/PHASE-10.md).
 
+## Phase 11 checkpoint contract
+
+Status: automated Phase 11 beta checkpoint complete. The checkpoint remains off `main` until the cumulative final mass check is approved.
+
+The Phase 11 checkpoint is cumulative with Phases 9 and 10 and must add one complete Core class lifecycle:
+
+1. Compile stable class slots, weighted classes, named synergies, literal named currency costs, bounded direct prerequisites, coexistence tags, starter kits, and source owned persistent grants.
+2. Enforce checked weighted occupancy while treating explicit zero cost background classes as fully selected progression identities.
+3. Select, respec, and atomically swap through one revision pinned server transaction planner. Selection costs are sinks and are never implicitly refunded.
+4. Resolve attributes, abilities, virtual spells, stages, tree access, and class access by source so one class removal never revokes another owner.
+5. Deliver each starter kit at most once per character through one stable receipt across replay, respec, relog, restart, and definition reorder.
+6. Reconcile reloads without acquisition replay. Retain unsafe selections as visible suspended state instead of silently deleting them.
+7. Synchronize truthful class slot, requirement, cost, starter item, grant, synergy, and selected state summaries without raw ownership internals, receipts, audits, provenance, or provider secrets.
+8. Negotiate protocol version 3 and route strict select, respec preview, respec confirmation, swap preview, and swap confirmation intents through session, replay, revision, rate, and quarantine guards.
+9. Provide stable, explicit, narrator friendly class list, info, preview, mutation, and entitlement commands usable entirely through keyboard and chat.
+10. Keep the integrated class panel deferred to Phase 14 and provider backed physical grants deferred to Phase 15.
+
+Class ranks, evolution, roles, loadouts, formula costs, percentage refunds, permanent spell learning, class XP, advanced conditions, and general formula authoring remain Creator features. A legal full class reconciliation or swap that cannot fit the atomic mutation and persistence ceilings must fail staging.
+
+Architecture: [CLASSES_AND_ENTITLEMENTS.md](../architecture/CLASSES_AND_ENTITLEMENTS.md).
+
+Automated evidence and focused fallback checklist: [PHASE-11.md](../verification/PHASE-11.md).
+
 ## Added feature set
 
 The following twenty features extend the planned phases. They are part of the delivery train and not replacements for the original phase scope.

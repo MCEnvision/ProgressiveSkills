@@ -1,5 +1,6 @@
 package com.envisione.progressiveskills.server.transaction;
 
+import com.envisione.progressiveskills.common.classdef.ClassEntitlementTypes;
 import com.envisione.progressiveskills.common.transaction.PersistentProjector;
 import com.envisione.progressiveskills.common.transaction.ProjectionChange;
 import com.envisione.progressiveskills.common.skill.AttributeOperation;
@@ -31,11 +32,18 @@ public final class PlayerPersistentProjector implements PersistentProjector {
 
     @Override
     public Optional<String> validate(UUID targetId, List<ProjectionChange> changes) {
+        Optional<String> unsupported = validateProjectionTypes(changes);
+        if (unsupported.isPresent()) {
+            return unsupported;
+        }
         ServerPlayer player = server.getPlayerList().getPlayer(targetId);
         if (player == null) {
             return Optional.of("Target player is not online");
         }
         for (ProjectionChange change : changes) {
+            if (ClassEntitlementTypes.isLogical(change.key().targetType())) {
+                continue;
+            }
             if (change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)) {
                 if (change.after().isPresent()
                         && (change.after().getAsLong() < -1_024 || change.after().getAsLong() > 1_024)) {
@@ -63,6 +71,20 @@ public final class PlayerPersistentProjector implements PersistentProjector {
         return Optional.empty();
     }
 
+    static Optional<String> validateProjectionTypes(List<ProjectionChange> changes) {
+        Objects.requireNonNull(changes, "changes");
+        for (ProjectionChange change : changes) {
+            Objects.requireNonNull(change, "projection change");
+            if (ClassEntitlementTypes.isLogical(change.key().targetType())
+                    || change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)
+                    || operation(change).isPresent()) {
+                continue;
+            }
+            return Optional.of("No physical projector is registered for " + change.key());
+        }
+        return Optional.empty();
+    }
+
     @Override
     public void apply(UUID targetId, List<ProjectionChange> changes) {
         if (changes.isEmpty()) {
@@ -73,6 +95,9 @@ public final class PlayerPersistentProjector implements PersistentProjector {
                 "Target player disconnected after projection validation"
         );
         for (ProjectionChange change : changes) {
+            if (ClassEntitlementTypes.isLogical(change.key().targetType())) {
+                continue;
+            }
             if (change.key().equals(Phase4LifecycleDemo.MAX_HEALTH)) {
                 var attribute = Objects.requireNonNull(
                         player.getAttribute(Attributes.MAX_HEALTH),

@@ -175,7 +175,9 @@ public final class ServerNetworkSessions {
             UUID playerId,
             NetworkPayloads.Intent payload
     ) {
-        return handleIntent(playerId, payload, IntentExecutor.REJECT_TREE_INTENTS);
+        return handleIntent(
+                playerId, payload, IntentExecutor.REJECT_TREE_INTENTS,
+                ClassIntentExecutor.REJECT_CLASS_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -183,9 +185,19 @@ public final class ServerNetworkSessions {
             NetworkPayloads.Intent payload,
             IntentExecutor executor
     ) {
+        return handleIntent(playerId, payload, executor, ClassIntentExecutor.REJECT_CLASS_INTENTS);
+    }
+
+    public synchronized List<CustomPacketPayload> handleIntent(
+            UUID playerId,
+            NetworkPayloads.Intent payload,
+            IntentExecutor executor,
+            ClassIntentExecutor classExecutor
+    ) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(payload, "payload");
         Objects.requireNonNull(executor, "executor");
+        Objects.requireNonNull(classExecutor, "classExecutor");
         Session session = sessions.get(playerId);
         if (session == null) {
             return List.of(staleSessionResult(payload.sessionId(), payload.requestId(), 0));
@@ -244,12 +256,18 @@ public final class ServerNetworkSessions {
                     "Player progression data is quarantined");
         }
         try {
-            TreeIntentPayload treePayload = TreeIntentPayload.decode(payload.intentType(), payload.payload());
-            IntentExecution execution = Objects.requireNonNull(
-                    executor.execute(playerId, payload, treePayload), "intent execution");
+            boolean classIntent = isClassIntent(payload.intentType());
+            TreeIntentPayload treePayload = classIntent ? null
+                    : TreeIntentPayload.decode(payload.intentType(), payload.payload());
+            ClassIntentPayload classPayload = classIntent
+                    ? ClassIntentPayload.decode(payload.intentType(), payload.payload()) : null;
+            IntentExecution execution = Objects.requireNonNull(classIntent
+                            ? classExecutor.execute(playerId, payload, classPayload)
+                            : executor.execute(playerId, payload, treePayload),
+                    "intent execution");
             response = result(session, payload.requestId(), execution.status(), execution.message());
             List<CustomPacketPayload> responses = validateExecutionResponses(
-                    session, payload, treePayload, response, execution.followups());
+                    session, payload, treePayload, classPayload, response, execution.followups());
             cacheResponses(session, payload.requestId(), responses);
             session.lastActivity = Instant.now(clock);
             return responses;
@@ -426,6 +444,7 @@ public final class ServerNetworkSessions {
             Session session,
             NetworkPayloads.Intent intent,
             TreeIntentPayload treePayload,
+            ClassIntentPayload classPayload,
             NetworkPayloads.IntentResult response,
             List<CustomPacketPayload> followups
     ) {
@@ -436,20 +455,57 @@ public final class ServerNetworkSessions {
         var responses = new ArrayList<CustomPacketPayload>();
         responses.add(response);
         for (CustomPacketPayload followup : followups) {
-            if (!(followup instanceof NetworkPayloads.TreeRefundPreview preview)
-                    || intent.intentType() != NetworkPayloads.IntentType.TREE_REFUND_PREVIEW
-                    || !preview.sessionId().equals(session.hello.sessionId())
-                    || preview.requestId() != intent.requestId()
-                    || preview.definitionGeneration() != intent.definitionGeneration()
-                    || !preview.semanticDigest().equals(intent.semanticDigest())
-                    || preview.stateRevision() != intent.stateRevision()
-                    || !preview.treeId().equals(treePayload.treeId())
-                    || !preview.nodeId().equals(treePayload.nodeId())) {
+            if (!validTreeFollowup(session, intent, treePayload, followup)
+                    && !validClassFollowup(session, intent, classPayload, followup)) {
                 throw new IllegalArgumentException("Intent execution returned an invalid followup");
             }
-            responses.add(preview);
+            responses.add(followup);
         }
         return List.copyOf(responses);
+    }
+
+    private static boolean validTreeFollowup(
+            Session session,
+            NetworkPayloads.Intent intent,
+            TreeIntentPayload payload,
+            CustomPacketPayload followup
+    ) {
+        return payload != null
+                && followup instanceof NetworkPayloads.TreeRefundPreview preview
+                && intent.intentType() == NetworkPayloads.IntentType.TREE_REFUND_PREVIEW
+                && preview.sessionId().equals(session.hello.sessionId())
+                && preview.requestId() == intent.requestId()
+                && preview.definitionGeneration() == intent.definitionGeneration()
+                && preview.semanticDigest().equals(intent.semanticDigest())
+                && preview.stateRevision() == intent.stateRevision()
+                && preview.treeId().equals(payload.treeId())
+                && preview.nodeId().equals(payload.nodeId());
+    }
+
+    private static boolean validClassFollowup(
+            Session session,
+            NetworkPayloads.Intent intent,
+            ClassIntentPayload payload,
+            CustomPacketPayload followup
+    ) {
+        return payload != null
+                && followup instanceof NetworkPayloads.ClassChangePreview preview
+                && preview.intentType() == intent.intentType()
+                && preview.sessionId().equals(session.hello.sessionId())
+                && preview.requestId() == intent.requestId()
+                && preview.definitionGeneration() == intent.definitionGeneration()
+                && preview.semanticDigest().equals(intent.semanticDigest())
+                && preview.stateRevision() == intent.stateRevision()
+                && preview.classId().equals(payload.classId())
+                && preview.replacementClassId().equals(payload.replacementClassId());
+    }
+
+    private static boolean isClassIntent(NetworkPayloads.IntentType type) {
+        return type == NetworkPayloads.IntentType.CLASS_SELECT
+                || type == NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW
+                || type == NetworkPayloads.IntentType.CLASS_RESPEC_CONFIRM
+                || type == NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW
+                || type == NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM;
     }
 
     private static String safeIntentMessage(RuntimeException exception) {
@@ -479,6 +535,18 @@ public final class ServerNetworkSessions {
                 UUID playerId,
                 NetworkPayloads.Intent intent,
                 TreeIntentPayload payload
+        );
+    }
+
+    @FunctionalInterface
+    public interface ClassIntentExecutor {
+        ClassIntentExecutor REJECT_CLASS_INTENTS = (playerId, intent, payload) ->
+                IntentExecution.invalid("Class intents are not configured on this server");
+
+        IntentExecution execute(
+                UUID playerId,
+                NetworkPayloads.Intent intent,
+                ClassIntentPayload payload
         );
     }
 

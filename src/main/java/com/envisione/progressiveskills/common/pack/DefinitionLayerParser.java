@@ -24,6 +24,7 @@ public final class DefinitionLayerParser {
             "curve", "level_currency_awards", "xp_sources", "levels", "scaling"
     );
     private static final Set<String> TREE_COMPANION_FIELDS = Set.of("nodes");
+    private static final Set<String> CLASS_COMPANION_FIELDS = Set.of("grants", "synergy");
 
     public ParsedDefinitionLayer parse(
             PackLayer pack,
@@ -44,6 +45,8 @@ public final class DefinitionLayerParser {
             companionFields = SKILL_COMPANION_FIELDS;
         } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.TREE)) {
             companionFields = TREE_COMPANION_FIELDS;
+        } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.CLASS)) {
+            companionFields = CLASS_COMPANION_FIELDS;
         } else {
             companionFields = Set.of();
         }

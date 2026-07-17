@@ -2,7 +2,10 @@ package com.envisione.progressiveskills.server.network;
 
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.common.classdef.ClassCatalog;
+import com.envisione.progressiveskills.common.classdef.ClassProgression;
 import com.envisione.progressiveskills.common.network.BoundedNetworkCodec;
+import com.envisione.progressiveskills.common.network.ClassIntentPayload;
 import com.envisione.progressiveskills.common.network.DefinitionProjection;
 import com.envisione.progressiveskills.common.network.DefinitionProjectionCodec;
 import com.envisione.progressiveskills.common.network.PsNetworking;
@@ -19,6 +22,7 @@ import com.envisione.progressiveskills.common.skill.SkillCatalog;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
 import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import net.minecraft.network.chat.Component;
@@ -48,6 +52,7 @@ public final class NetworkRuntime {
 
     static {
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
+        PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
     }
 
     private NetworkRuntime() {
@@ -71,6 +76,8 @@ public final class NetworkRuntime {
     static void onServerStopping(ServerStoppingEvent event) {
         PsNetworking.clearServerSessions();
         PsNetworking.configureServerIntentExecutor(ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS);
+        PsNetworking.configureServerClassIntentExecutor(
+                ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS);
         CACHED_DEFINITIONS.set(null);
         ACTIVE_SERVER.compareAndSet(event.getServer(), null);
     }
@@ -90,6 +97,7 @@ public final class NetworkRuntime {
     public static void begin(ServerPlayer player) {
         ACTIVE_SERVER.set(player.getServer());
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
+        PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
         if (!player.connection.hasChannel(NetworkPayloads.ServerHello.TYPE)) {
             PsNetworking.removeServerSession(player.getUUID());
             return;
@@ -179,6 +187,7 @@ public final class NetworkRuntime {
                 balances,
                 effective,
                 visibleNodeRanks(state, cached.trees()),
+                visibleClasses(state, cached.classes()),
                 dataView.orphans().size(),
                 dataView.operationReceipts().size(),
                 !progressionReady
@@ -220,6 +229,32 @@ public final class NetworkRuntime {
         return Map.copyOf(ranks);
     }
 
+    static Map<net.minecraft.resources.ResourceLocation, VisiblePlayerState.ClassSelection> visibleClasses(
+            ProgressionSnapshot snapshot,
+            ClassCatalog classes
+    ) {
+        var result = new java.util.TreeMap<
+                net.minecraft.resources.ResourceLocation,
+                VisiblePlayerState.ClassSelection>(
+                net.minecraft.resources.ResourceLocation::compareNamespaced);
+        var active = ClassProgression.activeClasses(snapshot);
+        ClassProgression.selectedClasses(snapshot).forEach(classId -> {
+            result.put(classId, new VisiblePlayerState.ClassSelection(
+                    Optional.empty(), 0, VisiblePlayerState.Activity.SUSPENDED));
+                classes.classDefinition(classId).ifPresent(definition -> result.put(
+                        classId,
+                        new VisiblePlayerState.ClassSelection(
+                                definition.slot(),
+                                definition.slotCost(),
+                                active.contains(classId)
+                                        ? VisiblePlayerState.Activity.ACTIVE
+                                        : VisiblePlayerState.Activity.SUSPENDED
+                        )
+                ));
+        });
+        return Map.copyOf(result);
+    }
+
     private static ServerNetworkSessions.IntentExecution executeTreeIntent(
             UUID playerId,
             NetworkPayloads.Intent intent,
@@ -234,6 +269,22 @@ public final class NetworkRuntime {
             return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
         }
         return dispatchTreeIntent(intent, payload, new LiveTreeIntentOperations(player));
+    }
+
+    private static ServerNetworkSessions.IntentExecution executeClassIntent(
+            UUID playerId,
+            NetworkPayloads.Intent intent,
+            ClassIntentPayload payload
+    ) {
+        MinecraftServer server = ACTIVE_SERVER.get();
+        if (server == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Server progression runtime is unavailable");
+        }
+        ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+        if (player == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
+        }
+        return dispatchClassIntent(intent, payload, new LiveClassIntentOperations(player));
     }
 
     static ServerNetworkSessions.IntentExecution dispatchTreeIntent(
@@ -265,7 +316,85 @@ public final class NetworkRuntime {
                     "Tree refund committed"
             );
             case NOOP_TEST -> ServerNetworkSessions.IntentExecution.invalid("No op is handled before dispatch");
+            case CLASS_SELECT, CLASS_RESPEC_PREVIEW, CLASS_RESPEC_CONFIRM,
+                    CLASS_SWAP_PREVIEW, CLASS_SWAP_CONFIRM ->
+                    ServerNetworkSessions.IntentExecution.invalid("Class intent reached the tree dispatcher");
         };
+    }
+
+    static ServerNetworkSessions.IntentExecution dispatchClassIntent(
+            NetworkPayloads.Intent intent,
+            ClassIntentPayload payload,
+            ClassIntentOperations operations
+    ) {
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(payload, "payload");
+        Objects.requireNonNull(operations, "operations");
+        if (!operations.active()) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player progression data is quarantined");
+        }
+        return switch (intent.intentType()) {
+            case CLASS_SELECT -> classMutationExecution(
+                    operations.select(payload.classId(), classIntentKey(intent)),
+                    "Class selected"
+            );
+            case CLASS_RESPEC_PREVIEW -> classPreviewExecution(
+                    intent, operations.previewRespec(payload.classId())
+            );
+            case CLASS_RESPEC_CONFIRM -> classMutationExecution(
+                    operations.respec(
+                            payload.classId(), payload.previewDigest().orElseThrow(),
+                            classIntentKey(intent)),
+                    "Class respec committed"
+            );
+            case CLASS_SWAP_PREVIEW -> classPreviewExecution(
+                    intent, operations.previewSwap(
+                            payload.classId(), payload.replacementClassId().orElseThrow())
+            );
+            case CLASS_SWAP_CONFIRM -> classMutationExecution(
+                    operations.swap(
+                            payload.classId(), payload.replacementClassId().orElseThrow(),
+                            payload.previewDigest().orElseThrow(), classIntentKey(intent)),
+                    "Class swap committed"
+            );
+            case NOOP_TEST, TREE_BUY, TREE_REFUND_PREVIEW, TREE_REFUND_CONFIRM ->
+                    ServerNetworkSessions.IntentExecution.invalid("Tree intent reached the class dispatcher");
+        };
+    }
+
+    private static ServerNetworkSessions.IntentExecution classMutationExecution(
+            ClassMutationOutcome outcome,
+            String acceptedMessage
+    ) {
+        if (!outcome.committed()) {
+            return ServerNetworkSessions.IntentExecution.invalid(outcome.message());
+        }
+        return ServerNetworkSessions.IntentExecution.accepted(acceptedMessage);
+    }
+
+    private static ServerNetworkSessions.IntentExecution classPreviewExecution(
+            NetworkPayloads.Intent intent,
+            ClassPreviewOutcome preview
+    ) {
+        var followup = new NetworkPayloads.ClassChangePreview(
+                intent.sessionId(),
+                intent.requestId(),
+                intent.definitionGeneration(),
+                intent.semanticDigest(),
+                intent.stateRevision(),
+                intent.intentType(),
+                preview.classId(),
+                preview.replacementClassId(),
+                preview.affectedClasses(),
+                preview.costBalances(),
+                preview.digest(),
+                preview.blockers()
+        );
+        return ServerNetworkSessions.IntentExecution.accepted("Class change preview ready", followup);
+    }
+
+    private static IdempotencyKey classIntentKey(NetworkPayloads.Intent intent) {
+        return new IdempotencyKey("phase11/network/" + intent.sessionId() + "/" + intent.requestId());
     }
 
     private static ServerNetworkSessions.IntentExecution mutationExecution(
@@ -324,6 +453,59 @@ public final class NetworkRuntime {
         );
     }
 
+    interface ClassIntentOperations {
+        boolean active();
+
+        ClassMutationOutcome select(
+                net.minecraft.resources.ResourceLocation classId,
+                IdempotencyKey idempotencyKey
+        );
+
+        ClassPreviewOutcome previewRespec(net.minecraft.resources.ResourceLocation classId);
+
+        ClassMutationOutcome respec(
+                net.minecraft.resources.ResourceLocation classId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        );
+
+        ClassPreviewOutcome previewSwap(
+                net.minecraft.resources.ResourceLocation removedClassId,
+                net.minecraft.resources.ResourceLocation replacementClassId
+        );
+
+        ClassMutationOutcome swap(
+                net.minecraft.resources.ResourceLocation removedClassId,
+                net.minecraft.resources.ResourceLocation replacementClassId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        );
+    }
+
+    record ClassMutationOutcome(boolean committed, String message) {
+        ClassMutationOutcome {
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    record ClassPreviewOutcome(
+            net.minecraft.resources.ResourceLocation classId,
+            Optional<net.minecraft.resources.ResourceLocation> replacementClassId,
+            List<net.minecraft.resources.ResourceLocation> affectedClasses,
+            Map<net.minecraft.resources.ResourceLocation, Long> costBalances,
+            String digest,
+            List<String> blockers
+    ) {
+        ClassPreviewOutcome {
+            Objects.requireNonNull(classId, "classId");
+            replacementClassId = Objects.requireNonNull(replacementClassId, "replacementClassId");
+            affectedClasses = List.copyOf(Objects.requireNonNull(affectedClasses, "affectedClasses"));
+            costBalances = Map.copyOf(Objects.requireNonNull(costBalances, "costBalances"));
+            digest = Objects.requireNonNull(digest, "digest");
+            blockers = List.copyOf(Objects.requireNonNull(blockers, "blockers"));
+        }
+    }
+
     record TreeMutationOutcome(boolean committed, String message) {
         TreeMutationOutcome {
             message = Objects.requireNonNull(message, "message");
@@ -374,6 +556,72 @@ public final class NetworkRuntime {
         }
     }
 
+    private record LiveClassIntentOperations(ServerPlayer player) implements ClassIntentOperations {
+        private LiveClassIntentOperations {
+            Objects.requireNonNull(player, "player");
+        }
+
+        @Override
+        public boolean active() {
+            return TransactionRuntime.context(player.getServer())
+                    .map(context -> context.ready(player))
+                    .orElse(false);
+        }
+
+        @Override
+        public ClassMutationOutcome select(
+                net.minecraft.resources.ResourceLocation classId,
+                IdempotencyKey idempotencyKey
+        ) {
+            var transaction = ClassRuntime.select(player, classId, idempotencyKey).transaction();
+            return new ClassMutationOutcome(transaction.status().committed(), transaction.message());
+        }
+
+        @Override
+        public ClassPreviewOutcome previewRespec(net.minecraft.resources.ResourceLocation classId) {
+            return classPreview(ClassRuntime.previewRespec(player, classId));
+        }
+
+        @Override
+        public ClassMutationOutcome respec(
+                net.minecraft.resources.ResourceLocation classId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        ) {
+            var transaction = ClassRuntime.respec(
+                    player, classId, previewDigest, idempotencyKey).transaction();
+            return new ClassMutationOutcome(transaction.status().committed(), transaction.message());
+        }
+
+        @Override
+        public ClassPreviewOutcome previewSwap(
+                net.minecraft.resources.ResourceLocation removedClassId,
+                net.minecraft.resources.ResourceLocation replacementClassId
+        ) {
+            return classPreview(ClassRuntime.previewSwap(
+                    player, removedClassId, replacementClassId));
+        }
+
+        @Override
+        public ClassMutationOutcome swap(
+                net.minecraft.resources.ResourceLocation removedClassId,
+                net.minecraft.resources.ResourceLocation replacementClassId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        ) {
+            var transaction = ClassRuntime.swap(
+                    player, removedClassId, replacementClassId, previewDigest,
+                    idempotencyKey).transaction();
+            return new ClassMutationOutcome(transaction.status().committed(), transaction.message());
+        }
+    }
+
+    private static ClassPreviewOutcome classPreview(ClassProgression.ChangePreview preview) {
+        return new ClassPreviewOutcome(
+                preview.classId(), preview.replacementClassId(), preview.affectedClasses(),
+                preview.costBalances(), preview.digest(), preview.blockers());
+    }
+
     private static void sendAll(ServerPlayer player, List<CustomPacketPayload> payloads) {
         payloads.forEach(payload -> PacketDistributor.sendToPlayer(player, payload));
     }
@@ -388,15 +636,17 @@ public final class NetworkRuntime {
                 && current.semanticDigest().equals(semanticDigest)) {
             return current;
         }
-        DefinitionProjection definitions = DefinitionProjection.from(canonicalIr);
         SkillCatalog skills = SkillCatalog.from(canonicalIr);
         TreeCatalog trees = TreeCatalog.from(canonicalIr, skills);
+        ClassCatalog classes = ClassCatalog.from(canonicalIr, skills, trees);
+        DefinitionProjection definitions = DefinitionProjection.from(canonicalIr, trees, classes);
         CachedDefinitions replacement = new CachedDefinitions(
                 generation,
                 semanticDigest,
                 definitions,
                 BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions)),
-                trees
+                trees,
+                classes
         );
         CACHED_DEFINITIONS.set(replacement);
         return replacement;
@@ -416,7 +666,8 @@ public final class NetworkRuntime {
             String semanticDigest,
             DefinitionProjection definitions,
             String presentationDigest,
-            TreeCatalog trees
+            TreeCatalog trees,
+            ClassCatalog classes
     ) {
     }
 }

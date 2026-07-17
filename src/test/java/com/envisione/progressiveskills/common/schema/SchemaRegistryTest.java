@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(35, ids.size());
+        assertEquals(42, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(
@@ -142,7 +142,10 @@ class SchemaRegistryTest {
                         .findFirst().orElseThrow().diagnosticCode()
         );
         assertEquals(
-                List.of("noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm"),
+                List.of(
+                        "noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm",
+                        "class_select", "class_respec_preview", "class_respec_confirm",
+                        "class_swap_preview", "class_swap_confirm"),
                 networkIntent.fields().stream().filter(field -> field.path().equals("intent_type"))
                         .findFirst().orElseThrow().allowedValues()
         );
@@ -155,6 +158,54 @@ class SchemaRegistryTest {
                 refund.fields().stream().filter(field -> field.path().equals("refund_balances"))
                         .findFirst().orElseThrow().diagnosticCode()
         );
+    }
+
+    @Test
+    void phaseElevenClassContractsExposeExactAuthoringAndRuntimeShapes() {
+        var registry = CoreSchemas.createRegistry();
+        var slot = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "class_slot_definition"));
+        var classDefinition = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "class_definition"));
+        var classFields = classDefinition.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var grant = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "class_grant"));
+        var grantFields = grant.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var intent = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "class_intent"));
+        var preview = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "class_change_preview"));
+        var visible = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "visible_class_selection"));
+        var projection = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "definition_projection"));
+        var projectionFields = projection.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+
+        assertEquals(List.of("allowed", "disabled"), slot.fields().stream()
+                .filter(field -> field.path().equals("swap_policy"))
+                .findFirst().orElseThrow().allowedValues());
+        assertTrue(classFields.get("slot_cost").required());
+        assertEquals(DiffPolicy.MERGE_BY_KEY, classFields.get("grants").diffPolicy());
+        assertEquals(DiffPolicy.MERGE_BY_KEY, classFields.get("synergy").diffPolicy());
+        assertEquals(List.of(
+                        "attribute", "ability", "spell", "stage", "tree_access", "class_access"),
+                grantFields.get("type").allowedValues());
+        assertEquals(new SchemaDefaultValue.StringValue("require_existing"),
+                grantFields.get("learning").defaultValue().orElseThrow());
+        assertEquals(List.of("class_id", "preview_digest", "replacement_class_id"),
+                intent.fields().stream().map(FieldDescriptor::path).toList());
+        assertTrue(preview.fields().stream()
+                .allMatch(field -> field.projection() == ProjectionPolicy.CLIENT_VISIBLE));
+        assertEquals(List.of("active", "suspended"), visible.fields().stream()
+                .filter(field -> field.path().equals("activity"))
+                .findFirst().orElseThrow().allowedValues());
+        assertFalse(projectionFields.get("display").required());
+        assertFalse(projectionFields.get("description").required());
+        assertFalse(projectionFields.get("icon").required());
+        assertTrue(projectionFields.get("class_synergies").required());
     }
 
     @Test

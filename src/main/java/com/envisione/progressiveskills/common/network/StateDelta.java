@@ -28,6 +28,8 @@ public record StateDelta(
         Set<String> removedEffectiveValues,
         Map<ResourceLocation, Integer> changedNodeRanks,
         Set<ResourceLocation> removedNodeRanks,
+        Map<ResourceLocation, VisiblePlayerState.ClassSelection> changedSelectedClasses,
+        Set<ResourceLocation> removedSelectedClasses,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined,
@@ -56,6 +58,32 @@ public record StateDelta(
                 operationReceiptCount, quarantined, resultingStateDigest);
     }
 
+    public StateDelta(
+            UUID playerId,
+            long baseSyncRevision,
+            long newSyncRevision,
+            long newStateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> changedBalances,
+            Set<String> removedBalances,
+            Map<String, Long> changedEffectiveValues,
+            Set<String> removedEffectiveValues,
+            Map<ResourceLocation, Integer> changedNodeRanks,
+            Set<ResourceLocation> removedNodeRanks,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined,
+            String resultingStateDigest
+    ) {
+        this(playerId, baseSyncRevision, newSyncRevision, newStateRevision, definitionRevision,
+                presentationRevision, presentationDigest, changedBalances, removedBalances,
+                changedEffectiveValues, removedEffectiveValues, changedNodeRanks, removedNodeRanks,
+                Map.of(), Set.of(), orphanCount, operationReceiptCount, quarantined,
+                resultingStateDigest);
+    }
+
     public StateDelta {
         Objects.requireNonNull(playerId, "playerId");
         if (baseSyncRevision < 0 || newSyncRevision <= baseSyncRevision || newStateRevision < 0
@@ -70,12 +98,17 @@ public record StateDelta(
         removedEffectiveValues = copySet(removedEffectiveValues);
         changedNodeRanks = copyNodeRanks(changedNodeRanks);
         removedNodeRanks = copyNodeIds(removedNodeRanks);
+        changedSelectedClasses = copyClassSelections(changedSelectedClasses);
+        removedSelectedClasses = copyNodeIds(removedSelectedClasses);
         if (!Collections.disjoint(changedBalances.keySet(), removedBalances)
                 || !Collections.disjoint(changedEffectiveValues.keySet(), removedEffectiveValues)) {
             throw new IllegalArgumentException("State delta cannot change and remove the same path");
         }
         if (!Collections.disjoint(changedNodeRanks.keySet(), removedNodeRanks)) {
             throw new IllegalArgumentException("State delta cannot change and remove the same node rank");
+        }
+        if (!Collections.disjoint(changedSelectedClasses.keySet(), removedSelectedClasses)) {
+            throw new IllegalArgumentException("State delta cannot change and remove the same selected class");
         }
         resultingStateDigest = NetworkLimits.requireDigest(resultingStateDigest, "resultingStateDigest");
     }
@@ -95,8 +128,34 @@ public record StateDelta(
                 removals(before.effectiveValues(), after.effectiveValues()),
                 nodeChanges(before.nodeRanks(), after.nodeRanks()),
                 nodeRemovals(before.nodeRanks(), after.nodeRanks()),
+                classChanges(before.selectedClasses(), after.selectedClasses()),
+                classRemovals(before.selectedClasses(), after.selectedClasses()),
                 after.orphanCount(), after.operationReceiptCount(), after.quarantined(), digest
         );
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.ClassSelection> classChanges(
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> before,
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> after
+    ) {
+        var changed = new TreeMap<ResourceLocation, VisiblePlayerState.ClassSelection>(
+                ResourceLocation::compareNamespaced);
+        after.forEach((key, value) -> {
+            if (!Objects.equals(before.get(key), value)) {
+                changed.put(key, value);
+            }
+        });
+        return changed;
+    }
+
+    private static Set<ResourceLocation> classRemovals(
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> before,
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> after
+    ) {
+        var removed = new TreeSet<ResourceLocation>(ResourceLocation::compareNamespaced);
+        removed.addAll(before.keySet());
+        removed.removeAll(after.keySet());
+        return removed;
     }
 
     private static Map<ResourceLocation, Integer> nodeChanges(
@@ -186,5 +245,19 @@ public record StateDelta(
         var sorted = new TreeSet<ResourceLocation>(ResourceLocation::compareNamespaced);
         source.forEach(node -> sorted.add(StableId.requireValid(node)));
         return Collections.unmodifiableSet(sorted);
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.ClassSelection> copyClassSelections(
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> source
+    ) {
+        Objects.requireNonNull(source, "selected class delta");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("State delta selected classes exceed capacity");
+        }
+        var sorted = new TreeMap<ResourceLocation, VisiblePlayerState.ClassSelection>(
+                ResourceLocation::compareNamespaced);
+        source.forEach((classId, state) -> sorted.put(
+                StableId.requireValid(classId), Objects.requireNonNull(state, "selected class state")));
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }
 }

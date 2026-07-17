@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 10. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 11. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -89,6 +89,140 @@ Immutable typed semantic fields paired with source maps and provenance.
 | `header` (required) | `object` | — | — | Schema version, typed stable key, and safe presentation. | `{ schema_version = 2, id = "mypack:physique" }` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 | `provenance` (required) | `object` | — | — | Adapter and source metadata excluded from semantic projection. | `{ adapter = "toml" }` | `PS-SCHEMA-004` | `object` | `server_only` | `replace` |
 | `source_map` (required) | `map` | — | — | Field path to source-span mapping excluded from semantic projection. | `{ max_level = { source = "skills/physique.toml" } }` | `PS-SCHEMA-004` | `key_value` | `server_only` | `merge_by_key` |
+
+## Class respec or swap preview payload
+
+- Schema ID: `progressiveskills:class_change_preview`
+- Version: `2`
+- Audience: `internal`
+
+Clientbound revision pinned affected classes, authoritative currency costs, blockers, and confirmation digest.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `affected_classes` (required) | `list` | — | — | Bounded stable set of classes whose selected or active state changes. | `["mypack:mage", "mypack:warrior"]` | `PS-CLASS-005` | `object` | `client_visible` | `replace` |
+| `blockers` (required) | `list` | — | — | Bounded reasons that prevent confirmation. | `[]` | `PS-CLASS-005` | `object` | `client_visible` | `replace` |
+| `class_id` (required) | `resource_location` | — | — | Selected class to remove. | `mypack:mage` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `cost_balances` (required) | `map` | — | — | Authoritative nonnegative named currency totals charged by the change. | `{ "progressiveskills:global_points" = 2 }` | `PS-CLASS-005` | `object` | `client_visible` | `replace` |
+| `definition_generation` (required) | `integer` | — | — | Definition generation used to calculate the preview. | `11` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `intent_type` (required) | `enum` | `class_respec_preview \| class_swap_preview` | — | Class respec or swap preview family. | `class_swap_preview` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `preview_digest` (required) | `string` | — | — | Lowercase SHA 256 covering the complete authoritative change. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-CLASS-005` | `object` | `client_visible` | `replace` |
+| `replacement_class_id` | `resource_location` | — | — | Replacement class present only for a swap. | `mypack:warrior` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `request_id` (required) | `integer` | — | — | Preview request identity returned to the requesting client. | `14` | `PS-NET-004` | `object` | `client_visible` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | Gameplay definition digest used by the preview. | `eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `session_id` (required) | `string` | — | — | Current connection session UUID. | `00000000-0000-0000-0000-000000000711` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `state_revision` (required) | `integer` | — | — | Authoritative state revision used by the preview. | `8` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+
+## Class definition
+
+- Schema ID: `progressiveskills:class_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Bounded Core class with weighted slot use, prerequisites, costs, grants, and receipt protected starter kit.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `access_required` | `boolean` | — | `false` | Require a source owned class access entitlement before selection. | `false` | `PS-CLASS-002` | `checkbox` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized class description. | `{ fallback = "Arcane specialist." }` | `PS-CLASS-002` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized class name. | `{ fallback = "Mage" }` | `PS-CLASS-002` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether new selections are accepted and retained prerequisites may remain active. | `true` | `PS-CLASS-002` | `checkbox` | `client_visible` | `replace` |
+| `exclusive_tags` | `list` | — | `[]` | Stable coexistence tags that cannot overlap another selected class. | `["mypack:arcane_primary"]` | `PS-CLASS-002` | `list` | `client_visible` | `set` |
+| `grants` | `list` | — | `[]` | Up to thirty two source owned persistent grants merged by stable grant id. | `[{ id = "mypack:mage/tree", type = "tree_access", tree = "mypack:arcane_tree" }]` | `PS-CLASS-007` | `list` | `client_visible` | `merge_by_key` |
+| `icon` (required) | `icon` | — | — | Class icon with fallback and alternative text. | `{ type = "item", value = "minecraft:enchanted_book", fallback = "minecraft:barrier", alt = "Enchanted book" }` | `PS-CLASS-002` | `icon` | `client_visible` | `replace` |
+| `prerequisites.classes` | `list` | — | `[]` | Selected classes that must all remain active. | `["mypack:apprentice"]` | `PS-CLASS-002` | `list` | `client_visible` | `set` |
+| `prerequisites.min_level` | `map` | — | `{}` | Up to thirty two skill ids mapped to nonnegative minimum levels. | `{ "mypack:arcana" = 15 }` | `PS-CLASS-002` | `key_value` | `client_visible` | `replace` |
+| `prerequisites.nodes` | `list` | — | `[]` | Owned Core tree nodes that must all remain owned. | `["mypack:arcane/root"]` | `PS-CLASS-002` | `list` | `client_visible` | `set` |
+| `respec_allowed` | `boolean` | — | `true` | Whether a selected class may be removed by player respec or swap. | `true` | `PS-CLASS-002` | `checkbox` | `client_visible` | `replace` |
+| `respec_cost` | `object` | — | — | Optional named currency charge for an allowed removal. | `{ currency = "progressiveskills:global_points", amount = 2 }` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate class search terms. | `["Caster"]` | `PS-CLASS-002` | `list` | `client_visible` | `set` |
+| `selection_cost` | `object` | — | — | Optional named currency charge sunk on selection and never refunded implicitly. | `{ currency = "progressiveskills:global_points", amount = 5 }` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `slot` (required) | `resource_location` | — | — | Pack defined class slot consumed by this class. | `mypack:combat` | `PS-CLASS-002` | `resource_location` | `client_visible` | `replace` |
+| `slot_cost` (required) | `integer` | — | — | Weighted slot use. Zero represents an explicit background class. | `1` | `PS-CLASS-002` | `integer` | `client_visible` | `replace` |
+| `starter_kit` | `list` | — | `[]` | Up to thirty two item ids delivered only on the first successful selection receipt. | `["minecraft:book"]` | `PS-CLASS-002` | `list` | `client_visible` | `ordered` |
+| `synergy` | `list` | — | `[]` | Named bounded synergy definitions nested under their owning class. | `[{ id = "mypack:spellblade", requires_classes = ["mypack:mage", "mypack:warrior"] }]` | `PS-CLASS-003` | `list` | `client_visible` | `merge_by_key` |
+
+## Class persistent grant
+
+- Schema ID: `progressiveskills:class_grant`
+- Version: `2`
+- Audience: `authoring`
+
+Source owned attribute, ability, spell, stage, tree access, or class access contribution.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `ability` | `resource_location` | — | — | Ability target required by ability grants. | `mypack:arcane_surge` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `attribute` | `resource_location` | — | — | Attribute target required by attribute grants. | `minecraft:generic.max_health` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `class` | `resource_location` | — | — | Class access target required by class access grants. | `mypack:berserker` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Globally unique stable grant source identity. | `mypack:mage/arcane_tree` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `learning` | `enum` | `require_existing \| satisfy_while_owned` | `"require_existing"` | Reversible spell learning satisfaction policy. | `require_existing` | `PS-CLASS-007` | `select` | `client_visible` | `replace` |
+| `level` | `integer` | — | `1` | Bounded virtual spell level from one through two hundred fifty five. | `3` | `PS-CLASS-007` | `integer` | `client_visible` | `replace` |
+| `operation` | `enum` | `add_value \| add_multiplied_base \| add_multiplied_total` | — | Deterministic attribute operation required by attribute grants. | `add_value` | `PS-CLASS-007` | `select` | `client_visible` | `replace` |
+| `selection` | `enum` | `virtual_source` | `"virtual_source"` | Core spell selection ownership mode. | `virtual_source` | `PS-CLASS-007` | `select` | `client_visible` | `replace` |
+| `spell` | `resource_location` | — | — | Spell target required by spell grants. | `irons_spellbooks:fireball` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `stage` | `resource_location` | — | — | Stage target required by stage grants. | `mypack:arcane_access` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `tree` | `resource_location` | — | — | Tree target required by tree access grants. | `mypack:arcane_tree` | `PS-CLASS-007` | `resource_location` | `client_visible` | `replace` |
+| `type` (required) | `enum` | `attribute \| ability \| spell \| stage \| tree_access \| class_access` | — | Closed Core class grant type. | `tree_access` | `PS-CLASS-007` | `select` | `client_visible` | `replace` |
+| `value` | `decimal` | — | — | Nonzero fixed point attribute value. Other typed values are derived. | `2.0` | `PS-CLASS-007` | `decimal` | `client_visible` | `replace` |
+
+## Class mutation intent payload
+
+- Schema ID: `progressiveskills:class_intent`
+- Version: `2`
+- Audience: `internal`
+
+Bounded serverbound class selection with no client supplied costs, grants, capacity, or outcomes.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `class_id` (required) | `resource_location` | — | — | Selected class or class removed by a swap. | `mypack:mage` | `PS-CLASS-002` | `object` | `server_only` | `replace` |
+| `preview_digest` | `string` | — | — | Required only by respec and swap confirmations. | `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc` | `PS-CLASS-005` | `object` | `server_only` | `replace` |
+| `replacement_class_id` | `resource_location` | — | — | Required only by swap preview and confirmation. | `mypack:warrior` | `PS-CLASS-002` | `object` | `server_only` | `replace` |
+
+## Class slot definition
+
+- Schema ID: `progressiveskills:class_slot_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Named weighted capacity bucket used by Core class selection and swap policy.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `capacity` (required) | `integer` | — | — | Positive capacity from one through sixty four. | `2` | `PS-CLASS-001` | `integer` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized class slot description. | `{ fallback = "Combat specializations." }` | `PS-CLASS-001` | `component` | `client_visible` | `replace` |
+| `display` | `component` | — | — | Optional localized class slot name. | `{ fallback = "Combat" }` | `PS-CLASS-001` | `component` | `client_visible` | `replace` |
+| `icon` | `icon` | — | — | Optional class slot icon with alternative text. | `{ type = "item", value = "minecraft:iron_sword", fallback = "minecraft:barrier", alt = "Iron sword" }` | `PS-CLASS-001` | `icon` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate terms for later class search. | `["Role"]` | `PS-CLASS-001` | `list` | `client_visible` | `set` |
+| `swap_policy` | `enum` | `allowed \| disabled` | `"allowed"` | Whether an atomic confirmed replacement is permitted in this slot. | `allowed` | `PS-CLASS-001` | `select` | `client_visible` | `replace` |
+
+Cross-field constraints:
+
+- `required_together` → `display`, `icon` (`PS-CLASS-001`): Class slot display and icon are declared together.
+
+## Class synergy
+
+- Schema ID: `progressiveskills:class_synergy`
+- Version: `2`
+- Audience: `authoring`
+
+Named source owned grants active only while every required selected class remains active.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `description` | `component` | — | — | Optional localized synergy description. | `{ fallback = "Arcane martial training." }` | `PS-CLASS-003` | `component` | `client_visible` | `replace` |
+| `display` | `component` | — | — | Optional localized synergy name. | `{ fallback = "Spellblade" }` | `PS-CLASS-003` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether the synergy contributes grants when every requirement is active. | `true` | `PS-CLASS-003` | `checkbox` | `client_visible` | `replace` |
+| `grants` (required) | `list` | — | — | One through thirty two globally unique class grant entries. | `[{ id = "mypack:spellblade/stance", type = "ability", ability = "mypack:spellblade_stance" }]` | `PS-CLASS-003` | `list` | `client_visible` | `merge_by_key` |
+| `icon` | `icon` | — | — | Optional synergy icon with alternative text. | `{ type = "item", value = "minecraft:golden_sword", fallback = "minecraft:barrier", alt = "Golden sword" }` | `PS-CLASS-003` | `icon` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Globally unique stable synergy identity. | `mypack:spellblade` | `PS-CLASS-003` | `resource_location` | `client_visible` | `replace` |
+| `requires_classes` (required) | `list` | — | — | Two through sixteen known classes that must all remain active. | `["mypack:mage", "mypack:warrior"]` | `PS-CLASS-003` | `list` | `client_visible` | `set` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate synergy terms. | `["Hybrid"]` | `PS-CLASS-003` | `list` | `client_visible` | `set` |
+
+Cross-field constraints:
+
+- `required_together` → `display`, `icon` (`PS-CLASS-003`): Synergy display and icon are declared together.
 
 ## Component specification
 
@@ -187,15 +321,19 @@ One bounded path-addressed mutation applied before typed schema validation.
 - Version: `2`
 - Audience: `internal`
 
-Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.
+Client-safe identity, presentation, disclosed tree graph, class selection semantics, and synergy summaries without authority internals.
 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
-| `description` (required) | `component` | — | — | Optional localized description with bounded fallback. | `{ key = "skill.mypack.physique.desc", fallback = "Raw power." }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
-| `display` (required) | `component` | — | — | Optional localized display component with bounded fallback. | `{ key = "skill.mypack.physique", fallback = "Physique" }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
-| `icon` (required) | `icon` | — | — | Optional bounded icon, fallback, alt text, and narration. | `{ type = "item", value = "minecraft:iron_chestplate" }` | `PS-SCHEMA-006` | `object` | `client_visible` | `replace` |
+| `class_definition` | `object` | — | — | Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries. | `{ slot_id = "mypack:combat", slot_cost = 1, enabled = true }` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `class_slot` | `object` | — | — | Bounded capacity and swap policy for a class slot definition. | `{ capacity = 2, swap_policy = "allowed" }` | `PS-CLASS-001` | `object` | `client_visible` | `replace` |
+| `class_synergies` (required) | `map` | — | — | Bounded named class synergy summaries keyed by stable synergy id. | `{ "mypack:spellblade" = { required_classes = ["mypack:mage", "mypack:warrior"] } }` | `PS-CLASS-003` | `object` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Optional localized description with bounded fallback. | `{ key = "skill.mypack.physique.desc", fallback = "Raw power." }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+| `display` | `component` | — | — | Optional localized display component with bounded fallback. | `{ key = "skill.mypack.physique", fallback = "Physique" }` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+| `icon` | `icon` | — | — | Optional bounded icon, fallback, alt text, and narration. | `{ type = "item", value = "minecraft:iron_chestplate" }` | `PS-SCHEMA-006` | `object` | `client_visible` | `replace` |
 | `key` (required) | `string` | — | — | Typed definition kind and namespaced identity. | `progressiveskills:skill[mypack:physique]` | `PS-ID-001` | `object` | `client_visible` | `replace` |
 | `search_aliases` (required) | `list` | — | — | Bounded presentation-only search terms. | `["Strength", "Might"]` | `PS-I18N-001` | `object` | `client_visible` | `replace` |
+| `tree` | `object` | — | — | Bounded disclosed tree graph without grants or historical paid costs. | `{ scope = "skill", currency = "progressiveskills:global_points" }` | `PS-TREE-001` | `object` | `client_visible` | `replace` |
 
 ## Persistent entitlement contribution
 
@@ -245,10 +383,10 @@ Connection-scoped protocol, feature, server identity, and semantic/presentation 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Monotonic server gameplay-definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `15` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `63` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `presentation_digest` (required) | `string` | — | — | SHA-256 of the exact sanitized definition projection bytes. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-NET-002` | `object` | `client_visible` | `replace` |
 | `presentation_revision` (required) | `integer` | — | — | Monotonic presentation generation negotiated independently. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `1` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `3` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | SHA-256 of the authoritative gameplay definition snapshot. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `server_identity` (required) | `string` | — | — | Persistent world/server UUID that scopes the local definition cache. | `00000000-0000-0000-0000-000000000601` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `session_id` (required) | `string` | — | — | Ephemeral connection session UUID required on every later payload. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `client_visible` | `replace` |
@@ -264,7 +402,7 @@ Serverbound request identity and stale guards; clients never provide costs, XP, 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Client-observed gameplay definition generation. | `7` | `PS-NET-003` | `object` | `server_only` | `replace` |
-| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
+| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm \| class_select \| class_respec_preview \| class_respec_confirm \| class_swap_preview \| class_swap_confirm` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
 | `payload` (required) | `string` | — | — | Small type-specific bounded selection payload; never effect amounts or commands. | `""` | `PS-NET-002` | `object` | `server_only` | `replace` |
 | `request_id` (required) | `integer` | — | — | Monotonic request id covered by the bounded replay/result window. | `12` | `PS-NET-004` | `object` | `server_only` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Client-observed gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `server_only` | `replace` |
@@ -542,9 +680,13 @@ Typed changed/removed paths applied only across an exact base-to-new revision ed
 | `base_revision` (required) | `integer` | — | — | Required current client storage revision. | `5` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_balances` (required) | `map` | — | — | Changed or added visible balance paths. | `{ "mypack:points" = 5 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `changed_effective_values` (required) | `map` | — | — | Changed or added effective-value paths. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_node_ranks` (required) | `map` | — | — | Changed or added visible Core node ranks. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `changed_selected_classes` (required) | `map` | — | — | Changed or added visible selected class states. | `{}` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `new_revision` (required) | `integer` | — | — | Strictly newer resulting storage revision. | `6` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_balances` (required) | `list` | — | — | Removed visible balance paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `removed_effective_values` (required) | `list` | — | — | Removed effective-value paths. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_node_ranks` (required) | `list` | — | — | Removed visible Core node ids. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `removed_selected_classes` (required) | `list` | — | — | Removed selected class ids. | `[]` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `resulting_state_digest` (required) | `string` | — | — | SHA-256 of the exact post-application full visible state. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 
 ## Stored definition state
@@ -725,6 +867,21 @@ Clientbound revision pinned affected nodes, exact historical refunds, blockers, 
 | `state_revision` (required) | `integer` | — | — | Authoritative player state revision used to calculate the preview. | `8` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `tree_id` (required) | `resource_location` | — | — | Tree containing every affected purchase. | `mypack:mining` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
 
+## Visible selected class state
+
+- Schema ID: `progressiveskills:visible_class_selection`
+- Version: `2`
+- Audience: `internal`
+
+Owner visible class identity, weighted slot use, and active or suspended status without raw source ownership.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `activity` (required) | `enum` | `active \| suspended` | — | Explicit noncolor active or suspended status. | `active` | `PS-CLASS-006` | `object` | `client_visible` | `replace` |
+| `class_id` (required) | `resource_location` | — | — | Selected stable class identity. | `mypack:mage` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `slot_cost` (required) | `integer` | — | — | Visible weighted slot use including zero cost background classes. | `1` | `PS-CLASS-002` | `object` | `client_visible` | `replace` |
+| `slot_id` | `resource_location` | — | — | Slot occupied by a known selected class. Missing definitions remain visibly suspended. | `mypack:combat` | `PS-CLASS-001` | `object` | `client_visible` | `replace` |
+
 ## Visible player state
 
 - Schema ID: `progressiveskills:visible_player_state`
@@ -738,10 +895,12 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 | `balances` (required) | `map` | — | — | Bounded namespaced visible balances. | `{ "mypack:points" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `definition_generation` (required) | `integer` | — | — | Pinned gameplay definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `effective_values` (required) | `map` | — | — | Bounded effective values needed by current client presentation. | `{ "minecraft:attribute[minecraft:generic.max_health]" = 4 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `node_ranks` (required) | `map` | — | — | Owned Core node ranks without historical paid cost records. | `{ "mypack:mining/root" = 1 }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `operation_receipt_count` (required) | `integer` | — | — | Visible diagnostic count without receipt contents. | `1` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `orphan_count` (required) | `integer` | — | — | Visible diagnostic count without orphan payload contents. | `0` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `player_id` (required) | `string` | — | — | UUID of the session owner. | `00000000-0000-0000-0000-000000000601` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `presentation_revision` (required) | `integer` | — | — | Pinned sanitized presentation generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `selected_classes` (required) | `map` | — | — | Selected class ids mapped to visible slot use and active or suspended state. | `{ "mypack:mage" = { slot_id = "mypack:combat", slot_cost = 1, activity = "active" } }` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Pinned gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `state_revision` (required) | `integer` | — | — | Authoritative transaction compare-and-swap revision. | `3` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `storage_revision` (required) | `integer` | — | — | Monotonic visible-state continuity revision. | `5` | `PS-NET-005` | `object` | `client_visible` | `replace` |
@@ -756,6 +915,69 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `true`
 - Why it matters: Icons require a textual equivalent for narration and nonvisual use.
 - Suggested fix: Add a short, meaningful alt component.
+
+<a id="ps-class-001"></a>
+
+### PS-CLASS-001 — Class slot definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A class slot requires a bounded positive capacity and one supported swap policy.
+- Suggested fix: Correct the class slot using the generated class slot schema.
+
+<a id="ps-class-002"></a>
+
+### PS-CLASS-002 — Class definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A class must use a known slot, bounded weight, valid prerequisites, costs, and typed grants.
+- Suggested fix: Correct the class using the generated class definition and grant schemas.
+
+<a id="ps-class-003"></a>
+
+### PS-CLASS-003 — Class synergy definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A synergy requires at least two known classes and bounded globally unique grants.
+- Suggested fix: Correct the required class set and grant identities.
+
+<a id="ps-class-004"></a>
+
+### PS-CLASS-004 — Class selection was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Unknown, disabled, inaccessible, conflicting, over capacity, unaffordable, or requirement blocked classes cannot be selected.
+- Suggested fix: Review the class preview blockers and submit a fresh current intent.
+
+<a id="ps-class-005"></a>
+
+### PS-CLASS-005 — Class respec or swap was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: A respec or swap requires current ownership, allowed policy, exact costs, and a matching preview.
+- Suggested fix: Request a fresh preview and resolve every blocker before confirming.
+
+<a id="ps-class-006"></a>
+
+### PS-CLASS-006 — Selected class requires reconciliation
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: Reloaded slot capacity, prerequisites, or lineage no longer permits the selected class to remain active.
+- Suggested fix: Review the suspended class and publish or run an explicit migration only after preview.
+
+<a id="ps-class-007"></a>
+
+### PS-CLASS-007 — Class entitlement projection is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A malformed grant, resolver, source identity, or target would make class ownership unsafe.
+- Suggested fix: Use supported attribute, ability, spell, stage, tree access, or class access grants.
 
 <a id="ps-currency-001"></a>
 

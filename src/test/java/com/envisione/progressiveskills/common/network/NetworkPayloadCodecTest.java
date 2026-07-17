@@ -58,6 +58,34 @@ class NetworkPayloadCodecTest {
     }
 
     @Test
+    void classIntentsAreCanonicalAndStrictlyShaped() {
+        ResourceLocation mage = ResourceLocation.parse("example:mage");
+        ResourceLocation warrior = ResourceLocation.parse("example:warrior");
+        ClassIntentPayload select = ClassIntentPayload.select(mage);
+        String encodedSelect = select.encode(NetworkPayloads.IntentType.CLASS_SELECT);
+        assertEquals(select, ClassIntentPayload.decode(
+                NetworkPayloads.IntentType.CLASS_SELECT, encodedSelect));
+
+        ClassIntentPayload respec = ClassIntentPayload.respecConfirm(mage, "f".repeat(64));
+        String encodedRespec = respec.encode(NetworkPayloads.IntentType.CLASS_RESPEC_CONFIRM);
+        assertEquals(respec, ClassIntentPayload.decode(
+                NetworkPayloads.IntentType.CLASS_RESPEC_CONFIRM, encodedRespec));
+
+        ClassIntentPayload swap = ClassIntentPayload.swapConfirm(
+                mage, warrior, "e".repeat(64));
+        String encodedSwap = swap.encode(NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM);
+        assertEquals(swap, ClassIntentPayload.decode(
+                NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM, encodedSwap));
+        assertThrows(IllegalArgumentException.class, () -> ClassIntentPayload.decode(
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW, encodedSwap));
+        assertThrows(IllegalArgumentException.class, () -> select.encode(
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW));
+        assertThrows(IllegalArgumentException.class, () -> ClassIntentPayload.decode(
+                NetworkPayloads.IntentType.CLASS_SELECT, encodedSelect + "\n"));
+        assertThrows(IllegalArgumentException.class, () -> ClassIntentPayload.swapPreview(mage, mage));
+    }
+
+    @Test
     void refundPreviewPreservesCascadeOrderAtTheAcceptedBoundary() {
         UUID session = UUID.randomUUID();
         List<ResourceLocation> affected = IntStream.range(0, NetworkLimits.MAX_TREE_PREVIEW_NODES)
@@ -80,6 +108,26 @@ class NetworkPayloadCodecTest {
         assertEquals(affected, decoded.affectedNodes());
         assertEquals(NetworkLimits.MAX_TREE_PREVIEW_BALANCES, decoded.refundBalances().size());
         assertEquals(NetworkLimits.MAX_TREE_PREVIEW_BLOCKERS, decoded.blockers().size());
+    }
+
+    @Test
+    void classPreviewPreservesAffectedOrderAndBoundedCosts() {
+        UUID session = UUID.randomUUID();
+        var preview = new NetworkPayloads.ClassChangePreview(
+                session, 12, 1, NetworkFixtures.SEMANTIC, 8,
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW,
+                NetworkFixtures.CLASS_MAGE, Optional.of(NetworkFixtures.CLASS_WARRIOR),
+                List.of(NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR),
+                Map.of(NetworkFixtures.CURRENCY, 6L), "c".repeat(64), List.of()
+        );
+
+        assertEquals(preview, roundTrip(NetworkPayloads.ClassChangePreview.STREAM_CODEC, preview));
+        assertTrue(preview.allowed());
+        assertThrows(IllegalArgumentException.class, () -> new NetworkPayloads.ClassChangePreview(
+                session, 12, 1, NetworkFixtures.SEMANTIC, 8,
+                NetworkPayloads.IntentType.CLASS_SELECT,
+                NetworkFixtures.CLASS_MAGE, Optional.empty(), List.of(), Map.of(),
+                "c".repeat(64), List.of()));
     }
 
     @Test

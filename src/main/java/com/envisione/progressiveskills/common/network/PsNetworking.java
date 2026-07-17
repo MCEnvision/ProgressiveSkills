@@ -20,6 +20,8 @@ public final class PsNetworking {
     private static volatile Supplier<String> clientConnectionIdentity = () -> "";
     private static volatile ServerNetworkSessions.IntentExecutor serverIntentExecutor =
             ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS;
+    private static volatile ServerNetworkSessions.ClassIntentExecutor serverClassIntentExecutor =
+            ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS;
 
     private PsNetworking() {
     }
@@ -39,6 +41,8 @@ public final class PsNetworking {
                         NetworkPayloads.IntentResult.STREAM_CODEC, PsNetworking::receiveIntentResult)
                 .playToClient(NetworkPayloads.TreeRefundPreview.TYPE,
                         NetworkPayloads.TreeRefundPreview.STREAM_CODEC, PsNetworking::receiveTreeRefundPreview)
+                .playToClient(NetworkPayloads.ClassChangePreview.TYPE,
+                        NetworkPayloads.ClassChangePreview.STREAM_CODEC, PsNetworking::receiveClassChangePreview)
                 .playToServer(NetworkPayloads.ClientHello.TYPE,
                         NetworkPayloads.ClientHello.STREAM_CODEC, PsNetworking::receiveClientHello)
                 .playToServer(NetworkPayloads.TransferAck.TYPE,
@@ -96,6 +100,12 @@ public final class PsNetworking {
         serverIntentExecutor = Objects.requireNonNull(executor, "executor");
     }
 
+    public static void configureServerClassIntentExecutor(
+            ServerNetworkSessions.ClassIntentExecutor executor
+    ) {
+        serverClassIntentExecutor = Objects.requireNonNull(executor, "executor");
+    }
+
     public static boolean sendTreeIntent(
             NetworkPayloads.IntentType intentType,
             TreeIntentPayload payload
@@ -122,6 +132,52 @@ public final class PsNetworking {
     ) {
         return sendTreeIntent(NetworkPayloads.IntentType.TREE_REFUND_CONFIRM,
                 TreeIntentPayload.refundConfirm(treeId, nodeId, previewDigest));
+    }
+
+    public static boolean sendClassIntent(
+            NetworkPayloads.IntentType intentType,
+            ClassIntentPayload payload
+    ) {
+        Optional<NetworkPayloads.Intent> intent = CLIENT.prepareClassIntent(intentType, payload);
+        intent.ifPresent(PacketDistributor::sendToServer);
+        return intent.isPresent();
+    }
+
+    public static boolean sendClassSelect(ResourceLocation classId) {
+        return sendClassIntent(
+                NetworkPayloads.IntentType.CLASS_SELECT, ClassIntentPayload.select(classId));
+    }
+
+    public static boolean sendClassRespecPreview(ResourceLocation classId) {
+        return sendClassIntent(
+                NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW,
+                ClassIntentPayload.respecPreview(classId));
+    }
+
+    public static boolean sendClassRespecConfirm(ResourceLocation classId, String previewDigest) {
+        return sendClassIntent(
+                NetworkPayloads.IntentType.CLASS_RESPEC_CONFIRM,
+                ClassIntentPayload.respecConfirm(classId, previewDigest));
+    }
+
+    public static boolean sendClassSwapPreview(
+            ResourceLocation removedClassId,
+            ResourceLocation replacementClassId
+    ) {
+        return sendClassIntent(
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW,
+                ClassIntentPayload.swapPreview(removedClassId, replacementClassId));
+    }
+
+    public static boolean sendClassSwapConfirm(
+            ResourceLocation removedClassId,
+            ResourceLocation replacementClassId,
+            String previewDigest
+    ) {
+        return sendClassIntent(
+                NetworkPayloads.IntentType.CLASS_SWAP_CONFIRM,
+                ClassIntentPayload.swapConfirm(
+                        removedClassId, replacementClassId, previewDigest));
     }
 
     /** Installs a client resolver for the selected world destination. */
@@ -170,6 +226,13 @@ public final class PsNetworking {
         clientHandle(context, () -> CLIENT.receiveTreeRefundPreview(payload));
     }
 
+    private static void receiveClassChangePreview(
+            NetworkPayloads.ClassChangePreview payload,
+            IPayloadContext context
+    ) {
+        clientHandle(context, () -> CLIENT.receiveClassChangePreview(payload));
+    }
+
     private static void receiveClientHello(NetworkPayloads.ClientHello payload, IPayloadContext context) {
         serverHandle(context, () -> {
             replyAll(context, SERVER.handleClientHello(context.player().getUUID(), payload));
@@ -195,7 +258,9 @@ public final class PsNetworking {
 
     private static void receiveIntent(NetworkPayloads.Intent payload, IPayloadContext context) {
         serverHandle(context, () -> replyAll(context,
-                SERVER.handleIntent(context.player().getUUID(), payload, serverIntentExecutor)));
+                SERVER.handleIntent(
+                        context.player().getUUID(), payload,
+                        serverIntentExecutor, serverClassIntentExecutor)));
     }
 
     private static void replyAll(IPayloadContext context, List<CustomPacketPayload> payloads) {

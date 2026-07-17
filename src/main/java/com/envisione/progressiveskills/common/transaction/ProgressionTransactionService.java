@@ -207,6 +207,7 @@ public final class ProgressionTransactionService {
         }
 
         Set<ReceiptKey> newReceiptKeys = new HashSet<>();
+        var pendingActions = new ArrayList<TransitionAction>();
         for (TransitionAction action : actions) {
             Optional<ReceiptKey> receiptKey = receiptKey(plan.targetId(), transactionId, action);
             if (receiptKey.isPresent() && !account.receipts.containsKey(receiptKey.orElseThrow())) {
@@ -215,17 +216,18 @@ public final class ProgressionTransactionService {
             if (receiptKey.isPresent() && account.receipts.containsKey(receiptKey.orElseThrow())) {
                 continue;
             }
-            Optional<String> actionRejection;
-            try {
-                actionRejection = boundedReason(actionExecutor.validate(plan.targetId(), action));
-            } catch (RuntimeException exception) {
-                return rejectAndCache(account, plan, transactionId, ACTION_REJECTED, safeMessage(exception),
-                        stateValidator);
-            }
-            if (actionRejection.isPresent()) {
-                return rejectAndCache(account, plan, transactionId, ACTION_REJECTED,
-                        actionRejection.orElseThrow(), stateValidator);
-            }
+            pendingActions.add(action);
+        }
+        Optional<String> actionRejection;
+        try {
+            actionRejection = boundedReason(actionExecutor.validateAll(plan.targetId(), pendingActions));
+        } catch (RuntimeException exception) {
+            return rejectAndCache(account, plan, transactionId, ACTION_REJECTED, safeMessage(exception),
+                    stateValidator);
+        }
+        if (actionRejection.isPresent()) {
+            return rejectAndCache(account, plan, transactionId, ACTION_REJECTED,
+                    actionRejection.orElseThrow(), stateValidator);
         }
         if ((long) account.receipts.size() + newReceiptKeys.size() > maxReceiptsPerAccount) {
             return rejectAndCache(account, plan, transactionId, LEDGER_FULL,

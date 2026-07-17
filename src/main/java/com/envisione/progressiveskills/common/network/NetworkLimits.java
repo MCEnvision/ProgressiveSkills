@@ -4,15 +4,17 @@ import java.util.Objects;
 
 /** Hard protocol ceilings shared by codecs, transfer assembly, and tests. */
 public final class NetworkLimits {
-    public static final int PROTOCOL_VERSION = 2;
-    public static final String REGISTRAR_VERSION = "2";
+    public static final int PROTOCOL_VERSION = 3;
+    public static final String REGISTRAR_VERSION = "3";
     public static final long FEATURE_DEFINITION_PROJECTION = 1L;
     public static final long FEATURE_FULL_STATE = 1L << 1;
     public static final long FEATURE_STATE_DELTA = 1L << 2;
     public static final long FEATURE_BOUNDED_INTENTS = 1L << 3;
     public static final long FEATURE_CORE_TREES = 1L << 4;
+    public static final long FEATURE_CORE_CLASSES = 1L << 5;
     public static final long REQUIRED_FEATURES = FEATURE_DEFINITION_PROJECTION
-            | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS | FEATURE_CORE_TREES;
+            | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS
+            | FEATURE_CORE_TREES | FEATURE_CORE_CLASSES;
 
     public static final int MAX_DEFINITIONS = 4_096;
     public static final int MAX_VISIBLE_VALUES = 4_096;
@@ -39,6 +41,17 @@ public final class NetworkLimits {
     public static final int MAX_TREE_PREVIEW_NODES = 64;
     public static final int MAX_TREE_PREVIEW_BALANCES = 64;
     public static final int MAX_TREE_PREVIEW_BLOCKERS = 64;
+    public static final int MAX_CLASS_PREREQUISITES = 64;
+    public static final int MAX_CLASS_MINIMUM_SKILLS = 32;
+    public static final int MAX_CLASS_EXCLUSIVE_TAGS = 32;
+    public static final int MAX_CLASS_GRANT_SUMMARIES = 32;
+    public static final int MAX_CLASS_SYNERGY_VIEWS = 64;
+    public static final int MAX_CLASS_SYNERGY_CLASSES = 16;
+    public static final int MAX_CLASS_STARTER_ITEMS = 32;
+    public static final int MAX_CLASS_SLOT_CAPACITY = 64;
+    public static final int MAX_CLASS_PREVIEW_CLASSES = 64;
+    public static final int MAX_CLASS_PREVIEW_BALANCES = 64;
+    public static final int MAX_CLASS_PREVIEW_BLOCKERS = 64;
 
     private NetworkLimits() {
     }

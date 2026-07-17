@@ -14,8 +14,8 @@ import java.util.UUID;
 
 /** Strict codec for full visible state and semantic deltas. */
 public final class VisibleStateCodec {
-    private static final int FULL_VERSION = 2;
-    private static final int DELTA_VERSION = 2;
+    private static final int FULL_VERSION = 3;
+    private static final int DELTA_VERSION = 3;
 
     private VisibleStateCodec() {
     }
@@ -41,6 +41,7 @@ public final class VisibleStateCodec {
                     readMap(input),
                     readMap(input),
                     readNodeRanks(input),
+                    readClassSelections(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean()
@@ -77,6 +78,8 @@ public final class VisibleStateCodec {
                     readSet(input),
                     readNodeRanks(input),
                     readNodeIds(input),
+                    readClassSelections(input),
+                    readNodeIds(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean(),
@@ -104,6 +107,7 @@ public final class VisibleStateCodec {
         writeMap(output, state.balances());
         writeMap(output, state.effectiveValues());
         writeNodeRanks(output, state.nodeRanks());
+        writeClassSelections(output, state.selectedClasses());
         output.writeInt(state.orphanCount());
         output.writeInt(state.operationReceiptCount());
         output.writeBoolean(state.quarantined());
@@ -124,6 +128,8 @@ public final class VisibleStateCodec {
         writeSet(output, delta.removedEffectiveValues());
         writeNodeRanks(output, delta.changedNodeRanks());
         writeNodeIds(output, delta.removedNodeRanks());
+        writeClassSelections(output, delta.changedSelectedClasses());
+        writeNodeIds(output, delta.removedSelectedClasses());
         output.writeInt(delta.orphanCount());
         output.writeInt(delta.operationReceiptCount());
         output.writeBoolean(delta.quarantined());
@@ -228,6 +234,47 @@ public final class VisibleStateCodec {
             throw new IOException("Invalid visible node id");
         }
         return node;
+    }
+
+    private static void writeClassSelections(
+            DataOutputStream output,
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> classes
+    ) throws IOException {
+        output.writeInt(classes.size());
+        for (var entry : classes.entrySet()) {
+            BoundedNetworkCodec.writeString(
+                    output, entry.getKey().toString(), NetworkLimits.MAX_KEY_BYTES);
+            output.writeBoolean(entry.getValue().slotId().isPresent());
+            if (entry.getValue().slotId().isPresent()) {
+                BoundedNetworkCodec.writeString(
+                        output, entry.getValue().slotId().orElseThrow().toString(),
+                        NetworkLimits.MAX_KEY_BYTES);
+            }
+            output.writeInt(entry.getValue().slotCost());
+            output.writeByte(entry.getValue().activity().ordinal());
+        }
+    }
+
+    private static Map<ResourceLocation, VisiblePlayerState.ClassSelection> readClassSelections(
+            DataInputStream input
+    ) throws IOException {
+        int count = readCount(input);
+        var classes = new LinkedHashMap<ResourceLocation, VisiblePlayerState.ClassSelection>();
+        for (int index = 0; index < count; index++) {
+            ResourceLocation classId = readNodeId(input);
+            java.util.Optional<ResourceLocation> slotId = input.readBoolean()
+                    ? java.util.Optional.of(readNodeId(input)) : java.util.Optional.empty();
+            int slotCost = input.readInt();
+            int activity = input.readUnsignedByte();
+            if (activity >= VisiblePlayerState.Activity.values().length) {
+                throw new IOException("Unknown visible class activity");
+            }
+            if (classes.putIfAbsent(classId, new VisiblePlayerState.ClassSelection(
+                    slotId, slotCost, VisiblePlayerState.Activity.values()[activity])) != null) {
+                throw new IOException("Duplicate visible selected class");
+            }
+        }
+        return classes;
     }
 
     private static int readCount(DataInputStream input) throws IOException {

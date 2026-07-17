@@ -16,7 +16,7 @@ import java.util.TreeMap;
 
 /** Deterministic bounded codec for sanitized definition presentation DTOs. */
 public final class DefinitionProjectionCodec {
-    private static final int FORMAT_VERSION = 2;
+    private static final int FORMAT_VERSION = 3;
 
     private DefinitionProjectionCodec() {
     }
@@ -51,13 +51,28 @@ public final class DefinitionProjectionCodec {
                 }
                 Optional<DefinitionProjection.TreeView> tree = input.readBoolean()
                         ? Optional.of(readTree(input)) : Optional.empty();
+                Optional<DefinitionProjection.ClassSlotView> classSlot = input.readBoolean()
+                        ? Optional.of(readClassSlot(input)) : Optional.empty();
+                Optional<DefinitionProjection.ClassView> classDefinition = input.readBoolean()
+                        ? Optional.of(readClass(input)) : Optional.empty();
                 if (definitions.putIfAbsent(key,
-                        new DefinitionProjection.Entry(display, description, icon, aliases, tree)) != null) {
+                        new DefinitionProjection.Entry(
+                                display, description, icon, aliases, tree, classSlot, classDefinition)) != null) {
                     throw new IOException("Duplicate projected definition " + key);
                 }
             }
+            int synergyCount = readCount(
+                    input, NetworkLimits.MAX_CLASS_SYNERGY_VIEWS, "class synergy");
+            var synergies = new TreeMap<ResourceLocation, DefinitionProjection.SynergyView>(
+                    ResourceLocation::compareNamespaced);
+            for (int index = 0; index < synergyCount; index++) {
+                ResourceLocation id = readId(input);
+                if (synergies.putIfAbsent(id, readSynergy(input)) != null) {
+                    throw new IOException("Duplicate projected class synergy " + id);
+                }
+            }
             BoundedNetworkCodec.requireFullyRead(input, "definition projection");
-            return new DefinitionProjection(definitions);
+            return new DefinitionProjection(definitions, synergies);
         } catch (IOException | RuntimeException exception) {
             throw new IllegalArgumentException("Invalid definition projection: " + exception.getMessage(), exception);
         }
@@ -86,7 +101,178 @@ public final class DefinitionProjectionCodec {
             if (definition.getValue().tree().isPresent()) {
                 writeTree(output, definition.getValue().tree().orElseThrow());
             }
+            output.writeBoolean(definition.getValue().classSlot().isPresent());
+            if (definition.getValue().classSlot().isPresent()) {
+                writeClassSlot(output, definition.getValue().classSlot().orElseThrow());
+            }
+            output.writeBoolean(definition.getValue().classDefinition().isPresent());
+            if (definition.getValue().classDefinition().isPresent()) {
+                writeClass(output, definition.getValue().classDefinition().orElseThrow());
+            }
         }
+        output.writeInt(projection.classSynergies().size());
+        for (var synergy : projection.classSynergies().entrySet()) {
+            writeId(output, synergy.getKey());
+            writeSynergy(output, synergy.getValue());
+        }
+    }
+
+    private static void writeClassSlot(
+            DataOutputStream output,
+            DefinitionProjection.ClassSlotView slot
+    ) throws IOException {
+        output.writeInt(slot.capacity());
+        BoundedNetworkCodec.writeString(output, slot.swapPolicy(), 32);
+    }
+
+    private static DefinitionProjection.ClassSlotView readClassSlot(DataInputStream input) throws IOException {
+        return new DefinitionProjection.ClassSlotView(
+                input.readInt(), BoundedNetworkCodec.readString(input, 32));
+    }
+
+    private static void writeClass(
+            DataOutputStream output,
+            DefinitionProjection.ClassView classDefinition
+    ) throws IOException {
+        output.writeBoolean(classDefinition.enabled());
+        writeId(output, classDefinition.slotId());
+        output.writeInt(classDefinition.slotCost());
+        output.writeBoolean(classDefinition.accessRequired());
+        writeIds(output, classDefinition.exclusiveTags());
+        output.writeInt(classDefinition.minimumSkillLevels().size());
+        for (var minimum : classDefinition.minimumSkillLevels().entrySet()) {
+            writeId(output, minimum.getKey());
+            output.writeInt(minimum.getValue());
+        }
+        writeIds(output, classDefinition.requiredNodes());
+        writeIds(output, classDefinition.requiredClasses());
+        writeOptionalCost(output, classDefinition.selectionCost());
+        output.writeBoolean(classDefinition.respecAllowed());
+        writeOptionalCost(output, classDefinition.respecCost());
+        output.writeInt(classDefinition.starterKit().size());
+        for (DefinitionProjection.StarterItemView item : classDefinition.starterKit()) {
+            writeId(output, item.item());
+            output.writeInt(item.count());
+        }
+        writeGrants(output, classDefinition.grants());
+    }
+
+    private static DefinitionProjection.ClassView readClass(DataInputStream input) throws IOException {
+        boolean enabled = input.readBoolean();
+        ResourceLocation slotId = readId(input);
+        int slotCost = input.readInt();
+        boolean accessRequired = input.readBoolean();
+        List<ResourceLocation> exclusiveTags = readIds(
+                input, NetworkLimits.MAX_CLASS_EXCLUSIVE_TAGS, "class exclusive tag");
+        int skillCount = readCount(
+                input, NetworkLimits.MAX_CLASS_MINIMUM_SKILLS, "class minimum skill");
+        var minimumSkills = new TreeMap<ResourceLocation, Integer>(ResourceLocation::compareNamespaced);
+        for (int index = 0; index < skillCount; index++) {
+            ResourceLocation skill = readId(input);
+            if (minimumSkills.putIfAbsent(skill, input.readInt()) != null) {
+                throw new IOException("Duplicate projected class minimum skill");
+            }
+        }
+        List<ResourceLocation> requiredNodes = readIds(
+                input, NetworkLimits.MAX_CLASS_PREREQUISITES, "required class node");
+        List<ResourceLocation> requiredClasses = readIds(
+                input, NetworkLimits.MAX_CLASS_PREREQUISITES, "required class");
+        Optional<DefinitionProjection.CurrencyCostView> selectionCost = readOptionalCost(input);
+        boolean respecAllowed = input.readBoolean();
+        Optional<DefinitionProjection.CurrencyCostView> respecCost = readOptionalCost(input);
+        int starterCount = readCount(
+                input, NetworkLimits.MAX_CLASS_STARTER_ITEMS, "starter kit item");
+        var starterKit = new ArrayList<DefinitionProjection.StarterItemView>(starterCount);
+        for (int index = 0; index < starterCount; index++) {
+            starterKit.add(new DefinitionProjection.StarterItemView(readId(input), input.readInt()));
+        }
+        return new DefinitionProjection.ClassView(
+                enabled, slotId, slotCost, accessRequired, exclusiveTags, minimumSkills,
+                requiredNodes, requiredClasses, selectionCost, respecAllowed,
+                respecCost, starterKit, readGrants(input));
+    }
+
+    private static void writeSynergy(
+            DataOutputStream output,
+            DefinitionProjection.SynergyView synergy
+    ) throws IOException {
+        output.writeBoolean(synergy.enabled());
+        writeOptionalText(output, synergy.display());
+        writeOptionalText(output, synergy.description());
+        output.writeBoolean(synergy.icon().isPresent());
+        if (synergy.icon().isPresent()) {
+            writeIcon(output, synergy.icon().orElseThrow());
+        }
+        output.writeInt(synergy.searchAliases().size());
+        for (String alias : synergy.searchAliases()) {
+            BoundedNetworkCodec.writeString(output, alias, NetworkLimits.MAX_TEXT_BYTES);
+        }
+        writeIds(output, synergy.requiredClasses());
+        writeGrants(output, synergy.grants());
+    }
+
+    private static DefinitionProjection.SynergyView readSynergy(DataInputStream input) throws IOException {
+        boolean enabled = input.readBoolean();
+        Optional<DefinitionProjection.Text> display = readOptionalText(input);
+        Optional<DefinitionProjection.Text> description = readOptionalText(input);
+        Optional<DefinitionProjection.Icon> icon = input.readBoolean()
+                ? Optional.of(readIcon(input)) : Optional.empty();
+        int aliasCount = readCount(input, NetworkLimits.MAX_ALIASES_PER_DEFINITION, "synergy alias");
+        var aliases = new ArrayList<String>(aliasCount);
+        for (int index = 0; index < aliasCount; index++) {
+            aliases.add(BoundedNetworkCodec.readString(input, NetworkLimits.MAX_TEXT_BYTES));
+        }
+        List<ResourceLocation> requiredClasses = readIds(
+                input, NetworkLimits.MAX_CLASS_SYNERGY_CLASSES, "synergy required class");
+        return new DefinitionProjection.SynergyView(
+                enabled, display, description, icon, aliases, requiredClasses, readGrants(input));
+    }
+
+    private static void writeOptionalCost(
+            DataOutputStream output,
+            Optional<DefinitionProjection.CurrencyCostView> cost
+    ) throws IOException {
+        output.writeBoolean(cost.isPresent());
+        if (cost.isPresent()) {
+            writeId(output, cost.orElseThrow().currency());
+            output.writeLong(cost.orElseThrow().amount());
+        }
+    }
+
+    private static Optional<DefinitionProjection.CurrencyCostView> readOptionalCost(
+            DataInputStream input
+    ) throws IOException {
+        return input.readBoolean() ? Optional.of(new DefinitionProjection.CurrencyCostView(
+                readId(input), input.readLong())) : Optional.empty();
+    }
+
+    private static void writeGrants(
+            DataOutputStream output,
+            List<DefinitionProjection.GrantSummary> grants
+    ) throws IOException {
+        output.writeInt(grants.size());
+        for (DefinitionProjection.GrantSummary grant : grants) {
+            BoundedNetworkCodec.writeString(output, grant.type(), 64);
+            writeId(output, grant.target());
+            BoundedNetworkCodec.writeString(output, grant.operation(), 64);
+            BoundedNetworkCodec.writeString(output, grant.resolver(), 32);
+            output.writeLong(grant.value());
+        }
+    }
+
+    private static List<DefinitionProjection.GrantSummary> readGrants(
+            DataInputStream input
+    ) throws IOException {
+        int count = readCount(
+                input, NetworkLimits.MAX_CLASS_GRANT_SUMMARIES, "class grant summary");
+        var grants = new ArrayList<DefinitionProjection.GrantSummary>(count);
+        for (int index = 0; index < count; index++) {
+            grants.add(new DefinitionProjection.GrantSummary(
+                    BoundedNetworkCodec.readString(input, 64), readId(input),
+                    BoundedNetworkCodec.readString(input, 64),
+                    BoundedNetworkCodec.readString(input, 32), input.readLong()));
+        }
+        return grants;
     }
 
     private static void writeTree(
@@ -165,8 +351,10 @@ public final class DefinitionProjectionCodec {
         long cost = input.readLong();
         int row = input.readInt();
         int column = input.readInt();
-        List<ResourceLocation> requires = readIds(input, "tree prerequisite");
-        List<ResourceLocation> requiresAny = readIds(input, "tree alternative prerequisite");
+        List<ResourceLocation> requires = readIds(
+                input, NetworkLimits.MAX_TREE_PREREQUISITES, "tree prerequisite");
+        List<ResourceLocation> requiresAny = readIds(
+                input, NetworkLimits.MAX_TREE_PREREQUISITES, "tree alternative prerequisite");
         if (requires.size() + requiresAny.size() > NetworkLimits.MAX_TREE_PREREQUISITES) {
             throw new IOException("Projected tree prerequisite count exceeds capacity");
         }
@@ -191,8 +379,12 @@ public final class DefinitionProjectionCodec {
         }
     }
 
-    private static List<ResourceLocation> readIds(DataInputStream input, String name) throws IOException {
-        int count = readCount(input, NetworkLimits.MAX_TREE_PREREQUISITES, name);
+    private static List<ResourceLocation> readIds(
+            DataInputStream input,
+            int maximum,
+            String name
+    ) throws IOException {
+        int count = readCount(input, maximum, name);
         var ids = new ArrayList<ResourceLocation>(count);
         for (int index = 0; index < count; index++) {
             ids.add(readId(input));

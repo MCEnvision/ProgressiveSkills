@@ -120,6 +120,7 @@ public final class ContentPackLoader {
         addCrossKindIdWarnings(definitions, problems);
         if (problems.stream().noneMatch(problem -> problem.severity() == DiagnosticSeverity.ERROR)) {
             com.envisione.progressiveskills.common.tree.TreeCatalog trees = null;
+            com.envisione.progressiveskills.common.classdef.ClassCatalog classes = null;
             try {
                 var skills = com.envisione.progressiveskills.common.skill.SkillCatalog.from(
                         definitions.canonicalIr()
@@ -130,6 +131,9 @@ public final class ContentPackLoader {
                 trees = com.envisione.progressiveskills.common.tree.TreeCatalog.from(
                         definitions.canonicalIr(), skills
                 );
+                classes = com.envisione.progressiveskills.common.classdef.ClassCatalog.from(
+                        definitions.canonicalIr(), skills, trees
+                );
             } catch (IllegalArgumentException | ArithmeticException exception) {
                 definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
                         problems.add(PackProblem.error(
@@ -139,10 +143,10 @@ public final class ContentPackLoader {
                         ))
                 );
             }
-            if (trees != null) {
+            if (trees != null && classes != null) {
                 try {
                     var projection = com.envisione.progressiveskills.common.network.DefinitionProjection.from(
-                            definitions.canonicalIr(), trees
+                            definitions.canonicalIr(), trees, classes
                     );
                     com.envisione.progressiveskills.common.network.DefinitionProjectionCodec.encode(projection);
                 } catch (IllegalArgumentException | ArithmeticException exception) {

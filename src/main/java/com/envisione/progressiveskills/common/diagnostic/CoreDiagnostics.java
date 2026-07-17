@@ -62,6 +62,13 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode TREE_REFUND_DENIED = code("PS-TREE-003");
     public static final DiagnosticCode TREE_ORPHANED_PURCHASE = code("PS-TREE-004");
     public static final DiagnosticCode PAID_COST_LEDGER_INVALID = code("PS-TREE-005");
+    public static final DiagnosticCode INVALID_CLASS_SLOT = code("PS-CLASS-001");
+    public static final DiagnosticCode INVALID_CLASS = code("PS-CLASS-002");
+    public static final DiagnosticCode INVALID_CLASS_SYNERGY = code("PS-CLASS-003");
+    public static final DiagnosticCode CLASS_SELECTION_DENIED = code("PS-CLASS-004");
+    public static final DiagnosticCode CLASS_RESPEC_DENIED = code("PS-CLASS-005");
+    public static final DiagnosticCode CLASS_RECONCILIATION_REQUIRED = code("PS-CLASS-006");
+    public static final DiagnosticCode CLASS_ENTITLEMENT_INVALID = code("PS-CLASS-007");
     public static final DiagnosticCode INVALID_RULE = code("PS-RULE-001");
     public static final DiagnosticCode UNKNOWN_RULE_TRIGGER = code("PS-RULE-002");
     public static final DiagnosticCode INVALID_RULE_MATCHER = code("PS-RULE-003");
@@ -306,6 +313,34 @@ public final class CoreDiagnostics {
                         "Paid cost ledger is invalid",
                         "Missing, malformed, conflicting, or overflowing historical payment evidence prevents an exact refund.",
                         "Restore verified paid cost records before allowing a purchase mutation or refund.", false))
+                .register(descriptor(INVALID_CLASS_SLOT, DiagnosticSeverity.ERROR,
+                        "Class slot definition is invalid",
+                        "A class slot requires a bounded positive capacity and one supported swap policy.",
+                        "Correct the class slot using the generated class slot schema.", false))
+                .register(descriptor(INVALID_CLASS, DiagnosticSeverity.ERROR,
+                        "Class definition is invalid",
+                        "A class must use a known slot, bounded weight, valid prerequisites, costs, and typed grants.",
+                        "Correct the class using the generated class definition and grant schemas.", false))
+                .register(descriptor(INVALID_CLASS_SYNERGY, DiagnosticSeverity.ERROR,
+                        "Class synergy definition is invalid",
+                        "A synergy requires at least two known classes and bounded globally unique grants.",
+                        "Correct the required class set and grant identities.", false))
+                .register(descriptor(CLASS_SELECTION_DENIED, DiagnosticSeverity.WARNING,
+                        "Class selection was denied",
+                        "Unknown, disabled, inaccessible, conflicting, over capacity, unaffordable, or requirement blocked classes cannot be selected.",
+                        "Review the class preview blockers and submit a fresh current intent.", true))
+                .register(descriptor(CLASS_RESPEC_DENIED, DiagnosticSeverity.WARNING,
+                        "Class respec or swap was denied",
+                        "A respec or swap requires current ownership, allowed policy, exact costs, and a matching preview.",
+                        "Request a fresh preview and resolve every blocker before confirming.", true))
+                .register(descriptor(CLASS_RECONCILIATION_REQUIRED, DiagnosticSeverity.WARNING,
+                        "Selected class requires reconciliation",
+                        "Reloaded slot capacity, prerequisites, or lineage no longer permits the selected class to remain active.",
+                        "Review the suspended class and publish or run an explicit migration only after preview.", false))
+                .register(descriptor(CLASS_ENTITLEMENT_INVALID, DiagnosticSeverity.ERROR,
+                        "Class entitlement projection is invalid",
+                        "A malformed grant, resolver, source identity, or target would make class ownership unsafe.",
+                        "Use supported attribute, ability, spell, stage, tree access, or class access grants.", false))
                 .register(descriptor(INVALID_RULE, DiagnosticSeverity.ERROR,
                         "Rule definition is invalid",
                         "A gameplay route must compile to one bounded deterministic transaction path.",

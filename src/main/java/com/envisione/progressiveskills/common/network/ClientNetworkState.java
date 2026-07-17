@@ -26,7 +26,9 @@ public final class ClientNetworkState {
     private Optional<VisiblePlayerState> visibleState = Optional.empty();
     private Optional<NetworkPayloads.IntentResult> lastIntentResult = Optional.empty();
     private Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview = Optional.empty();
+    private Optional<NetworkPayloads.ClassChangePreview> classChangePreview = Optional.empty();
     private long nextRequestId;
+    private long latestClassPreviewRequestId = -1;
     private ClientPhase phase = ClientPhase.DISCONNECTED;
 
     public ClientNetworkState(Clock clock) {
@@ -140,6 +142,8 @@ public final class ClientNetworkState {
                 }
                 visibleState = Optional.of(state);
                 treeRefundPreview = Optional.empty();
+                classChangePreview = Optional.empty();
+                latestClassPreviewRequestId = -1;
                 phase = ClientPhase.ACTIVE;
             }
             return Optional.of(new NetworkPayloads.TransferAck(
@@ -173,6 +177,8 @@ public final class ClientNetworkState {
             visibleState = Optional.of(next);
             if (next.stateRevision() != current.stateRevision()) {
                 treeRefundPreview = Optional.empty();
+                classChangePreview = Optional.empty();
+                latestClassPreviewRequestId = -1;
             }
             return new NetworkPayloads.StateAck(payload.sessionId(), next.syncRevision(), digest);
         } catch (RuntimeException exception) {
@@ -204,6 +210,26 @@ public final class ClientNetworkState {
         treeRefundPreview = Optional.of(preview);
     }
 
+    public synchronized void receiveClassChangePreview(NetworkPayloads.ClassChangePreview preview) {
+        Objects.requireNonNull(preview, "preview");
+        requireSession(preview.sessionId());
+        if (phase != ClientPhase.ACTIVE || visibleState.isEmpty() || activeDefinitions.isEmpty()) {
+            throw new IllegalArgumentException("Class preview arrived before active synchronized state");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        if (preview.definitionGeneration() != currentHello.definitionGeneration()
+                || !preview.semanticDigest().equals(currentHello.semanticDigest())
+                || preview.stateRevision() != currentState.stateRevision()
+                || preview.requestId() != latestClassPreviewRequestId
+                || !containsClass(activeDefinitions.orElseThrow(), preview.classId())
+                || preview.replacementClassId().filter(id ->
+                !containsClass(activeDefinitions.orElseThrow(), id)).isPresent()) {
+            throw new IllegalArgumentException("Class preview does not match active synchronized state");
+        }
+        classChangePreview = Optional.of(preview);
+    }
+
     public synchronized Optional<NetworkPayloads.Intent> prepareIntent(
             NetworkPayloads.IntentType intentType,
             TreeIntentPayload payload
@@ -233,6 +259,38 @@ public final class ClientNetworkState {
         ));
     }
 
+    public synchronized Optional<NetworkPayloads.Intent> prepareClassIntent(
+            NetworkPayloads.IntentType intentType,
+            ClassIntentPayload payload
+    ) {
+        Objects.requireNonNull(intentType, "intentType");
+        Objects.requireNonNull(payload, "payload");
+        if (phase != ClientPhase.ACTIVE || hello.isEmpty() || visibleState.isEmpty()
+                || activeDefinitions.isEmpty()) {
+            return Optional.empty();
+        }
+        if (!containsClass(activeDefinitions.orElseThrow(), payload.classId())
+                || payload.replacementClassId().filter(id ->
+                !containsClass(activeDefinitions.orElseThrow(), id)).isPresent()) {
+            throw new IllegalArgumentException("Class intent references an unavailable class");
+        }
+        if (nextRequestId == Long.MAX_VALUE) {
+            throw new IllegalStateException("Class intent request sequence is exhausted");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        long requestId = nextRequestId++;
+        boolean preview = intentType == NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW
+                || intentType == NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW;
+        classChangePreview = Optional.empty();
+        latestClassPreviewRequestId = preview ? requestId : -1;
+        return Optional.of(new NetworkPayloads.Intent(
+                currentHello.sessionId(), requestId, currentHello.definitionGeneration(),
+                currentHello.semanticDigest(), currentState.stateRevision(), intentType,
+                payload.encode(intentType)
+        ));
+    }
+
     public synchronized void disconnect() {
         clearAuthoritativeState();
         hello = Optional.empty();
@@ -255,6 +313,7 @@ public final class ClientNetworkState {
                 visibleState,
                 lastIntentResult,
                 treeRefundPreview,
+                classChangePreview,
                 definitionCache.size()
         );
     }
@@ -288,7 +347,9 @@ public final class ClientNetworkState {
         visibleState = Optional.empty();
         lastIntentResult = Optional.empty();
         treeRefundPreview = Optional.empty();
+        classChangePreview = Optional.empty();
         nextRequestId = 0;
+        latestClassPreviewRequestId = -1;
     }
 
     private void putCache(CacheKey key, DefinitionProjection projection) {
@@ -332,6 +393,15 @@ public final class ClientNetworkState {
                 .anyMatch(node -> node.id().equals(nodeId));
     }
 
+    private static boolean containsClass(
+            DefinitionProjection projection,
+            net.minecraft.resources.ResourceLocation classId
+    ) {
+        return projection.definitions().entrySet().stream()
+                .anyMatch(entry -> entry.getKey().id().equals(classId)
+                        && entry.getValue().classDefinition().isPresent());
+    }
+
     public enum ClientPhase {
         DISCONNECTED,
         WAITING_DEFINITIONS,
@@ -348,6 +418,7 @@ public final class ClientNetworkState {
             Optional<VisiblePlayerState> visibleState,
             Optional<NetworkPayloads.IntentResult> lastIntentResult,
             Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview,
+            Optional<NetworkPayloads.ClassChangePreview> classChangePreview,
             int cachedDefinitionSets
     ) {
         public Snapshot {
@@ -357,6 +428,7 @@ public final class ClientNetworkState {
             visibleState = Objects.requireNonNull(visibleState, "visibleState");
             lastIntentResult = Objects.requireNonNull(lastIntentResult, "lastIntentResult");
             treeRefundPreview = Objects.requireNonNull(treeRefundPreview, "treeRefundPreview");
+            classChangePreview = Objects.requireNonNull(classChangePreview, "classChangePreview");
         }
     }
 

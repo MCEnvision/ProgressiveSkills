@@ -1,10 +1,14 @@
 package com.envisione.progressiveskills.common.schema;
 
+import com.envisione.progressiveskills.common.classdef.ClassGrantType;
+import com.envisione.progressiveskills.common.classdef.ClassSpellLearningPolicy;
+import com.envisione.progressiveskills.common.classdef.ClassSwapPolicy;
 import com.envisione.progressiveskills.common.diagnostic.CoreDiagnostics;
 import com.envisione.progressiveskills.common.diagnostic.DiagnosticCode;
 import com.envisione.progressiveskills.common.expression.ExpressionRounding;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.SchemaVersion;
+import com.envisione.progressiveskills.common.network.NetworkLimits;
 import com.envisione.progressiveskills.common.presentation.IconKind;
 import com.envisione.progressiveskills.common.skill.AttributeOperation;
 import com.envisione.progressiveskills.common.skill.CurveRounding;
@@ -53,6 +57,10 @@ public final class CoreSchemas {
         builder.register(currencyDefinition());
         builder.register(treeDefinition());
         builder.register(treeNode());
+        builder.register(classSlotDefinition());
+        builder.register(classDefinition());
+        builder.register(classGrant());
+        builder.register(classSynergy());
         builder.register(ruleDefinition());
         builder.register(requirementExpression());
         builder.register(numericExpression());
@@ -74,6 +82,9 @@ public final class CoreSchemas {
         builder.register(paidCostRecord());
         builder.register(treeIntent());
         builder.register(treeRefundPreview());
+        builder.register(classIntent());
+        builder.register(classChangePreview());
+        builder.register(visibleClassSelection());
         return builder.build();
     }
 
@@ -585,6 +596,237 @@ public final class CoreSchemas {
                                 CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 40)
                                 .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build()
                 )
+        );
+    }
+
+    private static SchemaDescriptor classSlotDefinition() {
+        return schema(
+                "class_slot_definition",
+                SchemaAudience.AUTHORING,
+                "Class slot definition",
+                "Named weighted capacity bucket used by Core class selection and swap policy.",
+                List.of(
+                        field("capacity", SchemaValueType.INTEGER, true,
+                                "Positive capacity from one through sixty four.", "2",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.INTEGER, 50).build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized class slot description.",
+                                "{ fallback = \"Combat specializations.\" }",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, false,
+                                "Optional localized class slot name.",
+                                "{ fallback = \"Combat\" }",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.COMPONENT, 20).build(),
+                        field("icon", SchemaValueType.ICON, false,
+                                "Optional class slot icon with alternative text.",
+                                "{ type = \"item\", value = \"minecraft:iron_sword\", fallback = \"minecraft:barrier\", alt = \"Iron sword\" }",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.ICON, 40).build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate terms for later class search.", "[\"Role\"]",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.LIST, 45)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("swap_policy", SchemaValueType.ENUM, false,
+                                "Whether an atomic confirmed replacement is permitted in this slot.",
+                                "allowed", CoreDiagnostics.INVALID_CLASS_SLOT, EditorWidget.SELECT, 60)
+                                .allowedValues(Arrays.stream(ClassSwapPolicy.values())
+                                        .map(ClassSwapPolicy::serializedName).toArray(String[]::new))
+                                .defaultString("allowed").omitWhenDefault().build()
+                ),
+                List.of(SchemaConstraint.requiredTogether(
+                        CoreDiagnostics.INVALID_CLASS_SLOT,
+                        "Class slot display and icon are declared together.", "display", "icon"))
+        );
+    }
+
+    private static SchemaDescriptor classDefinition() {
+        return schema(
+                "class_definition",
+                SchemaAudience.AUTHORING,
+                "Class definition",
+                "Bounded Core class with weighted slot use, prerequisites, costs, grants, and receipt protected starter kit.",
+                List.of(
+                        field("access_required", SchemaValueType.BOOLEAN, false,
+                                "Require a source owned class access entitlement before selection.", "false",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.CHECKBOX, 55)
+                                .defaultBoolean(false).omitWhenDefault().build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized class description.", "{ fallback = \"Arcane specialist.\" }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized class name.", "{ fallback = \"Mage\" }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.COMPONENT, 20).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether new selections are accepted and retained prerequisites may remain active.",
+                                "true", CoreDiagnostics.INVALID_CLASS, EditorWidget.CHECKBOX, 50)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("exclusive_tags", SchemaValueType.LIST, false,
+                                "Stable coexistence tags that cannot overlap another selected class.",
+                                "[\"mypack:arcane_primary\"]",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.LIST, 80)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("grants", SchemaValueType.LIST, false,
+                                "Up to thirty two source owned persistent grants merged by stable grant id.",
+                                "[{ id = \"mypack:mage/tree\", type = \"tree_access\", tree = \"mypack:arcane_tree\" }]",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.LIST, 150)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Class icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:enchanted_book\", fallback = \"minecraft:barrier\", alt = \"Enchanted book\" }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.ICON, 40).build(),
+                        field("prerequisites.classes", SchemaValueType.LIST, false,
+                                "Selected classes that must all remain active.", "[\"mypack:apprentice\"]",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.LIST, 110)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("prerequisites.min_level", SchemaValueType.MAP, false,
+                                "Up to thirty two skill ids mapped to nonnegative minimum levels.",
+                                "{ \"mypack:arcana\" = 15 }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.KEY_VALUE, 90)
+                                .defaultEmptyObject().omitWhenDefault().build(),
+                        field("prerequisites.nodes", SchemaValueType.LIST, false,
+                                "Owned Core tree nodes that must all remain owned.",
+                                "[\"mypack:arcane/root\"]",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.LIST, 100)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("respec_allowed", SchemaValueType.BOOLEAN, false,
+                                "Whether a selected class may be removed by player respec or swap.", "true",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.CHECKBOX, 130)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("respec_cost", SchemaValueType.OBJECT, false,
+                                "Optional named currency charge for an allowed removal.",
+                                "{ currency = \"progressiveskills:global_points\", amount = 2 }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.OBJECT, 140).build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate class search terms.", "[\"Caster\"]",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.LIST, 45)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("selection_cost", SchemaValueType.OBJECT, false,
+                                "Optional named currency charge sunk on selection and never refunded implicitly.",
+                                "{ currency = \"progressiveskills:global_points\", amount = 5 }",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.OBJECT, 120).build(),
+                        field("slot", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Pack defined class slot consumed by this class.", "mypack:combat",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.RESOURCE_LOCATION, 60).build(),
+                        field("slot_cost", SchemaValueType.INTEGER, true,
+                                "Weighted slot use. Zero represents an explicit background class.", "1",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.INTEGER, 70).build(),
+                        field("starter_kit", SchemaValueType.LIST, false,
+                                "Up to thirty two item ids delivered only on the first successful selection receipt.",
+                                "[\"minecraft:book\"]",
+                                CoreDiagnostics.INVALID_CLASS, EditorWidget.LIST, 160)
+                                .defaultEmptyList().diff(DiffPolicy.ORDERED).omitWhenDefault().build(),
+                        field("synergy", SchemaValueType.LIST, false,
+                                "Named bounded synergy definitions nested under their owning class.",
+                                "[{ id = \"mypack:spellblade\", requires_classes = [\"mypack:mage\", \"mypack:warrior\"] }]",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.LIST, 170)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor classGrant() {
+        return schema(
+                "class_grant",
+                SchemaAudience.AUTHORING,
+                "Class persistent grant",
+                "Source owned attribute, ability, spell, stage, tree access, or class access contribution.",
+                List.of(
+                        field("ability", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Ability target required by ability grants.", "mypack:arcane_surge",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 60).build(),
+                        field("attribute", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Attribute target required by attribute grants.",
+                                "minecraft:generic.max_health",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 30).build(),
+                        field("class", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Class access target required by class access grants.", "mypack:berserker",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 80).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Globally unique stable grant source identity.", "mypack:mage/arcane_tree",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("learning", SchemaValueType.ENUM, false,
+                                "Reversible spell learning satisfaction policy.", "require_existing",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.SELECT, 110)
+                                .allowedValues(Arrays.stream(ClassSpellLearningPolicy.values())
+                                        .map(ClassSpellLearningPolicy::serializedName).toArray(String[]::new))
+                                .defaultString("require_existing").omitWhenDefault().build(),
+                        field("level", SchemaValueType.INTEGER, false,
+                                "Bounded virtual spell level from one through two hundred fifty five.", "3",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.INTEGER, 100)
+                                .defaultInteger(1).omitWhenDefault().build(),
+                        field("operation", SchemaValueType.ENUM, false,
+                                "Deterministic attribute operation required by attribute grants.", "add_value",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.SELECT, 40)
+                                .allowedValues(Arrays.stream(AttributeOperation.values())
+                                        .map(AttributeOperation::serializedName).toArray(String[]::new)).build(),
+                        field("selection", SchemaValueType.ENUM, false,
+                                "Core spell selection ownership mode.", "virtual_source",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.SELECT, 90)
+                                .allowedValues("virtual_source")
+                                .defaultString("virtual_source").omitWhenDefault().build(),
+                        field("spell", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Spell target required by spell grants.", "irons_spellbooks:fireball",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 85).build(),
+                        field("stage", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Stage target required by stage grants.", "mypack:arcane_access",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 70).build(),
+                        field("tree", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Tree target required by tree access grants.", "mypack:arcane_tree",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.RESOURCE_LOCATION, 75).build(),
+                        field("type", SchemaValueType.ENUM, true,
+                                "Closed Core class grant type.", "tree_access",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.SELECT, 20)
+                                .allowedValues(Arrays.stream(ClassGrantType.values())
+                                        .map(ClassGrantType::serializedName).toArray(String[]::new)).build(),
+                        field("value", SchemaValueType.DECIMAL, false,
+                                "Nonzero fixed point attribute value. Other typed values are derived.", "2.0",
+                                CoreDiagnostics.CLASS_ENTITLEMENT_INVALID, EditorWidget.DECIMAL, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor classSynergy() {
+        return schema(
+                "class_synergy",
+                SchemaAudience.AUTHORING,
+                "Class synergy",
+                "Named source owned grants active only while every required selected class remains active.",
+                List.of(
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Optional localized synergy description.",
+                                "{ fallback = \"Arcane martial training.\" }",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.COMPONENT, 40).build(),
+                        field("display", SchemaValueType.COMPONENT, false,
+                                "Optional localized synergy name.", "{ fallback = \"Spellblade\" }",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.COMPONENT, 30).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether the synergy contributes grants when every requirement is active.", "true",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.CHECKBOX, 60)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("grants", SchemaValueType.LIST, true,
+                                "One through thirty two globally unique class grant entries.",
+                                "[{ id = \"mypack:spellblade/stance\", type = \"ability\", ability = \"mypack:spellblade_stance\" }]",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.LIST, 80)
+                                .diff(DiffPolicy.MERGE_BY_KEY).build(),
+                        field("icon", SchemaValueType.ICON, false,
+                                "Optional synergy icon with alternative text.",
+                                "{ type = \"item\", value = \"minecraft:golden_sword\", fallback = \"minecraft:barrier\", alt = \"Golden sword\" }",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.ICON, 50).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Globally unique stable synergy identity.", "mypack:spellblade",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("requires_classes", SchemaValueType.LIST, true,
+                                "Two through sixteen known classes that must all remain active.",
+                                "[\"mypack:mage\", \"mypack:warrior\"]",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.LIST, 70)
+                                .diff(DiffPolicy.SET).build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate synergy terms.", "[\"Hybrid\"]",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, EditorWidget.LIST, 55)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build()
+                ),
+                List.of(SchemaConstraint.requiredTogether(
+                        CoreDiagnostics.INVALID_CLASS_SYNERGY,
+                        "Synergy display and icon are declared together.", "display", "icon"))
         );
     }
 
@@ -1354,7 +1596,8 @@ public final class CoreSchemas {
                                 "Monotonic server gameplay-definition generation.", "7",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 50).build(),
                         networkField("features", SchemaValueType.INTEGER,
-                                "Required bounded protocol feature bitset.", "15",
+                                "Required bounded protocol feature bitset.",
+                                Long.toString(NetworkLimits.REQUIRED_FEATURES),
                                 CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 40).build(),
                         networkField("presentation_digest", SchemaValueType.STRING,
                                 "SHA-256 of the exact sanitized definition projection bytes.", "b".repeat(64),
@@ -1363,7 +1606,8 @@ public final class CoreSchemas {
                                 "Monotonic presentation generation negotiated independently.", "7",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 60).build(),
                         networkField("protocol_version", SchemaValueType.INTEGER,
-                                "ProgressiveSkills application protocol version.", "1",
+                                "ProgressiveSkills application protocol version.",
+                                Integer.toString(NetworkLimits.PROTOCOL_VERSION),
                                 CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 30).build(),
                         networkField("semantic_digest", SchemaValueType.STRING,
                                 "SHA-256 of the authoritative gameplay definition snapshot.", "a".repeat(64),
@@ -1385,17 +1629,25 @@ public final class CoreSchemas {
                 "definition_projection",
                 SchemaAudience.INTERNAL,
                 "Sanitized definition projection",
-                "Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.",
+                "Client-safe identity, presentation, disclosed tree graph, class selection semantics, and synergy summaries without authority internals.",
                 List.of(
-                        networkField("description", SchemaValueType.COMPONENT,
+                        networkOptionalField("class_definition", SchemaValueType.OBJECT,
+                                "Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries.",
+                                "{ slot_id = \"mypack:combat\", slot_cost = 1, enabled = true }",
+                                CoreDiagnostics.INVALID_CLASS, 70).build(),
+                        networkOptionalField("class_slot", SchemaValueType.OBJECT,
+                                "Bounded capacity and swap policy for a class slot definition.",
+                                "{ capacity = 2, swap_policy = \"allowed\" }",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, 60).build(),
+                        networkOptionalField("description", SchemaValueType.COMPONENT,
                                 "Optional localized description with bounded fallback.",
                                 "{ key = \"skill.mypack.physique.desc\", fallback = \"Raw power.\" }",
                                 CoreDiagnostics.INVALID_COMPONENT, 30).build(),
-                        networkField("display", SchemaValueType.COMPONENT,
+                        networkOptionalField("display", SchemaValueType.COMPONENT,
                                 "Optional localized display component with bounded fallback.",
                                 "{ key = \"skill.mypack.physique\", fallback = \"Physique\" }",
                                 CoreDiagnostics.INVALID_COMPONENT, 20).build(),
-                        networkField("icon", SchemaValueType.ICON,
+                        networkOptionalField("icon", SchemaValueType.ICON,
                                 "Optional bounded icon, fallback, alt text, and narration.",
                                 "{ type = \"item\", value = \"minecraft:iron_chestplate\" }",
                                 CoreDiagnostics.INVALID_ICON, 40).build(),
@@ -1405,7 +1657,15 @@ public final class CoreSchemas {
                                 CoreDiagnostics.INVALID_ID, 10).build(),
                         networkField("search_aliases", SchemaValueType.LIST,
                                 "Bounded presentation-only search terms.", "[\"Strength\", \"Might\"]",
-                                CoreDiagnostics.INVALID_COMPONENT, 50).build()
+                                CoreDiagnostics.INVALID_COMPONENT, 50).build(),
+                        networkField("class_synergies", SchemaValueType.MAP,
+                                "Bounded named class synergy summaries keyed by stable synergy id.",
+                                "{ \"mypack:spellblade\" = { required_classes = [\"mypack:mage\", \"mypack:warrior\"] } }",
+                                CoreDiagnostics.INVALID_CLASS_SYNERGY, 90).build(),
+                        networkOptionalField("tree", SchemaValueType.OBJECT,
+                                "Bounded disclosed tree graph without grants or historical paid costs.",
+                                "{ scope = \"skill\", currency = \"progressiveskills:global_points\" }",
+                                CoreDiagnostics.INVALID_TREE, 80).build()
                 )
         );
     }
@@ -1465,6 +1725,10 @@ public final class CoreSchemas {
                         networkField("operation_receipt_count", SchemaValueType.INTEGER,
                                 "Visible diagnostic count without receipt contents.", "1",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 100).build(),
+                        networkField("node_ranks", SchemaValueType.MAP,
+                                "Owned Core node ranks without historical paid cost records.",
+                                "{ \"mypack:mining/root\" = 1 }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 85).build(),
                         networkField("orphan_count", SchemaValueType.INTEGER,
                                 "Visible diagnostic count without orphan payload contents.", "0",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 90).build(),
@@ -1477,6 +1741,10 @@ public final class CoreSchemas {
                         networkField("semantic_digest", SchemaValueType.STRING,
                                 "Pinned gameplay SHA-256.", "a".repeat(64),
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 45).build(),
+                        networkField("selected_classes", SchemaValueType.MAP,
+                                "Selected class ids mapped to visible slot use and active or suspended state.",
+                                "{ \"mypack:mage\" = { slot_id = \"mypack:combat\", slot_cost = 1, activity = \"active\" } }",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 87).build(),
                         networkField("state_revision", SchemaValueType.INTEGER,
                                 "Authoritative transaction compare-and-swap revision.", "3",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
@@ -1503,6 +1771,12 @@ public final class CoreSchemas {
                         networkField("changed_effective_values", SchemaValueType.MAP,
                                 "Changed or added effective-value paths.", "{}",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 60).build(),
+                        networkField("changed_node_ranks", SchemaValueType.MAP,
+                                "Changed or added visible Core node ranks.", "{}",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 62).build(),
+                        networkField("changed_selected_classes", SchemaValueType.MAP,
+                                "Changed or added visible selected class states.", "{}",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 64).build(),
                         networkField("new_revision", SchemaValueType.INTEGER,
                                 "Strictly newer resulting storage revision.", "6",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 20).build(),
@@ -1512,6 +1786,12 @@ public final class CoreSchemas {
                         networkField("removed_effective_values", SchemaValueType.LIST,
                                 "Removed effective-value paths.", "[]",
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 70).build(),
+                        networkField("removed_node_ranks", SchemaValueType.LIST,
+                                "Removed visible Core node ids.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 72).build(),
+                        networkField("removed_selected_classes", SchemaValueType.LIST,
+                                "Removed selected class ids.", "[]",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 74).build(),
                         networkField("resulting_state_digest", SchemaValueType.STRING,
                                 "SHA-256 of the exact post-application full visible state.", "d".repeat(64),
                                 CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 80).build()
@@ -1532,7 +1812,10 @@ public final class CoreSchemas {
                         runtimeField("intent_type", SchemaValueType.ENUM,
                                 "Closed server-registered intent family.", "tree_buy",
                                 CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 60)
-                                .allowedValues("noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm")
+                                .allowedValues(
+                                        "noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm",
+                                        "class_select", "class_respec_preview", "class_respec_confirm",
+                                        "class_swap_preview", "class_swap_confirm")
                                 .build(),
                         runtimeField("payload", SchemaValueType.STRING,
                                 "Small type-specific bounded selection payload; never effect amounts or commands.", "\"\"",
@@ -1667,6 +1950,101 @@ public final class CoreSchemas {
         );
     }
 
+    private static SchemaDescriptor classIntent() {
+        return schema(
+                "class_intent",
+                SchemaAudience.INTERNAL,
+                "Class mutation intent payload",
+                "Bounded serverbound class selection with no client supplied costs, grants, capacity, or outcomes.",
+                List.of(
+                        runtimeField("class_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Selected class or class removed by a swap.", "mypack:mage",
+                                CoreDiagnostics.INVALID_CLASS, 10).build(),
+                        runtimeOptionalField("preview_digest", SchemaValueType.STRING,
+                                "Required only by respec and swap confirmations.", "c".repeat(64),
+                                CoreDiagnostics.CLASS_RESPEC_DENIED, 30).build(),
+                        runtimeOptionalField("replacement_class_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Required only by swap preview and confirmation.", "mypack:warrior",
+                                CoreDiagnostics.INVALID_CLASS, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor classChangePreview() {
+        return schema(
+                "class_change_preview",
+                SchemaAudience.INTERNAL,
+                "Class respec or swap preview payload",
+                "Clientbound revision pinned affected classes, authoritative currency costs, blockers, and confirmation digest.",
+                List.of(
+                        networkField("affected_classes", SchemaValueType.LIST,
+                                "Bounded stable set of classes whose selected or active state changes.",
+                                "[\"mypack:mage\", \"mypack:warrior\"]",
+                                CoreDiagnostics.CLASS_RESPEC_DENIED, 90).build(),
+                        networkField("blockers", SchemaValueType.LIST,
+                                "Bounded reasons that prevent confirmation.", "[]",
+                                CoreDiagnostics.CLASS_RESPEC_DENIED, 120).build(),
+                        networkField("class_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Selected class to remove.", "mypack:mage",
+                                CoreDiagnostics.INVALID_CLASS, 70).build(),
+                        networkField("cost_balances", SchemaValueType.MAP,
+                                "Authoritative nonnegative named currency totals charged by the change.",
+                                "{ \"progressiveskills:global_points\" = 2 }",
+                                CoreDiagnostics.CLASS_RESPEC_DENIED, 100).build(),
+                        networkField("definition_generation", SchemaValueType.INTEGER,
+                                "Definition generation used to calculate the preview.", "11",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
+                        networkField("intent_type", SchemaValueType.ENUM,
+                                "Class respec or swap preview family.", "class_swap_preview",
+                                CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 60)
+                                .allowedValues("class_respec_preview", "class_swap_preview").build(),
+                        networkField("preview_digest", SchemaValueType.STRING,
+                                "Lowercase SHA 256 covering the complete authoritative change.",
+                                "d".repeat(64), CoreDiagnostics.CLASS_RESPEC_DENIED, 110).build(),
+                        networkOptionalField("replacement_class_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Replacement class present only for a swap.", "mypack:warrior",
+                                CoreDiagnostics.INVALID_CLASS, 80).build(),
+                        networkField("request_id", SchemaValueType.INTEGER,
+                                "Preview request identity returned to the requesting client.", "14",
+                                CoreDiagnostics.NETWORK_RATE_LIMITED, 20).build(),
+                        networkField("semantic_digest", SchemaValueType.STRING,
+                                "Gameplay definition digest used by the preview.", "e".repeat(64),
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 40).build(),
+                        networkField("session_id", SchemaValueType.STRING,
+                                "Current connection session UUID.",
+                                "00000000-0000-0000-0000-000000000711",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 10).build(),
+                        networkField("state_revision", SchemaValueType.INTEGER,
+                                "Authoritative state revision used by the preview.", "8",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor visibleClassSelection() {
+        return schema(
+                "visible_class_selection",
+                SchemaAudience.INTERNAL,
+                "Visible selected class state",
+                "Owner visible class identity, weighted slot use, and active or suspended status without raw source ownership.",
+                List.of(
+                        networkField("activity", SchemaValueType.ENUM,
+                                "Explicit noncolor active or suspended status.", "active",
+                                CoreDiagnostics.CLASS_RECONCILIATION_REQUIRED, 30)
+                                .allowedValues("active", "suspended").build(),
+                        networkField("class_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Selected stable class identity.", "mypack:mage",
+                                CoreDiagnostics.INVALID_CLASS, 10).build(),
+                        networkField("slot_cost", SchemaValueType.INTEGER,
+                                "Visible weighted slot use including zero cost background classes.", "1",
+                                CoreDiagnostics.INVALID_CLASS, 40).build(),
+                        networkOptionalField("slot_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Slot occupied by a known selected class. Missing definitions remain visibly suspended.", "mypack:combat",
+                                CoreDiagnostics.INVALID_CLASS_SLOT, 20).build()
+                )
+        );
+    }
+
     private static FieldDescriptor internalField(
             String path,
             SchemaValueType type,
@@ -1713,6 +2091,18 @@ public final class CoreSchemas {
             int order
     ) {
         return field(path, type, true, description, example, diagnostic, EditorWidget.OBJECT, order)
+                .projection(ProjectionPolicy.CLIENT_VISIBLE);
+    }
+
+    private static FieldDescriptor.Builder networkOptionalField(
+            String path,
+            SchemaValueType type,
+            String description,
+            String example,
+            DiagnosticCode diagnostic,
+            int order
+    ) {
+        return field(path, type, false, description, example, diagnostic, EditorWidget.OBJECT, order)
                 .projection(ProjectionPolicy.CLIENT_VISIBLE);
     }
 

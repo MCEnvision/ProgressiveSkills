@@ -29,7 +29,7 @@ class SchemaArtifactRendererTest {
                     "<a id=\"" + diagnostic.code().value().toLowerCase(Locale.ROOT) + "\"></a>"
             ));
         }
-        assertTrue(first.contains("internal runtime contracts implemented through Phase 10"));
+        assertTrue(first.contains("internal runtime contracts implemented through Phase 11"));
         assertTrue(first.contains("Gameplay definition schemas arrive with their implementation phases."));
     }
 
@@ -50,7 +50,7 @@ class SchemaArtifactRendererTest {
             assertEquals(expected.id().toString(), actual.get("id").getAsString());
             assertEquals(expected.sourceDirectory(), actual.get("source_directory").getAsString());
         }
-        assertEquals(35, root.getAsJsonArray("schemas").size());
+        assertEquals(42, root.getAsJsonArray("schemas").size());
         assertTrue(first.contains("\"projection\": \"server_only\""));
 
         var schemas = root.getAsJsonArray("schemas");
@@ -87,6 +87,9 @@ class SchemaArtifactRendererTest {
                 .get("projection").getAsString());
         var refund = findSchema(schemas, "progressiveskills:tree_refund_preview");
         assertEquals("client_visible", findField(refund.getAsJsonArray("fields"), "refund_balances")
+                .get("projection").getAsString());
+        var selectedClass = findSchema(schemas, "progressiveskills:visible_class_selection");
+        assertEquals("client_visible", findField(selectedClass.getAsJsonArray("fields"), "activity")
                 .get("projection").getAsString());
     }
 

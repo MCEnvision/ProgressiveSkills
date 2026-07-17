@@ -132,6 +132,60 @@ class ClientNetworkStateTest {
                 )));
     }
 
+    @Test
+    void activeClientPreparesStrictClassIntentsAndAcceptsCurrentPreview() {
+        DefinitionProjection definitions = NetworkFixtures.classDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(definitions, 0, 9, Map.of(), Map.of());
+        var sessions = ServerNetworkSessions.systemClock();
+        NetworkPayloads.ServerHello hello = sessions.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        var client = ClientNetworkState.systemClock();
+        client.receiveHello("class-test", NetworkFixtures.PLAYER, hello);
+        receiveFullClientState(client, hello, definitions, state);
+
+        NetworkPayloads.Intent select = client.prepareClassIntent(
+                NetworkPayloads.IntentType.CLASS_SELECT,
+                ClassIntentPayload.select(NetworkFixtures.CLASS_MAGE)).orElseThrow();
+        NetworkPayloads.Intent previewIntent = client.prepareClassIntent(
+                NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW,
+                ClassIntentPayload.swapPreview(
+                        NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR)).orElseThrow();
+        assertEquals(0, select.requestId());
+        assertEquals(1, previewIntent.requestId());
+
+        var preview = new NetworkPayloads.ClassChangePreview(
+                hello.sessionId(), previewIntent.requestId(), 1, NetworkFixtures.SEMANTIC,
+                state.stateRevision(), NetworkPayloads.IntentType.CLASS_SWAP_PREVIEW,
+                NetworkFixtures.CLASS_MAGE, java.util.Optional.of(NetworkFixtures.CLASS_WARRIOR),
+                List.of(NetworkFixtures.CLASS_MAGE, NetworkFixtures.CLASS_WARRIOR),
+                Map.of(NetworkFixtures.CURRENCY, 6L), "8".repeat(64), List.of());
+        client.receiveClassChangePreview(preview);
+        assertEquals(preview, client.snapshot().classChangePreview().orElseThrow());
+
+        NetworkPayloads.Intent replacementPreviewIntent = client.prepareClassIntent(
+                NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW,
+                ClassIntentPayload.respecPreview(NetworkFixtures.CLASS_MAGE)).orElseThrow();
+        assertThrows(IllegalArgumentException.class, () -> client.receiveClassChangePreview(preview));
+        var replacementPreview = new NetworkPayloads.ClassChangePreview(
+                hello.sessionId(), replacementPreviewIntent.requestId(), 1, NetworkFixtures.SEMANTIC,
+                state.stateRevision(), NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW,
+                NetworkFixtures.CLASS_MAGE, java.util.Optional.empty(),
+                List.of(NetworkFixtures.CLASS_MAGE), Map.of(), "9".repeat(64), List.of());
+        client.receiveClassChangePreview(replacementPreview);
+        assertEquals(replacementPreview, client.snapshot().classChangePreview().orElseThrow());
+
+        NetworkPayloads.Intent confirm = client.prepareClassIntent(
+                NetworkPayloads.IntentType.CLASS_RESPEC_CONFIRM,
+                ClassIntentPayload.respecConfirm(
+                        NetworkFixtures.CLASS_MAGE, replacementPreview.previewDigest())).orElseThrow();
+        assertEquals(3, confirm.requestId());
+        assertTrue(client.snapshot().classChangePreview().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> client.prepareClassIntent(
+                NetworkPayloads.IntentType.CLASS_SELECT,
+                ClassIntentPayload.select(net.minecraft.resources.ResourceLocation.parse("example:missing"))));
+    }
+
     private static void cacheDefinitions(
             ClientNetworkState client,
             NetworkPayloads.ServerHello hello

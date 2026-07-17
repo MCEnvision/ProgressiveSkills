@@ -16,6 +16,7 @@ import com.envisione.progressiveskills.server.audit.PersistenceMetadataSavedData
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.network.NetworkRuntime;
 import com.envisione.progressiveskills.server.skill.SkillRuntime;
+import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
 import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import net.minecraft.server.MinecraftServer;
@@ -199,6 +200,7 @@ public final class TransactionRuntime {
         currentDefinition().ifPresent(definition -> {
             SkillRuntime.reconcile(player, context, definition);
             TreeRuntime.reconcile(player, context, definition);
+            ClassRuntime.reconcile(player, context, definition);
         });
         context.service().forceReproject(player.getUUID(), context.projector());
         currentDefinition().ifPresent(definition -> context.persist(player, definition));

@@ -470,6 +470,1226 @@
       ]
     },
     {
+      "id": "progressiveskills:class_change_preview",
+      "version": 2,
+      "audience": "internal",
+      "title": "Class respec or swap preview payload",
+      "description": "Clientbound revision pinned affected classes, authoritative currency costs, blockers, and confirmation digest.",
+      "fields": [
+        {
+          "path": "affected_classes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded stable set of classes whose selected or active state changes.",
+          "example": "[\"mypack:mage\", \"mypack:warrior\"]",
+          "diagnostic": "PS-CLASS-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Bounded stable set of classes whose selected or active state changes."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "blockers",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded reasons that prevent confirmation.",
+          "example": "[]",
+          "diagnostic": "PS-CLASS-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 120,
+            "help": "Bounded reasons that prevent confirmation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "class_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected class to remove.",
+          "example": "mypack:mage",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Selected class to remove."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "cost_balances",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative nonnegative named currency totals charged by the change.",
+          "example": "{ \"progressiveskills:global_points\" = 2 }",
+          "diagnostic": "PS-CLASS-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 100,
+            "help": "Authoritative nonnegative named currency totals charged by the change."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition generation used to calculate the preview.",
+          "example": "11",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Definition generation used to calculate the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "intent_type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["class_respec_preview", "class_swap_preview"],
+          "default": null,
+          "description": "Class respec or swap preview family.",
+          "example": "class_swap_preview",
+          "diagnostic": "PS-NET-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Class respec or swap preview family."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "preview_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Lowercase SHA 256 covering the complete authoritative change.",
+          "example": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnostic": "PS-CLASS-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 110,
+            "help": "Lowercase SHA 256 covering the complete authoritative change."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "replacement_class_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Replacement class present only for a swap.",
+          "example": "mypack:warrior",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Replacement class present only for a swap."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "request_id",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Preview request identity returned to the requesting client.",
+          "example": "14",
+          "diagnostic": "PS-NET-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Preview request identity returned to the requesting client."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Gameplay definition digest used by the preview.",
+          "example": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Gameplay definition digest used by the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "session_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Current connection session UUID.",
+          "example": "00000000-0000-0000-0000-000000000711",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Current connection session UUID."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative state revision used by the preview.",
+          "example": "8",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Authoritative state revision used by the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:class_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Class definition",
+      "description": "Bounded Core class with weighted slot use, prerequisites, costs, grants, and receipt protected starter kit.",
+      "fields": [
+        {
+          "path": "access_required",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Require a source owned class access entitlement before selection.",
+          "example": "false",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 55,
+            "help": "Require a source owned class access entitlement before selection."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized class description.",
+          "example": "{ fallback = \"Arcane specialist.\" }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized class description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized class name.",
+          "example": "{ fallback = \"Mage\" }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized class name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether new selections are accepted and retained prerequisites may remain active.",
+          "example": "true",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 50,
+            "help": "Whether new selections are accepted and retained prerequisites may remain active."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "exclusive_tags",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Stable coexistence tags that cannot overlap another selected class.",
+          "example": "[\"mypack:arcane_primary\"]",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 80,
+            "help": "Stable coexistence tags that cannot overlap another selected class."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "grants",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Up to thirty two source owned persistent grants merged by stable grant id.",
+          "example": "[{ id = \"mypack:mage/tree\", type = \"tree_access\", tree = \"mypack:arcane_tree\" }]",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 150,
+            "help": "Up to thirty two source owned persistent grants merged by stable grant id."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Class icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:enchanted_book\", fallback = \"minecraft:barrier\", alt = \"Enchanted book\" }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Class icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "prerequisites.classes",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Selected classes that must all remain active.",
+          "example": "[\"mypack:apprentice\"]",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 110,
+            "help": "Selected classes that must all remain active."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "prerequisites.min_level",
+          "type": "map",
+          "required": false,
+          "allowed_values": [],
+          "default": {},
+          "description": "Up to thirty two skill ids mapped to nonnegative minimum levels.",
+          "example": "{ \"mypack:arcana\" = 15 }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "key_value",
+            "group": "core",
+            "order": 90,
+            "help": "Up to thirty two skill ids mapped to nonnegative minimum levels."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "prerequisites.nodes",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Owned Core tree nodes that must all remain owned.",
+          "example": "[\"mypack:arcane/root\"]",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 100,
+            "help": "Owned Core tree nodes that must all remain owned."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "respec_allowed",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether a selected class may be removed by player respec or swap.",
+          "example": "true",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 130,
+            "help": "Whether a selected class may be removed by player respec or swap."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "respec_cost",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional named currency charge for an allowed removal.",
+          "example": "{ currency = \"progressiveskills:global_points\", amount = 2 }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 140,
+            "help": "Optional named currency charge for an allowed removal."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate class search terms.",
+          "example": "[\"Caster\"]",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 45,
+            "help": "Bounded alternate class search terms."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "selection_cost",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional named currency charge sunk on selection and never refunded implicitly.",
+          "example": "{ currency = \"progressiveskills:global_points\", amount = 5 }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 120,
+            "help": "Optional named currency charge sunk on selection and never refunded implicitly."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pack defined class slot consumed by this class.",
+          "example": "mypack:combat",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 60,
+            "help": "Pack defined class slot consumed by this class."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot_cost",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Weighted slot use. Zero represents an explicit background class.",
+          "example": "1",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Weighted slot use. Zero represents an explicit background class."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "starter_kit",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Up to thirty two item ids delivered only on the first successful selection receipt.",
+          "example": "[\"minecraft:book\"]",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 160,
+            "help": "Up to thirty two item ids delivered only on the first successful selection receipt."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": true
+        },
+        {
+          "path": "synergy",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Named bounded synergy definitions nested under their owning class.",
+          "example": "[{ id = \"mypack:spellblade\", requires_classes = [\"mypack:mage\", \"mypack:warrior\"] }]",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 170,
+            "help": "Named bounded synergy definitions nested under their owning class."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:class_grant",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Class persistent grant",
+      "description": "Source owned attribute, ability, spell, stage, tree access, or class access contribution.",
+      "fields": [
+        {
+          "path": "ability",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Ability target required by ability grants.",
+          "example": "mypack:arcane_surge",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 60,
+            "help": "Ability target required by ability grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "attribute",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Attribute target required by attribute grants.",
+          "example": "minecraft:generic.max_health",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Attribute target required by attribute grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "class",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Class access target required by class access grants.",
+          "example": "mypack:berserker",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 80,
+            "help": "Class access target required by class access grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Globally unique stable grant source identity.",
+          "example": "mypack:mage/arcane_tree",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Globally unique stable grant source identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "learning",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["require_existing", "satisfy_while_owned"],
+          "default": "require_existing",
+          "description": "Reversible spell learning satisfaction policy.",
+          "example": "require_existing",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 110,
+            "help": "Reversible spell learning satisfaction policy."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "level",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 1,
+          "description": "Bounded virtual spell level from one through two hundred fifty five.",
+          "example": "3",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 100,
+            "help": "Bounded virtual spell level from one through two hundred fifty five."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "operation",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["add_value", "add_multiplied_base", "add_multiplied_total"],
+          "default": null,
+          "description": "Deterministic attribute operation required by attribute grants.",
+          "example": "add_value",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 40,
+            "help": "Deterministic attribute operation required by attribute grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "selection",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["virtual_source"],
+          "default": "virtual_source",
+          "description": "Core spell selection ownership mode.",
+          "example": "virtual_source",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 90,
+            "help": "Core spell selection ownership mode."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "spell",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Spell target required by spell grants.",
+          "example": "irons_spellbooks:fireball",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 85,
+            "help": "Spell target required by spell grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "stage",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stage target required by stage grants.",
+          "example": "mypack:arcane_access",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 70,
+            "help": "Stage target required by stage grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "tree",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Tree target required by tree access grants.",
+          "example": "mypack:arcane_tree",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 75,
+            "help": "Tree target required by tree access grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["attribute", "ability", "spell", "stage", "tree_access", "class_access"],
+          "default": null,
+          "description": "Closed Core class grant type.",
+          "example": "tree_access",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Closed Core class grant type."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "value",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonzero fixed point attribute value. Other typed values are derived.",
+          "example": "2.0",
+          "diagnostic": "PS-CLASS-007",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 50,
+            "help": "Nonzero fixed point attribute value. Other typed values are derived."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:class_intent",
+      "version": 2,
+      "audience": "internal",
+      "title": "Class mutation intent payload",
+      "description": "Bounded serverbound class selection with no client supplied costs, grants, capacity, or outcomes.",
+      "fields": [
+        {
+          "path": "class_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected class or class removed by a swap.",
+          "example": "mypack:mage",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Selected class or class removed by a swap."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "preview_digest",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required only by respec and swap confirmations.",
+          "example": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "diagnostic": "PS-CLASS-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Required only by respec and swap confirmations."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "replacement_class_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required only by swap preview and confirmation.",
+          "example": "mypack:warrior",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Required only by swap preview and confirmation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:class_slot_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Class slot definition",
+      "description": "Named weighted capacity bucket used by Core class selection and swap policy.",
+      "fields": [
+        {
+          "path": "capacity",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive capacity from one through sixty four.",
+          "example": "2",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 50,
+            "help": "Positive capacity from one through sixty four."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized class slot description.",
+          "example": "{ fallback = \"Combat specializations.\" }",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized class slot description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional localized class slot name.",
+          "example": "{ fallback = \"Combat\" }",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Optional localized class slot name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional class slot icon with alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:iron_sword\", fallback = \"minecraft:barrier\", alt = \"Iron sword\" }",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Optional class slot icon with alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate terms for later class search.",
+          "example": "[\"Role\"]",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 45,
+            "help": "Bounded alternate terms for later class search."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "swap_policy",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["allowed", "disabled"],
+          "default": "allowed",
+          "description": "Whether an atomic confirmed replacement is permitted in this slot.",
+          "example": "allowed",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 60,
+            "help": "Whether an atomic confirmed replacement is permitted in this slot."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+        {
+          "type": "required_together",
+          "trigger": null,
+          "fields": ["display", "icon"],
+          "diagnostic": "PS-CLASS-001",
+          "description": "Class slot display and icon are declared together."
+        }
+      ]
+    },
+    {
+      "id": "progressiveskills:class_synergy",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Class synergy",
+      "description": "Named source owned grants active only while every required selected class remains active.",
+      "fields": [
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional localized synergy description.",
+          "example": "{ fallback = \"Arcane martial training.\" }",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 40,
+            "help": "Optional localized synergy description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional localized synergy name.",
+          "example": "{ fallback = \"Spellblade\" }",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Optional localized synergy name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether the synergy contributes grants when every requirement is active.",
+          "example": "true",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 60,
+            "help": "Whether the synergy contributes grants when every requirement is active."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "grants",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "One through thirty two globally unique class grant entries.",
+          "example": "[{ id = \"mypack:spellblade/stance\", type = \"ability\", ability = \"mypack:spellblade_stance\" }]",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 80,
+            "help": "One through thirty two globally unique class grant entries."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Optional synergy icon with alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:golden_sword\", fallback = \"minecraft:barrier\", alt = \"Golden sword\" }",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 50,
+            "help": "Optional synergy icon with alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Globally unique stable synergy identity.",
+          "example": "mypack:spellblade",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Globally unique stable synergy identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "requires_classes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Two through sixteen known classes that must all remain active.",
+          "example": "[\"mypack:mage\", \"mypack:warrior\"]",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 70,
+            "help": "Two through sixteen known classes that must all remain active."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate synergy terms.",
+          "example": "[\"Hybrid\"]",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 55,
+            "help": "Bounded alternate synergy terms."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+        {
+          "type": "required_together",
+          "trigger": null,
+          "fields": ["display", "icon"],
+          "diagnostic": "PS-CLASS-003",
+          "description": "Synergy display and icon are declared together."
+        }
+      ]
+    },
+    {
       "id": "progressiveskills:component_spec",
       "version": 2,
       "audience": "authoring",
@@ -1051,12 +2271,69 @@
       "version": 2,
       "audience": "internal",
       "title": "Sanitized definition projection",
-      "description": "Client-safe typed definition identity and presentation; gameplay fields and provenance are absent.",
+      "description": "Client-safe identity, presentation, disclosed tree graph, class selection semantics, and synergy summaries without authority internals.",
       "fields": [
+        {
+          "path": "class_definition",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries.",
+          "example": "{ slot_id = \"mypack:combat\", slot_cost = 1, enabled = true }",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Bounded class slot use, disclosed requirements, costs, starter kit, and resolved grant summaries."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "class_slot",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded capacity and swap policy for a class slot definition.",
+          "example": "{ capacity = 2, swap_policy = \"allowed\" }",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Bounded capacity and swap policy for a class slot definition."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "class_synergies",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded named class synergy summaries keyed by stable synergy id.",
+          "example": "{ \"mypack:spellblade\" = { required_classes = [\"mypack:mage\", \"mypack:warrior\"] } }",
+          "diagnostic": "PS-CLASS-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Bounded named class synergy summaries keyed by stable synergy id."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
         {
           "path": "description",
           "type": "component",
-          "required": true,
+          "required": false,
           "allowed_values": [],
           "default": null,
           "description": "Optional localized description with bounded fallback.",
@@ -1075,7 +2352,7 @@
         {
           "path": "display",
           "type": "component",
-          "required": true,
+          "required": false,
           "allowed_values": [],
           "default": null,
           "description": "Optional localized display component with bounded fallback.",
@@ -1094,7 +2371,7 @@
         {
           "path": "icon",
           "type": "icon",
-          "required": true,
+          "required": false,
           "allowed_values": [],
           "default": null,
           "description": "Optional bounded icon, fallback, alt text, and narration.",
@@ -1143,6 +2420,25 @@
             "group": "core",
             "order": 50,
             "help": "Bounded presentation-only search terms."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "tree",
+          "type": "object",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded disclosed tree graph without grants or historical paid costs.",
+          "example": "{ scope = \"skill\", currency = \"progressiveskills:global_points\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Bounded disclosed tree graph without grants or historical paid costs."
           },
           "projection": "client_visible",
           "diff": "replace",
@@ -1423,7 +2719,7 @@
           "allowed_values": [],
           "default": null,
           "description": "Required bounded protocol feature bitset.",
-          "example": "15",
+          "example": "63",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -1480,7 +2776,7 @@
           "allowed_values": [],
           "default": null,
           "description": "ProgressiveSkills application protocol version.",
-          "example": "1",
+          "example": "3",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -1583,7 +2879,7 @@
           "path": "intent_type",
           "type": "enum",
           "required": true,
-          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm"],
+          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm", "class_select", "class_respec_preview", "class_respec_confirm", "class_swap_preview", "class_swap_confirm"],
           "default": null,
           "description": "Closed server-registered intent family.",
           "example": "tree_buy",
@@ -4486,6 +5782,44 @@
           "omit_when_default": false
         },
         {
+          "path": "changed_node_ranks",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added visible Core node ranks.",
+          "example": "{}",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 62,
+            "help": "Changed or added visible Core node ranks."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "changed_selected_classes",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Changed or added visible selected class states.",
+          "example": "{}",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 64,
+            "help": "Changed or added visible selected class states."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "new_revision",
           "type": "integer",
           "required": true,
@@ -4537,6 +5871,44 @@
             "group": "core",
             "order": 70,
             "help": "Removed effective-value paths."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "removed_node_ranks",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Removed visible Core node ids.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 72,
+            "help": "Removed visible Core node ids."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "removed_selected_classes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Removed selected class ids.",
+          "example": "[]",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 74,
+            "help": "Removed selected class ids."
           },
           "projection": "client_visible",
           "diff": "replace",
@@ -6166,6 +7538,93 @@
       ]
     },
     {
+      "id": "progressiveskills:visible_class_selection",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible selected class state",
+      "description": "Owner visible class identity, weighted slot use, and active or suspended status without raw source ownership.",
+      "fields": [
+        {
+          "path": "activity",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["active", "suspended"],
+          "default": null,
+          "description": "Explicit noncolor active or suspended status.",
+          "example": "active",
+          "diagnostic": "PS-CLASS-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Explicit noncolor active or suspended status."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "class_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected stable class identity.",
+          "example": "mypack:mage",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Selected stable class identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot_cost",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Visible weighted slot use including zero cost background classes.",
+          "example": "1",
+          "diagnostic": "PS-CLASS-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Visible weighted slot use including zero cost background classes."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "slot_id",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Slot occupied by a known selected class. Missing definitions remain visibly suspended.",
+          "example": "mypack:combat",
+          "diagnostic": "PS-CLASS-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Slot occupied by a known selected class. Missing definitions remain visibly suspended."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:visible_player_state",
       "version": 2,
       "audience": "internal",
@@ -6224,6 +7683,25 @@
             "group": "core",
             "order": 80,
             "help": "Bounded effective values needed by current client presentation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "node_ranks",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owned Core node ranks without historical paid cost records.",
+          "example": "{ \"mypack:mining/root\" = 1 }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 85,
+            "help": "Owned Core node ranks without historical paid cost records."
           },
           "projection": "client_visible",
           "diff": "replace",
@@ -6306,6 +7784,25 @@
           "omit_when_default": false
         },
         {
+          "path": "selected_classes",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected class ids mapped to visible slot use and active or suspended state.",
+          "example": "{ \"mypack:mage\" = { slot_id = \"mypack:combat\", slot_cost = 1, activity = \"active\" } }",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 87,
+            "help": "Selected class ids mapped to visible slot use and active or suspended state."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "semantic_digest",
           "type": "string",
           "required": true,
@@ -6376,6 +7873,69 @@
       "fix": "Add a short, meaningful alt component.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-a11y-001",
       "suppressible": true
+    },
+    {
+      "code": "PS-CLASS-001",
+      "severity": "error",
+      "title": "Class slot definition is invalid",
+      "why": "A class slot requires a bounded positive capacity and one supported swap policy.",
+      "fix": "Correct the class slot using the generated class slot schema.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CLASS-002",
+      "severity": "error",
+      "title": "Class definition is invalid",
+      "why": "A class must use a known slot, bounded weight, valid prerequisites, costs, and typed grants.",
+      "fix": "Correct the class using the generated class definition and grant schemas.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CLASS-003",
+      "severity": "error",
+      "title": "Class synergy definition is invalid",
+      "why": "A synergy requires at least two known classes and bounded globally unique grants.",
+      "fix": "Correct the required class set and grant identities.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CLASS-004",
+      "severity": "warning",
+      "title": "Class selection was denied",
+      "why": "Unknown, disabled, inaccessible, conflicting, over capacity, unaffordable, or requirement blocked classes cannot be selected.",
+      "fix": "Review the class preview blockers and submit a fresh current intent.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-004",
+      "suppressible": true
+    },
+    {
+      "code": "PS-CLASS-005",
+      "severity": "warning",
+      "title": "Class respec or swap was denied",
+      "why": "A respec or swap requires current ownership, allowed policy, exact costs, and a matching preview.",
+      "fix": "Request a fresh preview and resolve every blocker before confirming.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-005",
+      "suppressible": true
+    },
+    {
+      "code": "PS-CLASS-006",
+      "severity": "warning",
+      "title": "Selected class requires reconciliation",
+      "why": "Reloaded slot capacity, prerequisites, or lineage no longer permits the selected class to remain active.",
+      "fix": "Review the suspended class and publish or run an explicit migration only after preview.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CLASS-007",
+      "severity": "error",
+      "title": "Class entitlement projection is invalid",
+      "why": "A malformed grant, resolver, source identity, or target would make class ownership unsafe.",
+      "fix": "Use supported attribute, ability, spell, stage, tree access, or class access grants.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-class-007",
+      "suppressible": false
     },
     {
       "code": "PS-CURRENCY-001",

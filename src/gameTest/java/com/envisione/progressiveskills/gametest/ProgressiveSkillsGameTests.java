@@ -1,11 +1,24 @@
 package com.envisione.progressiveskills.gametest;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.common.classdef.ClassGrantType;
+import com.envisione.progressiveskills.common.classdef.ClassProgression;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillStateIds;
+import com.envisione.progressiveskills.common.transaction.CascadePlan;
+import com.envisione.progressiveskills.common.transaction.EntitlementKey;
+import com.envisione.progressiveskills.common.transaction.EntitlementMutation;
+import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
+import com.envisione.progressiveskills.common.transaction.GrantSourceId;
+import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
+import com.envisione.progressiveskills.common.transaction.ProgressionCause;
+import com.envisione.progressiveskills.common.transaction.TransactionPlan;
+import com.envisione.progressiveskills.common.transaction.TransactionStep;
+import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.offline.PendingOperationSavedData;
 import com.envisione.progressiveskills.server.offline.PendingProgressionOperation;
@@ -496,6 +509,213 @@ public final class ProgressiveSkillsGameTests {
                             < 0.000001D,
                     "Cascade refund must remove only the two tree owned grants"
             );
+
+            var warriorId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "warrior"
+            );
+            var scholarId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "scholar"
+            );
+            var warriorGuard = new EntitlementKey(
+                    ClassGrantType.ABILITY.entitlementType().orElseThrow(),
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "warrior_guard")
+            );
+            var scholarStage = new EntitlementKey(
+                    ClassGrantType.STAGE.entitlementType().orElseThrow(),
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "scholar_training")
+            );
+            var trainingAccess = new EntitlementKey(
+                    ClassGrantType.TREE_ACCESS.entitlementType().orElseThrow(), treeId
+            );
+            var combatInsight = new EntitlementKey(
+                    ClassGrantType.ABILITY.entitlementType().orElseThrow(),
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "combat_insight")
+            );
+            int initialWoodenSwords = player.getInventory().countItem(Items.WOODEN_SWORD);
+            int initialBooks = player.getInventory().countItem(Items.BOOK);
+            double classAttackBefore = player.getAttributeValue(Attributes.ATTACK_DAMAGE);
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps class list", playerSource) == 2,
+                    "The live Core class catalog must list both starter classes"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class info " + warriorId, playerSource
+                    ) == 1,
+                    "The starter Warrior class must be inspectable"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class preview select " + warriorId, playerSource
+                    ) == 1,
+                    "Warrior selection must preview from authoritative state"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class select " + warriorId, playerSource
+                    ) == 1,
+                    "Warrior selection must commit through the class command route"
+            );
+            var warriorState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    warriorState.balances().get(pointsId) == 5,
+                    "Warrior selection must sink exactly one global point"
+            );
+            helper.assertTrue(
+                    ClassProgression.selectedClasses(warriorState).equals(java.util.Set.of(warriorId))
+                            && ClassProgression.activeClasses(warriorState).equals(java.util.Set.of(warriorId)),
+                    "Warrior must occupy one weighted slot and become active"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.ATTACK_DAMAGE)
+                            - classAttackBefore - 1.0D) < 0.000001D,
+                    "The active Warrior source must add one attack damage"
+            );
+            helper.assertTrue(
+                    warriorState.projectedValues().getOrDefault(warriorGuard, 0L) == 1,
+                    "The active Warrior source must own its guard ability"
+            );
+            helper.assertTrue(
+                    player.getInventory().countItem(Items.WOODEN_SWORD) == initialWoodenSwords + 1,
+                    "Warrior selection must deliver one starter sword"
+            );
+            helper.assertTrue(
+                    classKitReceipts(player) == 1,
+                    "Warrior selection must persist one character scoped starter kit receipt"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class preview select " + scholarId, playerSource
+                    ) == 1,
+                    "Scholar selection must fit the remaining weighted capacity"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class select " + scholarId, playerSource
+                    ) == 1,
+                    "Scholar selection must commit through the class command route"
+            );
+            var combinedClassState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    combinedClassState.balances().get(pointsId) == 4,
+                    "Scholar selection must sink exactly one additional global point"
+            );
+            helper.assertTrue(
+                    ClassProgression.selectedClasses(combinedClassState).equals(
+                            java.util.Set.of(warriorId, scholarId)
+                    ) && ClassProgression.activeClasses(combinedClassState).equals(
+                            java.util.Set.of(warriorId, scholarId)
+                    ),
+                    "Both unit weight classes must remain active in capacity two"
+            );
+            helper.assertTrue(
+                    combinedClassState.projectedValues().getOrDefault(scholarStage, 0L) == 1
+                            && combinedClassState.projectedValues().getOrDefault(trainingAccess, 0L) == 1,
+                    "Scholar must own its stage and tree access grants"
+            );
+            helper.assertTrue(
+                    combinedClassState.projectedValues().getOrDefault(combatInsight, 0L) == 1,
+                    "Warrior and Scholar must activate the Student of War synergy"
+            );
+            helper.assertTrue(
+                    player.getInventory().countItem(Items.BOOK) == initialBooks + 1
+                            && classKitReceipts(player) == 2,
+                    "Scholar selection must deliver and receipt one starter book"
+            );
+            helper.assertTrue(
+                    classPaidRecords(combinedClassState) == 2,
+                    "Both positive class selection costs must retain exact paid evidence"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class entitlements", playerSource
+                    ) == 1,
+                    "Class ownership must be inspectable through the command route"
+            );
+
+            var stageCoowner = new GrantSourceId(
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "manual"),
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "phase11_gametest"),
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "phase11_gametest/scholar_stage")
+            );
+            helper.assertTrue(
+                    grantLogicalEntitlement(context, player, scholarStage, stageCoowner),
+                    "A second source must be able to coown the Scholar stage"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).ownership().get(scholarStage).size() == 2,
+                    "The Scholar stage must retain both source identities"
+            );
+            var classRespecPreview = ClassRuntime.previewRespec(player, scholarId);
+            helper.assertTrue(
+                    classRespecPreview.allowed()
+                            && classRespecPreview.costBalances().get(pointsId) == 1,
+                    "Scholar respec must require its configured one point cost"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class preview respec " + scholarId, playerSource
+                    ) == 1,
+                    "Scholar respec must be previewable through the class command route"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class respec " + scholarId + " " + classRespecPreview.digest(),
+                            playerSource
+                    ) == 1,
+                    "The reviewed Scholar respec must commit through the class command route"
+            );
+            var respeccedClassState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    respeccedClassState.balances().get(pointsId) == 3,
+                    "Respec must sink its cost without refunding the Scholar selection payment"
+            );
+            helper.assertTrue(
+                    ClassProgression.selectedClasses(respeccedClassState).equals(java.util.Set.of(warriorId))
+                            && ClassProgression.activeClasses(respeccedClassState).equals(java.util.Set.of(warriorId)),
+                    "Scholar respec must preserve the selected and active Warrior"
+            );
+            helper.assertTrue(
+                    respeccedClassState.projectedValues().getOrDefault(scholarStage, 0L) == 1
+                            && respeccedClassState.ownership().get(scholarStage).size() == 1
+                            && respeccedClassState.ownership().get(scholarStage).containsKey(stageCoowner),
+                    "Scholar respec must preserve the independent stage coowner"
+            );
+            helper.assertTrue(
+                    respeccedClassState.projectedValues().getOrDefault(trainingAccess, 0L) == 0
+                            && respeccedClassState.projectedValues().getOrDefault(combatInsight, 0L) == 0,
+                    "Scholar respec must revoke only its tree access and synergy sources"
+            );
+            helper.assertTrue(
+                    classPaidRecords(respeccedClassState) == 1
+                            && classKitReceipts(player) == 2
+                            && player.getInventory().countItem(Items.BOOK) == initialBooks + 1,
+                    "Respec must remove paid selection evidence while retaining permanent kit receipts"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps class select " + scholarId, playerSource
+                    ) == 1,
+                    "Scholar must be selectable again after respec"
+            );
+            var reselectedClassState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    reselectedClassState.balances().get(pointsId) == 2
+                            && classPaidRecords(reselectedClassState) == 2,
+                    "Scholar reselection must sink a new selection cost and restore paid evidence"
+            );
+            helper.assertTrue(
+                    ClassProgression.activeClasses(reselectedClassState).equals(
+                            java.util.Set.of(warriorId, scholarId)
+                    ) && reselectedClassState.projectedValues().getOrDefault(combatInsight, 0L) == 1,
+                    "Scholar reselection must restore both active classes and their synergy"
+            );
+            helper.assertTrue(
+                    reselectedClassState.ownership().get(scholarStage).size() == 2
+                            && classKitReceipts(player) == 2
+                            && player.getInventory().countItem(Items.BOOK) == initialBooks + 1,
+                    "Scholar reselection must restore coownership without repeating its starter kit"
+            );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,
                     "The in-game persistence status must inspect the active attachment"
@@ -626,5 +846,47 @@ public final class ProgressiveSkillsGameTests {
                 original.getGameProfile(),
                 original.clientInformation()
         );
+    }
+
+    private static long classKitReceipts(ServerPlayer player) {
+        return player.getData(PsDataAttachments.PLAYER_DATA).transactionState().receipts().keySet().stream()
+                .filter(key -> key.source().ownerKind().equals(DefinitionKinds.CLASS.id()))
+                .count();
+    }
+
+    private static long classPaidRecords(
+            com.envisione.progressiveskills.common.transaction.ProgressionSnapshot snapshot
+    ) {
+        return snapshot.paidCosts().keySet().stream()
+                .filter(instance -> instance.ownerKind().equals(DefinitionKinds.CLASS.id()))
+                .count();
+    }
+
+    private static boolean grantLogicalEntitlement(
+            TransactionRuntime.Context context,
+            ServerPlayer player,
+            EntitlementKey key,
+            GrantSourceId source
+    ) {
+        var snapshot = context.service().snapshot(player.getUUID());
+        var step = new TransactionStep(
+                ResourceLocation.fromNamespaceAndPath("progressiveskills", "phase11_gametest"),
+                List.of(),
+                List.of(EntitlementMutation.grant(key, source, 1, EntitlementResolver.BOOLEAN_UNION)),
+                List.of()
+        );
+        var plan = CascadePlan.single(new TransactionPlan(
+                player.getUUID(),
+                player.getUUID(),
+                new IdempotencyKey("phase11/gametest/coowner/" + UUID.randomUUID()),
+                snapshot.stateRevision(),
+                TransactionRuntime.currentDefinition().orElseThrow(),
+                ProgressionCause.ADMIN,
+                "Phase 11 class coowner proof",
+                step
+        ));
+        return context.executeAndPersist(
+                player, plan, TransactionRuntime.currentDefinition().orElseThrow()
+        ).status().committed();
     }
 }

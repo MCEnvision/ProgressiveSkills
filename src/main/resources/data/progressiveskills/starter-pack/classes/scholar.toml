@@ -1,0 +1,27 @@
+schema_version = 2
+
+[class]
+id = "progressiveskills:scholar"
+display = { key = "class.progressiveskills.scholar", fallback = "Scholar" }
+description = { key = "class.progressiveskills.scholar.desc", fallback = "A careful student of training and technique." }
+icon = { type = "item", value = "minecraft:book", fallback = "minecraft:barrier", alt = "Book" }
+enabled = true
+access_required = false
+slot = "progressiveskills:combat"
+slot_cost = 1
+exclusive_tags = []
+prerequisites = { min_level = { "progressiveskills:physique" = 1 }, nodes = [], classes = [] }
+selection_cost = { currency = "progressiveskills:global_points", amount = 1 }
+respec_allowed = true
+respec_cost = { currency = "progressiveskills:global_points", amount = 1 }
+starter_kit = ["minecraft:book"]
+
+[[grants]]
+id = "progressiveskills:scholar/training_access"
+type = "tree_access"
+tree = "progressiveskills:physique_training"
+
+[[grants]]
+id = "progressiveskills:scholar/training_stage"
+type = "stage"
+stage = "progressiveskills:scholar_training"

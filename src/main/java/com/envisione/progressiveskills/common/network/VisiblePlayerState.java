@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -22,6 +23,7 @@ public record VisiblePlayerState(
         Map<String, Long> balances,
         Map<String, Long> effectiveValues,
         Map<ResourceLocation, Integer> nodeRanks,
+        Map<ResourceLocation, ClassSelection> selectedClasses,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined
@@ -44,6 +46,25 @@ public record VisiblePlayerState(
                 operationReceiptCount, quarantined);
     }
 
+    public VisiblePlayerState(
+            UUID playerId,
+            long syncRevision,
+            long stateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> balances,
+            Map<String, Long> effectiveValues,
+            Map<ResourceLocation, Integer> nodeRanks,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined
+    ) {
+        this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
+                presentationDigest, balances, effectiveValues, nodeRanks, Map.of(), orphanCount,
+                operationReceiptCount, quarantined);
+    }
+
     public VisiblePlayerState {
         Objects.requireNonNull(playerId, "playerId");
         if (syncRevision < 0 || stateRevision < 0 || presentationRevision < 0
@@ -55,6 +76,7 @@ public record VisiblePlayerState(
         balances = immutableValues(balances, "balance");
         effectiveValues = immutableValues(effectiveValues, "effective value");
         nodeRanks = immutableNodeRanks(nodeRanks);
+        selectedClasses = immutableClassSelections(selectedClasses);
     }
 
     public VisiblePlayerState apply(StateDelta delta) {
@@ -86,10 +108,32 @@ public record VisiblePlayerState(
                 nextBalances,
                 nextValues,
                 nextNodeRanks,
+                applyClassSelections(delta),
                 delta.orphanCount(),
                 delta.operationReceiptCount(),
                 delta.quarantined()
         );
+    }
+
+    private Map<ResourceLocation, ClassSelection> applyClassSelections(StateDelta delta) {
+        var next = new TreeMap<ResourceLocation, ClassSelection>(ResourceLocation::compareNamespaced);
+        next.putAll(selectedClasses);
+        delta.removedSelectedClasses().forEach(next::remove);
+        next.putAll(delta.changedSelectedClasses());
+        return next;
+    }
+
+    private static Map<ResourceLocation, ClassSelection> immutableClassSelections(
+            Map<ResourceLocation, ClassSelection> source
+    ) {
+        Objects.requireNonNull(source, "selectedClasses");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("Visible selected class count exceeds capacity");
+        }
+        var sorted = new TreeMap<ResourceLocation, ClassSelection>(ResourceLocation::compareNamespaced);
+        source.forEach((classId, state) -> sorted.put(
+                StableId.requireValid(classId), Objects.requireNonNull(state, "selected class state")));
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }
 
     private static Map<ResourceLocation, Integer> immutableNodeRanks(Map<ResourceLocation, Integer> source) {
@@ -119,5 +163,31 @@ public record VisiblePlayerState(
                 Objects.requireNonNull(value, name + " value")
         ));
         return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    public record ClassSelection(
+            Optional<ResourceLocation> slotId,
+            int slotCost,
+            Activity activity
+    ) {
+        public ClassSelection(ResourceLocation slotId, int slotCost, Activity activity) {
+            this(Optional.of(slotId), slotCost, activity);
+        }
+
+        public ClassSelection {
+            slotId = Objects.requireNonNull(slotId, "slotId").map(StableId::requireValid);
+            if (slotCost < 0) {
+                throw new IllegalArgumentException("Visible selected class slot cost must not be negative");
+            }
+            Objects.requireNonNull(activity, "activity");
+            if (slotId.isEmpty() && (slotCost != 0 || activity != Activity.SUSPENDED)) {
+                throw new IllegalArgumentException("Missing class definitions must remain visibly suspended");
+            }
+        }
+    }
+
+    public enum Activity {
+        ACTIVE,
+        SUSPENDED
     }
 }
