@@ -16,7 +16,7 @@ import java.util.TreeMap;
 
 /** Deterministic bounded codec for sanitized definition presentation DTOs. */
 public final class DefinitionProjectionCodec {
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
 
     private DefinitionProjectionCodec() {
     }
@@ -49,8 +49,10 @@ public final class DefinitionProjectionCodec {
                 for (int alias = 0; alias < aliasCount; alias++) {
                     aliases.add(BoundedNetworkCodec.readString(input, NetworkLimits.MAX_TEXT_BYTES));
                 }
+                Optional<DefinitionProjection.TreeView> tree = input.readBoolean()
+                        ? Optional.of(readTree(input)) : Optional.empty();
                 if (definitions.putIfAbsent(key,
-                        new DefinitionProjection.Entry(display, description, icon, aliases)) != null) {
+                        new DefinitionProjection.Entry(display, description, icon, aliases, tree)) != null) {
                     throw new IOException("Duplicate projected definition " + key);
                 }
             }
@@ -80,7 +82,122 @@ public final class DefinitionProjectionCodec {
             for (String alias : definition.getValue().searchAliases()) {
                 BoundedNetworkCodec.writeString(output, alias, NetworkLimits.MAX_TEXT_BYTES);
             }
+            output.writeBoolean(definition.getValue().tree().isPresent());
+            if (definition.getValue().tree().isPresent()) {
+                writeTree(output, definition.getValue().tree().orElseThrow());
+            }
         }
+    }
+
+    private static void writeTree(
+            DataOutputStream output,
+            DefinitionProjection.TreeView tree
+    ) throws IOException {
+        output.writeBoolean(tree.enabled());
+        BoundedNetworkCodec.writeString(output, tree.scope(), 32);
+        output.writeBoolean(tree.boundSkill().isPresent());
+        if (tree.boundSkill().isPresent()) {
+            writeId(output, tree.boundSkill().orElseThrow());
+        }
+        writeId(output, tree.currency());
+        output.writeLong(tree.currencyMinimum());
+        output.writeLong(tree.currencyInitial());
+        output.writeInt(tree.nodes().size());
+        for (DefinitionProjection.NodeView node : tree.nodes()) {
+            writeNode(output, node);
+        }
+    }
+
+    private static DefinitionProjection.TreeView readTree(DataInputStream input) throws IOException {
+        boolean enabled = input.readBoolean();
+        String scope = BoundedNetworkCodec.readString(input, 32);
+        Optional<ResourceLocation> boundSkill = input.readBoolean()
+                ? Optional.of(readId(input)) : Optional.empty();
+        ResourceLocation currency = readId(input);
+        long currencyMinimum = input.readLong();
+        long currencyInitial = input.readLong();
+        int count = readCount(input, NetworkLimits.MAX_TREE_NODES_PER_VIEW, "tree node");
+        if (count == 0) {
+            throw new IOException("Projected tree requires a node");
+        }
+        var nodes = new ArrayList<DefinitionProjection.NodeView>(count);
+        for (int index = 0; index < count; index++) {
+            nodes.add(readNode(input));
+        }
+        return new DefinitionProjection.TreeView(
+                enabled, scope, boundSkill, currency, currencyMinimum, currencyInitial, nodes);
+    }
+
+    private static void writeNode(
+            DataOutputStream output,
+            DefinitionProjection.NodeView node
+    ) throws IOException {
+        writeId(output, node.id());
+        writeText(output, node.display());
+        writeOptionalText(output, node.description());
+        writeIcon(output, node.icon());
+        output.writeInt(node.searchAliases().size());
+        for (String alias : node.searchAliases()) {
+            BoundedNetworkCodec.writeString(output, alias, NetworkLimits.MAX_TEXT_BYTES);
+        }
+        output.writeLong(node.cost());
+        output.writeInt(node.row());
+        output.writeInt(node.column());
+        writeIds(output, node.requires());
+        writeIds(output, node.requiresAny());
+        output.writeInt(node.minimumSkillLevels().size());
+        for (var entry : node.minimumSkillLevels().entrySet()) {
+            writeId(output, entry.getKey());
+            output.writeInt(entry.getValue());
+        }
+    }
+
+    private static DefinitionProjection.NodeView readNode(DataInputStream input) throws IOException {
+        ResourceLocation id = readId(input);
+        DefinitionProjection.Text display = readText(input);
+        Optional<DefinitionProjection.Text> description = readOptionalText(input);
+        DefinitionProjection.Icon icon = readIcon(input);
+        int aliasCount = readCount(input, NetworkLimits.MAX_ALIASES_PER_DEFINITION, "node alias");
+        var aliases = new ArrayList<String>(aliasCount);
+        for (int index = 0; index < aliasCount; index++) {
+            aliases.add(BoundedNetworkCodec.readString(input, NetworkLimits.MAX_TEXT_BYTES));
+        }
+        long cost = input.readLong();
+        int row = input.readInt();
+        int column = input.readInt();
+        List<ResourceLocation> requires = readIds(input, "tree prerequisite");
+        List<ResourceLocation> requiresAny = readIds(input, "tree alternative prerequisite");
+        if (requires.size() + requiresAny.size() > NetworkLimits.MAX_TREE_PREREQUISITES) {
+            throw new IOException("Projected tree prerequisite count exceeds capacity");
+        }
+        int minimumCount = readCount(input, NetworkLimits.MAX_TREE_MINIMUM_SKILLS, "minimum skill");
+        var minimumLevels = new TreeMap<ResourceLocation, Integer>(ResourceLocation::compareNamespaced);
+        for (int index = 0; index < minimumCount; index++) {
+            ResourceLocation skill = readId(input);
+            if (minimumLevels.putIfAbsent(skill, input.readInt()) != null) {
+                throw new IOException("Duplicate projected tree minimum skill");
+            }
+        }
+        return new DefinitionProjection.NodeView(
+                id, display, description, icon, aliases, cost, row, column,
+                requires, requiresAny, minimumLevels
+        );
+    }
+
+    private static void writeIds(DataOutputStream output, List<ResourceLocation> ids) throws IOException {
+        output.writeInt(ids.size());
+        for (ResourceLocation id : ids) {
+            writeId(output, id);
+        }
+    }
+
+    private static List<ResourceLocation> readIds(DataInputStream input, String name) throws IOException {
+        int count = readCount(input, NetworkLimits.MAX_TREE_PREREQUISITES, name);
+        var ids = new ArrayList<ResourceLocation>(count);
+        for (int index = 0; index < count; index++) {
+            ids.add(readId(input));
+        }
+        return ids;
     }
 
     private static void writeOptionalText(

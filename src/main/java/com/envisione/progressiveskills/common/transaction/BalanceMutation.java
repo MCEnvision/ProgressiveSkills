@@ -10,8 +10,5 @@ public record BalanceMutation(ResourceLocation balanceId, long delta, long minim
         if (minimum > maximum) {
             throw new IllegalArgumentException("Balance minimum exceeds maximum");
         }
-        if (delta == 0) {
-            throw new IllegalArgumentException("Balance mutation delta must not be zero");
-        }
     }
 }

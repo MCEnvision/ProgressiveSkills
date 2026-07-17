@@ -2,6 +2,7 @@ package com.envisione.progressiveskills.server.transaction;
 
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsData;
+import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.pack.CanonicalSemanticDigest;
 import com.envisione.progressiveskills.common.transaction.CascadePlan;
@@ -15,6 +16,7 @@ import com.envisione.progressiveskills.server.audit.PersistenceMetadataSavedData
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.network.NetworkRuntime;
 import com.envisione.progressiveskills.server.skill.SkillRuntime;
+import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -188,12 +190,16 @@ public final class TransactionRuntime {
             context.service().unloadAccount(player.getUUID());
             LOGGER.error("[ProgressiveSkills] refused persisted transaction state for {}",
                     player.getUUID(), exception);
+            NetworkRuntime.begin(player);
             return;
         }
         if (applyPendingOperations) {
             PendingOperationCoordinator.applyOnLogin(player, context, UUID.randomUUID());
         }
-        currentDefinition().ifPresent(definition -> SkillRuntime.reconcile(player, context, definition));
+        currentDefinition().ifPresent(definition -> {
+            SkillRuntime.reconcile(player, context, definition);
+            TreeRuntime.reconcile(player, context, definition);
+        });
         context.service().forceReproject(player.getUUID(), context.projector());
         currentDefinition().ifPresent(definition -> context.persist(player, definition));
         NetworkRuntime.begin(player);
@@ -228,9 +234,37 @@ public final class TransactionRuntime {
                 CascadePlan plan,
                 DefinitionRevision definition
         ) {
-            TransactionResult result = service.execute(plan, definition, projector, actionExecutor);
+            return executeAndPersist(player, plan, definition, true);
+        }
+
+        public TransactionResult executeAndPersistReconcile(
+                ServerPlayer player,
+                CascadePlan plan,
+                DefinitionRevision definition
+        ) {
+            return executeAndPersist(player, plan, definition, false);
+        }
+
+        private TransactionResult executeAndPersist(
+                ServerPlayer player,
+                CascadePlan plan,
+                DefinitionRevision definition,
+                boolean synchronize
+        ) {
+            ProgressiveSkillsData data = player.getData(PsDataAttachments.PLAYER_DATA);
+            TransactionResult result = service.executeLoaded(
+                    plan,
+                    definition,
+                    projector,
+                    actionExecutor,
+                    (targetId, candidate) -> ProgressiveSkillsDataSerializer.replacementRejection(
+                            data, candidate, definition
+                    )
+            );
             persist(player, definition);
-            NetworkRuntime.sync(player);
+            if (synchronize) {
+                NetworkRuntime.sync(player);
+            }
             return result;
         }
 
@@ -244,8 +278,17 @@ public final class TransactionRuntime {
             }
             ProgressiveSkillsData data = player.getData(PsDataAttachments.PLAYER_DATA);
             if (data.active()) {
-                data.replaceTransactionState(service.exportAccount(player.getUUID()), definition);
+                service.loadedAccount(player.getUUID()).ifPresent(state ->
+                        data.replaceTransactionState(state, definition));
             }
+        }
+
+        public boolean ready(ServerPlayer player) {
+            if (player.getServer() != server) {
+                return false;
+            }
+            ProgressiveSkillsData data = player.getData(PsDataAttachments.PLAYER_DATA);
+            return data.active() && service.hasAccount(player.getUUID());
         }
     }
 }

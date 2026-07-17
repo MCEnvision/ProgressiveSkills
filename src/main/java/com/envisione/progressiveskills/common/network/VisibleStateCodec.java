@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.common.network;
 
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
+import net.minecraft.resources.ResourceLocation;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -13,8 +14,8 @@ import java.util.UUID;
 
 /** Strict codec for full visible state and semantic deltas. */
 public final class VisibleStateCodec {
-    private static final int FULL_VERSION = 1;
-    private static final int DELTA_VERSION = 1;
+    private static final int FULL_VERSION = 2;
+    private static final int DELTA_VERSION = 2;
 
     private VisibleStateCodec() {
     }
@@ -39,6 +40,7 @@ public final class VisibleStateCodec {
                     BoundedNetworkCodec.readString(input, 64),
                     readMap(input),
                     readMap(input),
+                    readNodeRanks(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean()
@@ -73,6 +75,8 @@ public final class VisibleStateCodec {
                     readSet(input),
                     readMap(input),
                     readSet(input),
+                    readNodeRanks(input),
+                    readNodeIds(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean(),
@@ -99,6 +103,7 @@ public final class VisibleStateCodec {
         BoundedNetworkCodec.writeString(output, state.presentationDigest(), 64);
         writeMap(output, state.balances());
         writeMap(output, state.effectiveValues());
+        writeNodeRanks(output, state.nodeRanks());
         output.writeInt(state.orphanCount());
         output.writeInt(state.operationReceiptCount());
         output.writeBoolean(state.quarantined());
@@ -117,6 +122,8 @@ public final class VisibleStateCodec {
         writeSet(output, delta.removedBalances());
         writeMap(output, delta.changedEffectiveValues());
         writeSet(output, delta.removedEffectiveValues());
+        writeNodeRanks(output, delta.changedNodeRanks());
+        writeNodeIds(output, delta.removedNodeRanks());
         output.writeInt(delta.orphanCount());
         output.writeInt(delta.operationReceiptCount());
         output.writeBoolean(delta.quarantined());
@@ -168,6 +175,59 @@ public final class VisibleStateCodec {
             }
         }
         return values;
+    }
+
+    private static void writeNodeRanks(
+            DataOutputStream output,
+            Map<ResourceLocation, Integer> ranks
+    ) throws IOException {
+        output.writeInt(ranks.size());
+        for (var entry : ranks.entrySet()) {
+            BoundedNetworkCodec.writeString(output, entry.getKey().toString(), NetworkLimits.MAX_KEY_BYTES);
+            output.writeInt(entry.getValue());
+        }
+    }
+
+    private static Map<ResourceLocation, Integer> readNodeRanks(DataInputStream input) throws IOException {
+        int count = readCount(input);
+        var ranks = new LinkedHashMap<ResourceLocation, Integer>();
+        for (int index = 0; index < count; index++) {
+            ResourceLocation node = readNodeId(input);
+            if (ranks.putIfAbsent(node, input.readInt()) != null) {
+                throw new IOException("Duplicate visible node rank");
+            }
+        }
+        return ranks;
+    }
+
+    private static void writeNodeIds(
+            DataOutputStream output,
+            Set<ResourceLocation> nodes
+    ) throws IOException {
+        output.writeInt(nodes.size());
+        for (ResourceLocation node : nodes) {
+            BoundedNetworkCodec.writeString(output, node.toString(), NetworkLimits.MAX_KEY_BYTES);
+        }
+    }
+
+    private static Set<ResourceLocation> readNodeIds(DataInputStream input) throws IOException {
+        int count = readCount(input);
+        var nodes = new LinkedHashSet<ResourceLocation>();
+        for (int index = 0; index < count; index++) {
+            if (!nodes.add(readNodeId(input))) {
+                throw new IOException("Duplicate removed visible node rank");
+            }
+        }
+        return nodes;
+    }
+
+    private static ResourceLocation readNodeId(DataInputStream input) throws IOException {
+        ResourceLocation node = ResourceLocation.tryParse(
+                BoundedNetworkCodec.readString(input, NetworkLimits.MAX_KEY_BYTES));
+        if (node == null) {
+            throw new IOException("Invalid visible node id");
+        }
+        return node;
     }
 
     private static int readCount(DataInputStream input) throws IOException {

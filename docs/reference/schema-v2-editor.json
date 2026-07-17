@@ -1583,10 +1583,10 @@
           "path": "intent_type",
           "type": "enum",
           "required": true,
-          "allowed_values": ["noop_test"],
+          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm"],
           "default": null,
           "description": "Closed server-registered intent family.",
-          "example": "noop_test",
+          "example": "tree_buy",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -2483,6 +2483,131 @@
             "help": "Manifest authoring schema version."
           },
           "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:paid_cost_record",
+      "version": 2,
+      "audience": "internal",
+      "title": "Historical paid cost record",
+      "description": "Immutable purchase identity, definition lineage, exact paid balances, and persistent grant sources.",
+      "fields": [
+        {
+          "path": "definition_revision",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition generation and semantic digest active when the purchase committed.",
+          "example": "{ generation = 10, semantic_digest = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" }",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Definition generation and semantic digest active when the purchase committed."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "instance_id",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owner kind, owner id, purchase id, and one based rank identity.",
+          "example": "{ owner_kind = \"progressiveskills:tree\", owner_id = \"mypack:mining\", purchase_id = \"mypack:mining/root\", rank = 1 }",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Owner kind, owner id, purchase id, and one based rank identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "owner_lineage",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Lowercase SHA 256 of the tree and node grant lineage that owns this purchase.",
+          "example": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "diagnostic": "PS-TREE-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Lowercase SHA 256 of the tree and node grant lineage that owns this purchase."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "paid_balances",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Up to eight positive exact currency debits preserved for refund.",
+          "example": "{ \"progressiveskills:global_points\" = 3 }",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Up to eight positive exact currency debits preserved for refund."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "persistent_sources",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Up to thirty two source owned persistent grants installed by the purchase.",
+          "example": "[\"progressiveskills:tree[mypack:mining]/mypack:mining/root/toughness\"]",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Up to thirty two source owned persistent grants installed by the purchase."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "purchase_transaction_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Transaction UUID that originally committed the exact payment.",
+          "example": "00000000-0000-0000-0000-000000000710",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Transaction UUID that originally committed the exact payment."
+          },
+          "projection": "server_only",
           "diff": "replace",
           "omit_when_default": false
         }
@@ -5218,6 +5343,829 @@
       ]
     },
     {
+      "id": "progressiveskills:tree_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Tree definition",
+      "description": "Bounded single rank Core progression tree with exact currency costs and cascade refunds.",
+      "fields": [
+        {
+          "path": "bind",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Skill identity required for skill scope and forbidden for global scope.",
+          "example": "mypack:mining",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 70,
+            "help": "Skill identity required for skill scope and forbidden for global scope."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "currency",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Named character currency debited by node purchases and restored by exact refunds.",
+          "example": "progressiveskills:global_points",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 80,
+            "help": "Named character currency debited by node purchases and restored by exact refunds."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "dependency_policy",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["cascade_refund"],
+          "default": "cascade_refund",
+          "description": "Policy used when refunding a node with owned transitive dependents.",
+          "example": "cascade_refund",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 90,
+            "help": "Policy used when refunding a node with owned transitive dependents."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized tree description.",
+          "example": "{ fallback = \"A practical mining specialization.\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized tree description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized tree name used by commands and presentation.",
+          "example": "{ fallback = \"Mining Paths\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized tree name used by commands and presentation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether the tree accepts purchases and retains valid ownership during reconciliation. Refunds remain available.",
+          "example": "true",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 50,
+            "help": "Whether the tree accepts purchases and retains valid ownership during reconciliation. Refunds remain available."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Tree icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:iron_pickaxe\", fallback = \"minecraft:barrier\", alt = \"Iron pickaxe\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Tree icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "nodes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "One to sixty four stable acyclic node entries merged by node id.",
+          "example": "[{ id = \"mypack:mining/root\", cost = 1, row = 0, col = 0 }]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 100,
+            "help": "One to sixty four stable acyclic node entries merged by node id."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": false
+        },
+        {
+          "path": "scope",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["global", "skill"],
+          "default": null,
+          "description": "Global tree or tree bound to one skill.",
+          "example": "skill",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 60,
+            "help": "Global tree or tree bound to one skill."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate terms used by tree search.",
+          "example": "[\"Mining\", \"Ore\"]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 45,
+            "help": "Bounded alternate terms used by tree search."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:tree_intent",
+      "version": 2,
+      "audience": "internal",
+      "title": "Tree mutation intent payload",
+      "description": "Bounded serverbound node selection with no client supplied cost, grant, balance, or refund amount.",
+      "fields": [
+        {
+          "path": "node_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected stable node identity interpreted only inside the selected tree.",
+          "example": "mypack:mining/root",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Selected stable node identity interpreted only inside the selected tree."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "preview_digest",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Required only when the enclosing network intent is tree_refund_confirm and forbidden otherwise.",
+          "example": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Required only when the enclosing network intent is tree_refund_confirm and forbidden otherwise."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "tree_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Selected stable tree identity.",
+          "example": "mypack:mining",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Selected stable tree identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:tree_node",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Tree node",
+      "description": "Stable single rank node with bounded prerequisites, exact cost, and persistent attribute grants.",
+      "fields": [
+        {
+          "path": "col",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Horizontal grid coordinate between negative and positive four thousand ninety six.",
+          "example": "1",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Horizontal grid coordinate between negative and positive four thousand ninety six."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "cost",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive named currency amount recorded exactly when purchased.",
+          "example": "3",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 50,
+            "help": "Positive named currency amount recorded exactly when purchased."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized node description.",
+          "example": "{ fallback = \"Improves mining endurance.\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 25,
+            "help": "Localized node description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized node name.",
+          "example": "{ fallback = \"Stone Sense\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized node name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "grants",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Up to thirty two stable persistent attribute grants merged by grant id.",
+          "example": "[{ id = \"mypack:mining/root/toughness\", type = \"attribute\", attribute = \"minecraft:generic.armor\", operation = \"add_value\", value = 1.0 }]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 120,
+            "help": "Up to thirty two stable persistent attribute grants merged by grant id."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "grants.attribute",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Registered player attribute targeted by this grant.",
+          "example": "minecraft:generic.armor",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 123,
+            "help": "Registered player attribute targeted by this grant."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "grants.id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable source identity for this persistent grant.",
+          "example": "mypack:mining/root/toughness",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 121,
+            "help": "Stable source identity for this persistent grant."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "grants.operation",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["add_value", "add_multiplied_base", "add_multiplied_total"],
+          "default": null,
+          "description": "Supported deterministic attribute operation.",
+          "example": "add_value",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 124,
+            "help": "Supported deterministic attribute operation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "grants.type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["attribute"],
+          "default": null,
+          "description": "Core tree grant type.",
+          "example": "attribute",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 122,
+            "help": "Core tree grant type."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "grants.value",
+          "type": "decimal",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonzero fixed point attribute contribution.",
+          "example": "1.0",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 125,
+            "help": "Nonzero fixed point attribute contribution."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Node icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:stone\", fallback = \"minecraft:barrier\", alt = \"Stone\" }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 30,
+            "help": "Node icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable node identity unique across the complete live tree catalog.",
+          "example": "mypack:mining/root",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Stable node identity unique across the complete live tree catalog."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "min_level",
+          "type": "map",
+          "required": false,
+          "allowed_values": [],
+          "default": {},
+          "description": "Up to thirty two skill ids mapped to nonnegative minimum levels.",
+          "example": "{ \"mypack:mining\" = 5 }",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "key_value",
+            "group": "core",
+            "order": 100,
+            "help": "Up to thirty two skill ids mapped to nonnegative minimum levels."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "requires",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Same tree node ids that must all be owned.",
+          "example": "[\"mypack:mining/root\"]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 80,
+            "help": "Same tree node ids that must all be owned."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "requires_any",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Same tree node ids of which at least one must be owned when nonempty.",
+          "example": "[\"mypack:mining/left\", \"mypack:mining/right\"]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 90,
+            "help": "Same tree node ids of which at least one must be owned when nonempty."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "row",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Vertical grid coordinate between negative and positive four thousand ninety six.",
+          "example": "0",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 60,
+            "help": "Vertical grid coordinate between negative and positive four thousand ninety six."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate terms used by node search.",
+          "example": "[\"Armor\"]",
+          "diagnostic": "PS-TREE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 40,
+            "help": "Bounded alternate terms used by node search."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:tree_refund_preview",
+      "version": 2,
+      "audience": "internal",
+      "title": "Tree cascade refund preview payload",
+      "description": "Clientbound revision pinned affected nodes, exact historical refunds, blockers, and confirmation digest.",
+      "fields": [
+        {
+          "path": "affected_nodes",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Up to sixty four selected and owned dependent nodes in authoritative reverse topological refund order.",
+          "example": "[\"mypack:mining/deep\", \"mypack:mining/root\"]",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Up to sixty four selected and owned dependent nodes in authoritative reverse topological refund order."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "blockers",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Up to sixty four bounded reasons that make confirmation unavailable.",
+          "example": "[]",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 110,
+            "help": "Up to sixty four bounded reasons that make confirmation unavailable."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_generation",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition generation used to calculate the preview.",
+          "example": "10",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Definition generation used to calculate the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "node_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Node selected for cascade refund.",
+          "example": "mypack:mining/root",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Node selected for cascade refund."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "preview_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Lowercase SHA 256 covering the selected cascade and historical payment evidence.",
+          "example": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 100,
+            "help": "Lowercase SHA 256 covering the selected cascade and historical payment evidence."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "refund_balances",
+          "type": "map",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Up to sixty four exact nonnegative currency totals recovered from affected paid cost records.",
+          "example": "{ \"progressiveskills:global_points\" = 6 }",
+          "diagnostic": "PS-TREE-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 90,
+            "help": "Up to sixty four exact nonnegative currency totals recovered from affected paid cost records."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "request_id",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Serverbound preview request identity returned to the requesting client.",
+          "example": "14",
+          "diagnostic": "PS-NET-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Serverbound preview request identity returned to the requesting client."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "semantic_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Gameplay definition digest used to calculate the preview.",
+          "example": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Gameplay definition digest used to calculate the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "session_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Current connection session UUID.",
+          "example": "00000000-0000-0000-0000-000000000711",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Current connection session UUID."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state_revision",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative player state revision used to calculate the preview.",
+          "example": "8",
+          "diagnostic": "PS-NET-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Authoritative player state revision used to calculate the preview."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "tree_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Tree containing every affected purchase.",
+          "example": "mypack:mining",
+          "diagnostic": "PS-TREE-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Tree containing every affected purchase."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:visible_player_state",
       "version": 2,
       "audience": "internal",
@@ -5877,6 +6825,51 @@
       "why": "Unbounded file counts, nesting, or bytes can exhaust server resources during reload.",
       "fix": "Split or reduce the pack so it stays within the documented hard ceilings.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-toml-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TREE-001",
+      "severity": "error",
+      "title": "Tree definition is invalid",
+      "why": "A Core tree must be bounded, acyclic, single rank, and use valid same tree prerequisites.",
+      "fix": "Correct the tree and node fields using the generated tree schemas.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tree-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TREE-002",
+      "severity": "warning",
+      "title": "Tree purchase was denied",
+      "why": "Unknown, disabled, owned, unaffordable, or requirement blocked nodes cannot be purchased.",
+      "fix": "Review the purchase blockers and submit a fresh intent against current state.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tree-002",
+      "suppressible": true
+    },
+    {
+      "code": "PS-TREE-003",
+      "severity": "warning",
+      "title": "Tree refund was denied",
+      "why": "A refund requires current ownership, exact historical cost evidence, and a matching cascade preview.",
+      "fix": "Request a fresh refund preview and resolve every reported blocker before confirming.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tree-003",
+      "suppressible": true
+    },
+    {
+      "code": "PS-TREE-004",
+      "severity": "warning",
+      "title": "Tree purchase is orphaned",
+      "why": "Persisted purchase evidence no longer maps to the same tree node lineage.",
+      "fix": "Restore a compatible definition or review the orphan before an explicit migration or refund.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tree-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-TREE-005",
+      "severity": "error",
+      "title": "Paid cost ledger is invalid",
+      "why": "Missing, malformed, conflicting, or overflowing historical payment evidence prevents an exact refund.",
+      "fix": "Restore verified paid cost records before allowing a purchase mutation or refund.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-tree-005",
       "suppressible": false
     },
     {

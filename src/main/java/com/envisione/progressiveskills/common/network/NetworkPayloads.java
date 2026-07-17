@@ -1,13 +1,21 @@
 package com.envisione.progressiveskills.common.network;
 
 import com.envisione.progressiveskills.ProjectIdentity;
+import com.envisione.progressiveskills.common.id.StableId;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 
 /** Closed Phase 6 payload vocabulary with allocation bounds enforced inside every decoder. */
@@ -375,8 +383,135 @@ public final class NetworkPayloads {
         }
     }
 
+    public record TreeRefundPreview(
+            UUID sessionId,
+            long requestId,
+            long definitionGeneration,
+            String semanticDigest,
+            long stateRevision,
+            ResourceLocation treeId,
+            ResourceLocation nodeId,
+            List<ResourceLocation> affectedNodes,
+            Map<ResourceLocation, Long> refundBalances,
+            String previewDigest,
+            List<String> blockers
+    ) implements CustomPacketPayload {
+        public static final Type<TreeRefundPreview> TYPE = NetworkPayloads.type("tree_refund_preview");
+        public static final StreamCodec<FriendlyByteBuf, TreeRefundPreview> STREAM_CODEC = StreamCodec.of(
+                (buffer, value) -> {
+                    buffer.writeUUID(value.sessionId);
+                    buffer.writeVarLong(value.requestId);
+                    buffer.writeVarLong(value.definitionGeneration);
+                    buffer.writeUtf(value.semanticDigest, 64);
+                    buffer.writeVarLong(value.stateRevision);
+                    writeId(buffer, value.treeId);
+                    writeId(buffer, value.nodeId);
+                    buffer.writeVarInt(value.affectedNodes.size());
+                    value.affectedNodes.forEach(node -> writeId(buffer, node));
+                    buffer.writeVarInt(value.refundBalances.size());
+                    value.refundBalances.forEach((currency, amount) -> {
+                        writeId(buffer, currency);
+                        buffer.writeVarLong(amount);
+                    });
+                    buffer.writeUtf(value.previewDigest, 64);
+                    buffer.writeVarInt(value.blockers.size());
+                    value.blockers.forEach(blocker ->
+                            buffer.writeUtf(blocker, NetworkLimits.MAX_RESYNC_REASON_BYTES));
+                },
+                buffer -> {
+                    UUID sessionId = buffer.readUUID();
+                    long requestId = buffer.readVarLong();
+                    long definitionGeneration = buffer.readVarLong();
+                    String semanticDigest = buffer.readUtf(64);
+                    long stateRevision = buffer.readVarLong();
+                    ResourceLocation treeId = readId(buffer);
+                    ResourceLocation nodeId = readId(buffer);
+                    int affectedCount = readCount(
+                            buffer, NetworkLimits.MAX_TREE_PREVIEW_NODES, "affected tree node");
+                    var affectedNodes = new ArrayList<ResourceLocation>(affectedCount);
+                    for (int index = 0; index < affectedCount; index++) {
+                        affectedNodes.add(readId(buffer));
+                    }
+                    int balanceCount = readCount(
+                            buffer, NetworkLimits.MAX_TREE_PREVIEW_BALANCES, "tree refund balance");
+                    var refundBalances = new LinkedHashMap<ResourceLocation, Long>();
+                    for (int index = 0; index < balanceCount; index++) {
+                        ResourceLocation currency = readId(buffer);
+                        if (refundBalances.putIfAbsent(currency, buffer.readVarLong()) != null) {
+                            throw new IllegalArgumentException("Duplicate tree refund currency");
+                        }
+                    }
+                    String previewDigest = buffer.readUtf(64);
+                    int blockerCount = readCount(
+                            buffer, NetworkLimits.MAX_TREE_PREVIEW_BLOCKERS, "tree refund blocker");
+                    var blockers = new ArrayList<String>(blockerCount);
+                    for (int index = 0; index < blockerCount; index++) {
+                        blockers.add(buffer.readUtf(NetworkLimits.MAX_RESYNC_REASON_BYTES));
+                    }
+                    return new TreeRefundPreview(
+                            sessionId, requestId, definitionGeneration, semanticDigest, stateRevision,
+                            treeId, nodeId, affectedNodes, refundBalances, previewDigest, blockers
+                    );
+                }
+        );
+
+        public TreeRefundPreview {
+            Objects.requireNonNull(sessionId, "sessionId");
+            if (requestId < 0 || definitionGeneration < 0 || stateRevision < 0) {
+                throw new IllegalArgumentException("Tree refund preview revisions must not be negative");
+            }
+            semanticDigest = NetworkLimits.requireDigest(semanticDigest, "semanticDigest");
+            treeId = StableId.requireValid(treeId);
+            nodeId = StableId.requireValid(nodeId);
+            Objects.requireNonNull(affectedNodes, "affectedNodes");
+            if (affectedNodes.size() > NetworkLimits.MAX_TREE_PREVIEW_NODES) {
+                throw new IllegalArgumentException("Tree refund preview node count exceeds capacity");
+            }
+            var orderedNodes = new LinkedHashSet<ResourceLocation>();
+            for (ResourceLocation node : affectedNodes) {
+                if (!orderedNodes.add(StableId.requireValid(node))) {
+                    throw new IllegalArgumentException("Tree refund preview contains duplicate nodes");
+                }
+            }
+            affectedNodes = List.copyOf(orderedNodes);
+            Objects.requireNonNull(refundBalances, "refundBalances");
+            if (refundBalances.size() > NetworkLimits.MAX_TREE_PREVIEW_BALANCES) {
+                throw new IllegalArgumentException("Tree refund preview balance count exceeds capacity");
+            }
+            var sortedBalances = new TreeMap<ResourceLocation, Long>(ResourceLocation::compareNamespaced);
+            refundBalances.forEach((currency, amount) -> {
+                ResourceLocation stableCurrency = StableId.requireValid(currency);
+                if (amount == null || amount < 0) {
+                    throw new IllegalArgumentException("Tree refund preview balance is invalid");
+                }
+                sortedBalances.put(stableCurrency, amount);
+            });
+            refundBalances = Collections.unmodifiableMap(new LinkedHashMap<>(sortedBalances));
+            previewDigest = NetworkLimits.requireDigest(previewDigest, "previewDigest");
+            Objects.requireNonNull(blockers, "blockers");
+            if (blockers.size() > NetworkLimits.MAX_TREE_PREVIEW_BLOCKERS) {
+                throw new IllegalArgumentException("Tree refund preview blocker count exceeds capacity");
+            }
+            blockers = blockers.stream().map(blocker -> NetworkLimits.requireBoundedText(
+                    blocker, NetworkLimits.MAX_RESYNC_REASON_BYTES, "tree refund blocker"
+            )).toList();
+        }
+
+        public boolean allowed() {
+            return blockers.isEmpty();
+        }
+
+        @Override
+        public Type<TreeRefundPreview> type() {
+            return TYPE;
+        }
+    }
+
     public enum IntentType {
-        NOOP_TEST
+        NOOP_TEST,
+        TREE_BUY,
+        TREE_REFUND_PREVIEW,
+        TREE_REFUND_CONFIRM
     }
 
     public enum IntentStatus {
@@ -405,5 +540,25 @@ public final class NetworkPayloads {
             throw new IllegalArgumentException("Unknown " + name + " ordinal " + ordinal);
         }
         return values[ordinal];
+    }
+
+    private static void writeId(FriendlyByteBuf buffer, ResourceLocation id) {
+        buffer.writeUtf(id.toString(), NetworkLimits.MAX_KEY_BYTES);
+    }
+
+    private static ResourceLocation readId(FriendlyByteBuf buffer) {
+        ResourceLocation id = ResourceLocation.tryParse(buffer.readUtf(NetworkLimits.MAX_KEY_BYTES));
+        if (id == null) {
+            throw new IllegalArgumentException("Invalid network resource location");
+        }
+        return StableId.requireValid(id);
+    }
+
+    private static int readCount(FriendlyByteBuf buffer, int maximum, String name) {
+        int count = buffer.readVarInt();
+        if (count < 0 || count > maximum) {
+            throw new IllegalArgumentException(name + " count exceeds capacity");
+        }
+        return count;
     }
 }

@@ -1,6 +1,6 @@
 # Transactions and Output Lifecycles
 
-Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, synchronized by the Phase 6 bounded protocol, and used by the Phase 7 and Phase 8 XP paths.
+Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, synchronized by the Phase 6 bounded protocol, and used by the Phase 7 through Phase 10 gameplay paths.
 
 ## Scope and boundary
 
@@ -27,11 +27,11 @@ Every `CascadePlan` is already fully expanded when submitted. The coordinator:
 
 1. Derives a stable transaction UUID from the target and idempotency key.
 2. Returns the cached terminal result immediately for an exact replay.
-3. Checks exact-ledger capacity, live definition generation/digest, and target state revision.
+3. Checks live definition generation, semantic digest, target state revision, and exact receipt capacity.
 4. Applies every checked balance and ownership mutation to copied state in root/child order.
 5. Resolves all persistent owners and computes one effective projection diff.
 6. Prevalidates the complete physical projection and every still-unreceipted transition action.
-7. Reserves exact receipt capacity.
+7. Builds the worst case resulting receipt, replay, and audit records, applies bounded replay and audit retention, and verifies the exact resulting player attachment against its NBT tag and byte ceilings.
 8. Installs copied state once, increments the state revision once, and applies the prevalidated atomic physical projection; an atomic projection exception restores the copied state boundary before any transition action.
 9. Executes transition actions in declared order, recording success receipts and isolating failures according to `continue` or `stop`.
 10. Stores the stable idempotency result and bounded audit record.
@@ -42,9 +42,9 @@ No child mutation executes recursively. Oversized steps/cascades are rejected du
 
 `TransactionPlan` carries an expected state revision and `DefinitionRevision(generation, semanticDigest)`. Either mismatch rejects the complete plan before projection or mutation.
 
-An `IdempotencyKey` is a bounded caller identity. The service stores every terminal result, including ordinary rejections, and returns the same transaction UUID and outcome for a replay. Exact idempotency entries are not evicted; a full ledger rejects new work before mutation.
+An `IdempotencyKey` is a bounded caller identity. The service stores terminal results, including ordinary rejections, and returns the same transaction UUID and outcome while that result remains in the replay window. The oldest result is removed deterministically when the configured replay window is full. The connection protocol separately rejects request IDs older than its retained window, and permanent value delivery remains protected by non-evicting transition receipts.
 
-The online cache is capped at 256 loaded accounts. Each persisted account is capped at 512 exact transition receipts, 512 idempotency results, and 256 retained audit records; a full exact ledger rejects new work before mutation.
+The online cache is capped at 256 loaded accounts. Each persisted account is capped at 512 exact transition receipts, 512 retained idempotency results, 256 retained audit records, and the configured paid-cost ceiling. Replay and audit records compact oldest first. Permanent receipts and paid-cost records are not evicted. Every candidate transaction preflights the complete actual attachment, including definition state, operation receipts, migration evidence, extensions, and the candidate transaction state. A candidate that cannot fit the 16,384 tag or 1 MiB attachment ceiling rejects before projection or mutation.
 
 The Phase 4 demo uses a stable primary key. Running `/ps lifecycle demo` twice therefore cannot add another point, item, health owner, revision, or audit mutation.
 

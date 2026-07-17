@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 8. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 10. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -264,7 +264,7 @@ Serverbound request identity and stale guards; clients never provide costs, XP, 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Client-observed gameplay definition generation. | `7` | `PS-NET-003` | `object` | `server_only` | `replace` |
-| `intent_type` (required) | `enum` | `noop_test` | — | Closed server-registered intent family. | `noop_test` | `PS-NET-001` | `object` | `server_only` | `replace` |
+| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
 | `payload` (required) | `string` | — | — | Small type-specific bounded selection payload; never effect amounts or commands. | `""` | `PS-NET-002` | `object` | `server_only` | `replace` |
 | `request_id` (required) | `integer` | — | — | Monotonic request id covered by the bounded replay/result window. | `12` | `PS-NET-004` | `object` | `server_only` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Client-observed gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `server_only` | `replace` |
@@ -343,6 +343,23 @@ Identity, compatibility, dependencies, precedence, and fail-closed policy for on
 | `policies.secret_projection` | `enum` | `redact` | `"redact"` | Server-only field handling for future client projections. | `redact` | `PS-PACK-002` | `select` | `client_visible` | `replace` |
 | `policies.unknown_field` | `enum` | `error` | `"error"` | Unknown manifest/definition field handling. | `error` | `PS-SCHEMA-002` | `select` | `client_visible` | `replace` |
 | `schema_version` (required) | `integer` | `2` | — | Manifest authoring schema version. | `2` | `PS-SCHEMA-001` | `integer` | `client_visible` | `replace` |
+
+## Historical paid cost record
+
+- Schema ID: `progressiveskills:paid_cost_record`
+- Version: `2`
+- Audience: `internal`
+
+Immutable purchase identity, definition lineage, exact paid balances, and persistent grant sources.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `definition_revision` (required) | `object` | — | — | Definition generation and semantic digest active when the purchase committed. | `{ generation = 10, semantic_digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }` | `PS-TREE-005` | `object` | `server_only` | `replace` |
+| `instance_id` (required) | `object` | — | — | Owner kind, owner id, purchase id, and one based rank identity. | `{ owner_kind = "progressiveskills:tree", owner_id = "mypack:mining", purchase_id = "mypack:mining/root", rank = 1 }` | `PS-TREE-005` | `object` | `server_only` | `replace` |
+| `owner_lineage` (required) | `string` | — | — | Lowercase SHA 256 of the tree and node grant lineage that owns this purchase. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-TREE-004` | `object` | `server_only` | `replace` |
+| `paid_balances` (required) | `map` | — | — | Up to eight positive exact currency debits preserved for refund. | `{ "progressiveskills:global_points" = 3 }` | `PS-TREE-005` | `object` | `server_only` | `replace` |
+| `persistent_sources` (required) | `list` | — | — | Up to thirty two source owned persistent grants installed by the purchase. | `["progressiveskills:tree[mypack:mining]/mypack:mining/root/toughness"]` | `PS-TREE-005` | `object` | `server_only` | `replace` |
+| `purchase_transaction_id` (required) | `string` | — | — | Transaction UUID that originally committed the exact payment. | `00000000-0000-0000-0000-000000000710` | `PS-TREE-005` | `object` | `server_only` | `replace` |
 
 ## Pending offline progression operation
 
@@ -622,6 +639,91 @@ Typed edge-only action with explicit repeat, delivery, and failure contracts.
 | `repeat_policy` (required) | `enum` | `always \| once_per_transaction \| once_per_character` | — | Exact receipt scope or explicit always-repeat behavior. | `once_per_character` | `PS-TX-006` | `object` | `server_only` | `replace` |
 | `source` (required) | `object` | — | — | Typed owner, definition, and nested grant identity. | `{ owner_kind = "progressiveskills:skill", owner_id = "mypack:physique" }` | `PS-TX-004` | `object` | `server_only` | `replace` |
 | `type` (required) | `resource_location` | — | — | Registered physical action adapter type. | `progressiveskills:item` | `PS-TX-005` | `object` | `server_only` | `replace` |
+
+## Tree definition
+
+- Schema ID: `progressiveskills:tree_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Bounded single rank Core progression tree with exact currency costs and cascade refunds.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `bind` | `resource_location` | — | — | Skill identity required for skill scope and forbidden for global scope. | `mypack:mining` | `PS-TREE-001` | `resource_location` | `client_visible` | `replace` |
+| `currency` (required) | `resource_location` | — | — | Named character currency debited by node purchases and restored by exact refunds. | `progressiveskills:global_points` | `PS-TREE-001` | `resource_location` | `client_visible` | `replace` |
+| `dependency_policy` | `enum` | `cascade_refund` | `"cascade_refund"` | Policy used when refunding a node with owned transitive dependents. | `cascade_refund` | `PS-TREE-001` | `select` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized tree description. | `{ fallback = "A practical mining specialization." }` | `PS-TREE-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized tree name used by commands and presentation. | `{ fallback = "Mining Paths" }` | `PS-TREE-001` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether the tree accepts purchases and retains valid ownership during reconciliation. Refunds remain available. | `true` | `PS-TREE-001` | `checkbox` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Tree icon with fallback and alternative text. | `{ type = "item", value = "minecraft:iron_pickaxe", fallback = "minecraft:barrier", alt = "Iron pickaxe" }` | `PS-TREE-001` | `icon` | `client_visible` | `replace` |
+| `nodes` (required) | `list` | — | — | One to sixty four stable acyclic node entries merged by node id. | `[{ id = "mypack:mining/root", cost = 1, row = 0, col = 0 }]` | `PS-TREE-001` | `list` | `client_visible` | `merge_by_key` |
+| `scope` (required) | `enum` | `global \| skill` | — | Global tree or tree bound to one skill. | `skill` | `PS-TREE-001` | `select` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate terms used by tree search. | `["Mining", "Ore"]` | `PS-TREE-001` | `list` | `client_visible` | `set` |
+
+## Tree mutation intent payload
+
+- Schema ID: `progressiveskills:tree_intent`
+- Version: `2`
+- Audience: `internal`
+
+Bounded serverbound node selection with no client supplied cost, grant, balance, or refund amount.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `node_id` (required) | `resource_location` | — | — | Selected stable node identity interpreted only inside the selected tree. | `mypack:mining/root` | `PS-TREE-001` | `object` | `server_only` | `replace` |
+| `preview_digest` | `string` | — | — | Required only when the enclosing network intent is tree_refund_confirm and forbidden otherwise. | `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc` | `PS-TREE-003` | `object` | `server_only` | `replace` |
+| `tree_id` (required) | `resource_location` | — | — | Selected stable tree identity. | `mypack:mining` | `PS-TREE-001` | `object` | `server_only` | `replace` |
+
+## Tree node
+
+- Schema ID: `progressiveskills:tree_node`
+- Version: `2`
+- Audience: `authoring`
+
+Stable single rank node with bounded prerequisites, exact cost, and persistent attribute grants.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `col` (required) | `integer` | — | — | Horizontal grid coordinate between negative and positive four thousand ninety six. | `1` | `PS-TREE-001` | `integer` | `client_visible` | `replace` |
+| `cost` (required) | `integer` | — | — | Positive named currency amount recorded exactly when purchased. | `3` | `PS-TREE-001` | `integer` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized node description. | `{ fallback = "Improves mining endurance." }` | `PS-TREE-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized node name. | `{ fallback = "Stone Sense" }` | `PS-TREE-001` | `component` | `client_visible` | `replace` |
+| `grants` | `list` | — | `[]` | Up to thirty two stable persistent attribute grants merged by grant id. | `[{ id = "mypack:mining/root/toughness", type = "attribute", attribute = "minecraft:generic.armor", operation = "add_value", value = 1.0 }]` | `PS-TREE-001` | `list` | `client_visible` | `merge_by_key` |
+| `grants.attribute` (required) | `resource_location` | — | — | Registered player attribute targeted by this grant. | `minecraft:generic.armor` | `PS-TREE-001` | `resource_location` | `client_visible` | `replace` |
+| `grants.id` (required) | `resource_location` | — | — | Stable source identity for this persistent grant. | `mypack:mining/root/toughness` | `PS-TREE-001` | `resource_location` | `client_visible` | `replace` |
+| `grants.operation` (required) | `enum` | `add_value \| add_multiplied_base \| add_multiplied_total` | — | Supported deterministic attribute operation. | `add_value` | `PS-TREE-001` | `select` | `client_visible` | `replace` |
+| `grants.type` (required) | `enum` | `attribute` | — | Core tree grant type. | `attribute` | `PS-TREE-001` | `select` | `client_visible` | `replace` |
+| `grants.value` (required) | `decimal` | — | — | Nonzero fixed point attribute contribution. | `1.0` | `PS-TREE-001` | `decimal` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Node icon with fallback and alternative text. | `{ type = "item", value = "minecraft:stone", fallback = "minecraft:barrier", alt = "Stone" }` | `PS-TREE-001` | `icon` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Stable node identity unique across the complete live tree catalog. | `mypack:mining/root` | `PS-TREE-001` | `resource_location` | `client_visible` | `replace` |
+| `min_level` | `map` | — | `{}` | Up to thirty two skill ids mapped to nonnegative minimum levels. | `{ "mypack:mining" = 5 }` | `PS-TREE-001` | `key_value` | `client_visible` | `replace` |
+| `requires` | `list` | — | `[]` | Same tree node ids that must all be owned. | `["mypack:mining/root"]` | `PS-TREE-001` | `list` | `client_visible` | `set` |
+| `requires_any` | `list` | — | `[]` | Same tree node ids of which at least one must be owned when nonempty. | `["mypack:mining/left", "mypack:mining/right"]` | `PS-TREE-001` | `list` | `client_visible` | `set` |
+| `row` (required) | `integer` | — | — | Vertical grid coordinate between negative and positive four thousand ninety six. | `0` | `PS-TREE-001` | `integer` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate terms used by node search. | `["Armor"]` | `PS-TREE-001` | `list` | `client_visible` | `set` |
+
+## Tree cascade refund preview payload
+
+- Schema ID: `progressiveskills:tree_refund_preview`
+- Version: `2`
+- Audience: `internal`
+
+Clientbound revision pinned affected nodes, exact historical refunds, blockers, and confirmation digest.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `affected_nodes` (required) | `list` | — | — | Up to sixty four selected and owned dependent nodes in authoritative reverse topological refund order. | `["mypack:mining/deep", "mypack:mining/root"]` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
+| `blockers` (required) | `list` | — | — | Up to sixty four bounded reasons that make confirmation unavailable. | `[]` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
+| `definition_generation` (required) | `integer` | — | — | Definition generation used to calculate the preview. | `10` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `node_id` (required) | `resource_location` | — | — | Node selected for cascade refund. | `mypack:mining/root` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
+| `preview_digest` (required) | `string` | — | — | Lowercase SHA 256 covering the selected cascade and historical payment evidence. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
+| `refund_balances` (required) | `map` | — | — | Up to sixty four exact nonnegative currency totals recovered from affected paid cost records. | `{ "progressiveskills:global_points" = 6 }` | `PS-TREE-005` | `object` | `client_visible` | `replace` |
+| `request_id` (required) | `integer` | — | — | Serverbound preview request identity returned to the requesting client. | `14` | `PS-NET-004` | `object` | `client_visible` | `replace` |
+| `semantic_digest` (required) | `string` | — | — | Gameplay definition digest used to calculate the preview. | `eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `session_id` (required) | `string` | — | — | Current connection session UUID. | `00000000-0000-0000-0000-000000000711` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `state_revision` (required) | `integer` | — | — | Authoritative player state revision used to calculate the preview. | `8` | `PS-NET-003` | `object` | `client_visible` | `replace` |
+| `tree_id` (required) | `resource_location` | — | — | Tree containing every affected purchase. | `mypack:mining` | `PS-TREE-003` | `object` | `client_visible` | `replace` |
 
 ## Visible player state
 
@@ -1104,6 +1206,51 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `false`
 - Why it matters: Unbounded file counts, nesting, or bytes can exhaust server resources during reload.
 - Suggested fix: Split or reduce the pack so it stays within the documented hard ceilings.
+
+<a id="ps-tree-001"></a>
+
+### PS-TREE-001 — Tree definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A Core tree must be bounded, acyclic, single rank, and use valid same tree prerequisites.
+- Suggested fix: Correct the tree and node fields using the generated tree schemas.
+
+<a id="ps-tree-002"></a>
+
+### PS-TREE-002 — Tree purchase was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Unknown, disabled, owned, unaffordable, or requirement blocked nodes cannot be purchased.
+- Suggested fix: Review the purchase blockers and submit a fresh intent against current state.
+
+<a id="ps-tree-003"></a>
+
+### PS-TREE-003 — Tree refund was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: A refund requires current ownership, exact historical cost evidence, and a matching cascade preview.
+- Suggested fix: Request a fresh refund preview and resolve every reported blocker before confirming.
+
+<a id="ps-tree-004"></a>
+
+### PS-TREE-004 — Tree purchase is orphaned
+
+- Default severity: `warning`
+- Suppressible: `false`
+- Why it matters: Persisted purchase evidence no longer maps to the same tree node lineage.
+- Suggested fix: Restore a compatible definition or review the orphan before an explicit migration or refund.
+
+<a id="ps-tree-005"></a>
+
+### PS-TREE-005 — Paid cost ledger is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Missing, malformed, conflicting, or overflowing historical payment evidence prevents an exact refund.
+- Suggested fix: Restore verified paid cost records before allowing a purchase mutation or refund.
 
 <a id="ps-tx-001"></a>
 

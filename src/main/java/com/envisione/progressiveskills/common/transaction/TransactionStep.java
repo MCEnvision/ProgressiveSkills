@@ -11,6 +11,7 @@ public record TransactionStep(
         ResourceLocation origin,
         List<BalanceMutation> balanceMutations,
         List<EntitlementMutation> entitlementMutations,
+        List<PaidCostMutation> paidCostMutations,
         List<TransitionAction> transitionActions
 ) {
     public static final int MAX_MUTATIONS = 256;
@@ -20,8 +21,9 @@ public record TransactionStep(
         origin = StableId.requireValid(origin);
         balanceMutations = List.copyOf(Objects.requireNonNull(balanceMutations, "balanceMutations"));
         entitlementMutations = List.copyOf(Objects.requireNonNull(entitlementMutations, "entitlementMutations"));
+        paidCostMutations = List.copyOf(Objects.requireNonNull(paidCostMutations, "paidCostMutations"));
         transitionActions = List.copyOf(Objects.requireNonNull(transitionActions, "transitionActions"));
-        if (balanceMutations.size() + entitlementMutations.size() > MAX_MUTATIONS) {
+        if (balanceMutations.size() + entitlementMutations.size() + paidCostMutations.size() > MAX_MUTATIONS) {
             throw new IllegalArgumentException("Transaction step exceeds mutation budget " + MAX_MUTATIONS);
         }
         if (transitionActions.size() > MAX_ACTIONS) {
@@ -29,10 +31,20 @@ public record TransactionStep(
         }
         balanceMutations.forEach(value -> Objects.requireNonNull(value, "balance mutation"));
         entitlementMutations.forEach(value -> Objects.requireNonNull(value, "entitlement mutation"));
+        paidCostMutations.forEach(value -> Objects.requireNonNull(value, "paid cost mutation"));
         transitionActions.forEach(value -> Objects.requireNonNull(value, "transition action"));
     }
 
+    public TransactionStep(
+            ResourceLocation origin,
+            List<BalanceMutation> balanceMutations,
+            List<EntitlementMutation> entitlementMutations,
+            List<TransitionAction> transitionActions
+    ) {
+        this(origin, balanceMutations, entitlementMutations, List.of(), transitionActions);
+    }
+
     public static TransactionStep empty(ResourceLocation origin) {
-        return new TransactionStep(origin, List.of(), List.of(), List.of());
+        return new TransactionStep(origin, List.of(), List.of(), List.of(), List.of());
     }
 }

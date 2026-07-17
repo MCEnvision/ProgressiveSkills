@@ -162,7 +162,7 @@ public final class SkillRuntime {
         SkillCatalog catalog = catalog().orElseThrow(() -> new IllegalStateException("Skill catalog is unavailable"));
         var snapshot = context.service().snapshot(player.getUUID());
         SkillProgression.reconcile(player.getUUID(), catalog, snapshot, definition).ifPresent(plan -> {
-            TransactionResult result = context.executeAndPersist(player, plan, definition);
+            TransactionResult result = context.executeAndPersistReconcile(player, plan, definition);
             if (!result.status().committed()) {
                 throw new IllegalStateException("Skill reconciliation failed with "
                         + result.diagnosticCode() + " " + result.message());

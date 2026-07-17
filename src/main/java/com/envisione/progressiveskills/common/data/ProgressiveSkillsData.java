@@ -17,7 +17,7 @@ import java.util.UUID;
 
 /** Mutable server-thread-confined authority stored in the versioned player data attachment. */
 public final class ProgressiveSkillsData {
-    public static final int CURRENT_DATA_VERSION = 2;
+    public static final int CURRENT_DATA_VERSION = 3;
     public static final int MAX_DEFINITION_STATES = 4_096;
     public static final int MAX_ORPHANS = 4_096;
     public static final int MAX_OPERATION_RECEIPTS = 512;

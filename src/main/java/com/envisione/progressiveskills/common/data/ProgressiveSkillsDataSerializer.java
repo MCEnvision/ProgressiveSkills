@@ -4,6 +4,7 @@ import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.id.DefinitionKind;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
+import com.envisione.progressiveskills.common.transaction.PersistedTransactionState;
 import com.envisione.progressiveskills.common.transaction.TransactionId;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -17,6 +18,7 @@ import net.neoforged.neoforge.attachment.IAttachmentSerializer;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -65,6 +67,63 @@ public final class ProgressiveSkillsDataSerializer
             throw new IllegalStateException("Refusing to export oversized player data: " + reason);
         });
         return encoded;
+    }
+
+    public static Optional<String> transactionStateRejection(
+            UUID playerId,
+            PersistedTransactionState transactionState,
+            DefinitionRevision definition
+    ) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(transactionState, "transactionState");
+        Objects.requireNonNull(definition, "definition");
+        return replacementRejection(ProgressiveSkillsData.empty(playerId), transactionState, definition);
+    }
+
+    public static Optional<String> replacementRejection(
+            ProgressiveSkillsData data,
+            PersistedTransactionState transactionState,
+            DefinitionRevision definition
+    ) {
+        Objects.requireNonNull(data, "data");
+        Objects.requireNonNull(transactionState, "transactionState");
+        Objects.requireNonNull(definition, "definition");
+        ProgressiveSkillsDataView current = data.view();
+        if (current.status() != PlayerDataStatus.ACTIVE) {
+            return Optional.of("Quarantined player data cannot accept transaction state");
+        }
+        long storageRevision;
+        try {
+            storageRevision = current.transactionState().equals(transactionState)
+                    && current.stateDefinition().equals(Optional.of(definition))
+                    ? current.storageRevision()
+                    : Math.addExact(current.storageRevision(), 1);
+            if (current.migrationShadow()
+                    .map(MigrationShadow::status)
+                    .filter(status -> status == MigrationShadowStatus.PERSISTED_AFTER_LOGIN)
+                    .isPresent()) {
+                Math.addExact(storageRevision, 1);
+            }
+        } catch (ArithmeticException exception) {
+            return Optional.of("Player data storage revision would overflow");
+        }
+        Optional<MigrationShadow> migrationShadow = current.migrationShadow().map(shadow ->
+                shadow.status() == MigrationShadowStatus.FRESH ? shadow.persistedAfterLogin() : shadow);
+        var candidate = new ProgressiveSkillsDataView(
+                current.playerId(),
+                storageRevision,
+                current.status(),
+                transactionState,
+                Optional.of(definition),
+                current.definitionStates(),
+                current.orphans(),
+                current.operationReceipts(),
+                current.deathMarker(),
+                migrationShadow,
+                current.quarantine(),
+                current.unknownExtensions()
+        );
+        return NbtDataLimits.rejection(encodeView(candidate));
     }
 
     public static ProgressiveSkillsData decode(UUID holderPlayerId, CompoundTag rawInput) {

@@ -119,11 +119,15 @@ public final class ContentPackLoader {
         problems.addAll(definitions.problems());
         addCrossKindIdWarnings(definitions, problems);
         if (problems.stream().noneMatch(problem -> problem.severity() == DiagnosticSeverity.ERROR)) {
+            com.envisione.progressiveskills.common.tree.TreeCatalog trees = null;
             try {
                 var skills = com.envisione.progressiveskills.common.skill.SkillCatalog.from(
                         definitions.canonicalIr()
                 );
                 com.envisione.progressiveskills.common.rule.RuleCatalog.from(
+                        definitions.canonicalIr(), skills
+                );
+                trees = com.envisione.progressiveskills.common.tree.TreeCatalog.from(
                         definitions.canonicalIr(), skills
                 );
             } catch (IllegalArgumentException | ArithmeticException exception) {
@@ -134,6 +138,23 @@ public final class ContentPackLoader {
                                 definition.provenance()
                         ))
                 );
+            }
+            if (trees != null) {
+                try {
+                    var projection = com.envisione.progressiveskills.common.network.DefinitionProjection.from(
+                            definitions.canonicalIr(), trees
+                    );
+                    com.envisione.progressiveskills.common.network.DefinitionProjectionCodec.encode(projection);
+                } catch (IllegalArgumentException | ArithmeticException exception) {
+                    definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
+                            problems.add(PackProblem.error(
+                                    CoreDiagnostics.SOURCE_LIMIT_EXCEEDED,
+                                    "Client definition projection exceeds its staging contract: "
+                                            + safeMessage(exception),
+                                    definition.provenance()
+                            ))
+                    );
+                }
             }
         }
         SourceBundle sourceBundle;

@@ -20,6 +20,27 @@ This delivery train is cumulative. Each phase checkpoint contains every earlier 
 | 18 | Native parties, contribution accounting, mentoring, shared challenges, seasons, and privacy. |
 | 19 | Studio drafts, visual authoring, history, conflicts, atomic publishing, rollback, and import security. |
 
+## Phase 10 checkpoint contract
+
+Status: automated Phase 10 beta checkpoint complete. Rendering, narration, real input, and multiplayer remain in the final mass test.
+
+The Phase 10 checkpoint is cumulative with Phase 9 and must add one complete Core tree lifecycle:
+
+1. Compile stable single-rank acyclic nodes with literal named-currency costs, AND and OR prerequisites, bounded minimum skill levels, authored positions, and source-owned attribute grants.
+2. Persist an immutable paid cost record in the same compare-and-swap transaction that spends the currency and grants ownership.
+3. Preview and commit a deterministic transitive cascade whose refunds use each original paid currency and amount.
+4. Preserve other grant owners when a tree source is revoked.
+5. Route commands and revision-bound client intents through the same authoritative server planner.
+6. Synchronize disclosed tree definitions and owned ranks without exposing paid records or raw entitlement owners.
+7. Reconcile login, restart, death copy, and publication without replaying acquisition rewards or rewriting refund history.
+8. Provide a first ordinary tree screen with keyboard operation, deterministic focus, narrator labels, noncolor state text, resize behavior, and a list fallback.
+
+The graph validator must reject a legal cascade whose worst-case paid-record removals, refund legs, and grant revocations cannot fit the atomic transaction ceiling. Ranked nodes, repeatable nodes, formulas, exclusions, suspension, grandfathering, generated layouts, loadouts, and simulations remain Creator features.
+
+Architecture: [TREES_AND_REFUNDS.md](../architecture/TREES_AND_REFUNDS.md).
+
+Automated evidence and focused fallback checklist: [PHASE-10.md](../verification/PHASE-10.md).
+
 ## Added feature set
 
 The following twenty features extend the planned phases. They are part of the delivery train and not replacements for the original phase scope.

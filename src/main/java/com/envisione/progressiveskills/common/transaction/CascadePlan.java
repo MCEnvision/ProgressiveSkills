@@ -18,7 +18,9 @@ public record CascadePlan(TransactionPlan transaction, List<TransactionStep> que
             throw new IllegalArgumentException("Cascade exceeds step budget " + MAX_STEPS);
         }
         long mutations = allSteps(transaction, queuedChildren).stream()
-                .mapToLong(step -> (long) step.balanceMutations().size() + step.entitlementMutations().size())
+                .mapToLong(step -> (long) step.balanceMutations().size()
+                        + step.entitlementMutations().size()
+                        + step.paidCostMutations().size())
                 .sum();
         long actions = allSteps(transaction, queuedChildren).stream()
                 .mapToLong(step -> step.transitionActions().size())

@@ -3,6 +3,7 @@ package com.envisione.progressiveskills.common.data;
 import com.envisione.progressiveskills.common.transaction.ActionDisposition;
 import com.envisione.progressiveskills.common.transaction.AuditRecord;
 import com.envisione.progressiveskills.common.transaction.BalanceMutation;
+import com.envisione.progressiveskills.common.transaction.CascadePlan;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.DeliveryContract;
 import com.envisione.progressiveskills.common.transaction.EntitlementContribution;
@@ -11,9 +12,12 @@ import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
 import com.envisione.progressiveskills.common.transaction.GrantReceipt;
 import com.envisione.progressiveskills.common.transaction.GrantSourceId;
 import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
+import com.envisione.progressiveskills.common.transaction.PaidCostMutation;
+import com.envisione.progressiveskills.common.transaction.PaidCostRecord;
 import com.envisione.progressiveskills.common.transaction.PersistedTransactionState;
 import com.envisione.progressiveskills.common.transaction.ProjectionChange;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
+import com.envisione.progressiveskills.common.transaction.PurchaseInstanceId;
 import com.envisione.progressiveskills.common.transaction.ReceiptKey;
 import com.envisione.progressiveskills.common.transaction.RepeatPolicy;
 import com.envisione.progressiveskills.common.transaction.TransactionId;
@@ -33,7 +37,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /** Strict deterministic NBT codec for the exact durable Phase 4 transaction state. */
@@ -46,6 +53,7 @@ final class TransactionStateNbtCodec {
         tag.putLong("state_revision", state.stateRevision());
         tag.put("balances", encodeBalances(state.balances()));
         tag.put("ownership", encodeOwnership(state.ownership()));
+        tag.put("paid_costs", encodePaidCosts(state.paidCosts()));
         tag.put("receipts", encodeReceipts(state.receipts()));
         tag.put("idempotency", encodeIdempotency(state.idempotencyResults()));
         tag.put("audit", encodeAudit(state.auditRecords()));
@@ -61,6 +69,7 @@ final class TransactionStateNbtCodec {
                 revision,
                 decodeBalances(optionalList(tag, "balances")),
                 decodeOwnership(optionalList(tag, "ownership")),
+                decodePaidCosts(strictOptionalList(tag, "paid_costs")),
                 decodeReceipts(optionalList(tag, "receipts")),
                 decodeIdempotency(optionalList(tag, "idempotency")),
                 decodeAudit(optionalList(tag, "audit"))
@@ -95,7 +104,7 @@ final class TransactionStateNbtCodec {
             CompoundTag entry = compoundAt(list, index);
             ResourceLocation id = requiredId(entry, "id");
             long value = requiredLong(entry, "value");
-            if (value == 0 || balances.putIfAbsent(id, value) != null) {
+            if (balances.putIfAbsent(id, value) != null) {
                 throw new IllegalArgumentException("Invalid or duplicate persisted balance: " + id);
             }
         }
@@ -144,6 +153,84 @@ final class TransactionStateNbtCodec {
             }
         }
         return ownership;
+    }
+
+    private static ListTag encodePaidCosts(Map<PurchaseInstanceId, PaidCostRecord> paidCosts) {
+        var list = new ListTag();
+        paidCosts.values().forEach(record -> list.add(encodePaidCostRecord(record)));
+        return list;
+    }
+
+    private static Map<PurchaseInstanceId, PaidCostRecord> decodePaidCosts(ListTag list) {
+        if (list.size() > PersistedTransactionState.MAX_PAID_COST_RECORDS) {
+            throw new IllegalArgumentException("Paid cost record count exceeds capacity");
+        }
+        var paidCosts = new TreeMap<PurchaseInstanceId, PaidCostRecord>();
+        for (int index = 0; index < list.size(); index++) {
+            PaidCostRecord record = decodePaidCostRecord(compoundAt(list, index));
+            if (paidCosts.putIfAbsent(record.instanceId(), record) != null) {
+                throw new IllegalArgumentException("Duplicate paid cost record: " + record.instanceId());
+            }
+        }
+        return paidCosts;
+    }
+
+    private static CompoundTag encodePaidCostRecord(PaidCostRecord record) {
+        var tag = encodePurchaseInstanceId(record.instanceId());
+        tag.putString("purchase_transaction_id", record.purchaseTransactionId().toString());
+        tag.put("definition", encodeDefinitionRevision(record.definitionRevision()));
+        tag.putString("owner_lineage", record.ownerLineage());
+        tag.put("paid_balances", encodePaidBalances(record.paidBalances()));
+        var sources = new ListTag();
+        record.persistentSources().forEach(source -> sources.add(encodeGrantSource(source)));
+        tag.put("persistent_sources", sources);
+        return tag;
+    }
+
+    private static PaidCostRecord decodePaidCostRecord(CompoundTag tag) {
+        ListTag balanceList = strictRequiredList(tag, "paid_balances");
+        if (balanceList.size() > PaidCostRecord.MAX_PAID_BALANCES) {
+            throw new IllegalArgumentException("Paid balance count exceeds capacity");
+        }
+        var paidBalances = new TreeMap<ResourceLocation, Long>(ResourceLocation::compareNamespaced);
+        for (int index = 0; index < balanceList.size(); index++) {
+            CompoundTag balance = compoundAt(balanceList, index);
+            ResourceLocation id = requiredId(balance, "id");
+            long amount = requiredLong(balance, "amount");
+            if (paidBalances.putIfAbsent(id, amount) != null) {
+                throw new IllegalArgumentException("Duplicate paid balance: " + id);
+            }
+        }
+        ListTag sourceList = strictRequiredList(tag, "persistent_sources");
+        if (sourceList.size() > PaidCostRecord.MAX_PERSISTENT_SOURCES) {
+            throw new IllegalArgumentException("Persistent source count exceeds capacity");
+        }
+        Set<GrantSourceId> sources = new TreeSet<>();
+        for (int index = 0; index < sourceList.size(); index++) {
+            GrantSourceId source = decodeGrantSource(compoundAt(sourceList, index));
+            if (!sources.add(source)) {
+                throw new IllegalArgumentException("Duplicate paid cost persistent source: " + source);
+            }
+        }
+        return new PaidCostRecord(
+                decodePurchaseInstanceId(tag),
+                requiredTransactionId(tag, "purchase_transaction_id"),
+                decodeDefinitionRevision(requiredCompound(tag, "definition")),
+                requiredString(tag, "owner_lineage"),
+                paidBalances,
+                sources
+        );
+    }
+
+    private static ListTag encodePaidBalances(Map<ResourceLocation, Long> paidBalances) {
+        var list = new ListTag();
+        paidBalances.forEach((id, amount) -> {
+            var tag = new CompoundTag();
+            tag.putString("id", id.toString());
+            tag.putLong("amount", amount);
+            list.add(tag);
+        });
+        return list;
     }
 
     private static ListTag encodeReceipts(Map<ReceiptKey, GrantReceipt> receipts) {
@@ -248,6 +335,7 @@ final class TransactionStateNbtCodec {
             tag.putLong("after_revision", record.afterRevision());
             tag.putBoolean("reversible", record.reversible());
             tag.put("balance_mutations", encodeBalanceMutations(record.balanceMutations()));
+            tag.put("paid_cost_mutations", encodePaidCostMutations(record.paidCostMutations()));
             tag.put("projection_changes", encodeProjectionChanges(record.projectionChanges()));
             tag.put("action_results", encodeActionResults(record.actionResults()));
             tag.putString("message", record.message());
@@ -273,6 +361,7 @@ final class TransactionStateNbtCodec {
                     requiredLong(tag, "after_revision"),
                     optionalBoolean(tag, "reversible", false),
                     decodeBalanceMutations(optionalList(tag, "balance_mutations")),
+                    decodePaidCostMutations(strictOptionalList(tag, "paid_cost_mutations")),
                     decodeProjectionChanges(optionalList(tag, "projection_changes")),
                     decodeActionResults(optionalList(tag, "action_results")),
                     requiredString(tag, "message")
@@ -303,6 +392,33 @@ final class TransactionStateNbtCodec {
                     requiredLong(tag, "delta"),
                     requiredLong(tag, "minimum"),
                     requiredLong(tag, "maximum")
+            ));
+        }
+        return List.copyOf(mutations);
+    }
+
+    private static ListTag encodePaidCostMutations(List<PaidCostMutation> mutations) {
+        var list = new ListTag();
+        mutations.forEach(mutation -> {
+            var tag = encodePurchaseInstanceId(mutation.instanceId());
+            mutation.expected().ifPresent(record -> tag.put("expected", encodePaidCostRecord(record)));
+            mutation.replacement().ifPresent(record -> tag.put("replacement", encodePaidCostRecord(record)));
+            list.add(tag);
+        });
+        return list;
+    }
+
+    private static List<PaidCostMutation> decodePaidCostMutations(ListTag list) {
+        if (list.size() > CascadePlan.MAX_TOTAL_MUTATIONS) {
+            throw new IllegalArgumentException("Paid cost audit mutation count exceeds capacity");
+        }
+        var mutations = new ArrayList<PaidCostMutation>();
+        for (int index = 0; index < list.size(); index++) {
+            CompoundTag tag = compoundAt(list, index);
+            mutations.add(new PaidCostMutation(
+                    decodePurchaseInstanceId(tag),
+                    optionalPaidCostRecord(tag, "expected"),
+                    optionalPaidCostRecord(tag, "replacement")
             ));
         }
         return List.copyOf(mutations);
@@ -411,6 +527,34 @@ final class TransactionStateNbtCodec {
         );
     }
 
+    private static CompoundTag encodePurchaseInstanceId(PurchaseInstanceId instanceId) {
+        var tag = new CompoundTag();
+        tag.putString("owner_kind", instanceId.ownerKind().toString());
+        tag.putString("owner_id", instanceId.ownerId().toString());
+        tag.putString("purchase_id", instanceId.purchaseId().toString());
+        tag.putInt("rank", instanceId.rank());
+        return tag;
+    }
+
+    private static PurchaseInstanceId decodePurchaseInstanceId(CompoundTag tag) {
+        return new PurchaseInstanceId(
+                requiredId(tag, "owner_kind"),
+                requiredId(tag, "owner_id"),
+                requiredId(tag, "purchase_id"),
+                requiredInt(tag, "rank")
+        );
+    }
+
+    private static Optional<PaidCostRecord> optionalPaidCostRecord(CompoundTag tag, String key) {
+        if (!tag.contains(key)) {
+            return Optional.empty();
+        }
+        if (!tag.contains(key, Tag.TAG_COMPOUND)) {
+            throw new IllegalArgumentException("Invalid paid cost record field: " + key);
+        }
+        return Optional.of(decodePaidCostRecord(tag.getCompound(key)));
+    }
+
     private static CompoundTag encodeReceiptKey(ReceiptKey key) {
         var tag = encodeGrantSource(key.source());
         tag.putString("policy", key.policy().name());
@@ -440,8 +584,25 @@ final class TransactionStateNbtCodec {
         return parent.getList(key, Tag.TAG_COMPOUND);
     }
 
+    private static ListTag strictRequiredList(CompoundTag parent, String key) {
+        if (!(parent.get(key) instanceof ListTag list)) {
+            throw new IllegalArgumentException("Missing list field: " + key);
+        }
+        return list;
+    }
+
     private static ListTag optionalList(CompoundTag parent, String key) {
         return parent.contains(key, Tag.TAG_LIST) ? parent.getList(key, Tag.TAG_COMPOUND) : new ListTag();
+    }
+
+    private static ListTag strictOptionalList(CompoundTag parent, String key) {
+        if (!parent.contains(key)) {
+            return new ListTag();
+        }
+        if (!(parent.get(key) instanceof ListTag list)) {
+            throw new IllegalArgumentException("Invalid list field: " + key);
+        }
+        return list;
     }
 
     private static CompoundTag compoundAt(ListTag list, int index) {
@@ -463,6 +624,13 @@ final class TransactionStateNbtCodec {
             throw new IllegalArgumentException("Missing long field: " + key);
         }
         return tag.getLong(key);
+    }
+
+    private static int requiredInt(CompoundTag tag, String key) {
+        if (!tag.contains(key, Tag.TAG_INT)) {
+            throw new IllegalArgumentException("Missing integer field: " + key);
+        }
+        return tag.getInt(key);
     }
 
     private static long optionalLong(CompoundTag tag, String key, long fallback) {

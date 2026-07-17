@@ -44,6 +44,8 @@ class StarterPackInstallerTest {
                 .contains("rounding = \"floor\""));
         assertTrue(Files.readString(pack.resolve("rules/physique_first_log.toml"))
                 .contains("first_time = true"));
+        assertTrue(Files.readString(pack.resolve("trees/physique_training.toml"))
+                .contains("dependency_policy = \"cascade_refund\""));
 
         Files.writeString(manifest, "operator-owned");
         StarterPackInstaller.install(root);
@@ -106,6 +108,17 @@ class StarterPackInstallerTest {
         var routes = com.envisione.progressiveskills.server.rule.BlockRuleTable.compile(rules);
         assertEquals(1, routes.match(net.minecraft.world.level.block.Blocks.STONE.defaultBlockState()).size());
         assertTrue(routes.match(net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState()).isEmpty());
+        var trees = com.envisione.progressiveskills.common.tree.TreeCatalog.from(
+                result.snapshot().orElseThrow().canonicalIr(), catalog
+        );
+        var tree = trees.tree(ResourceLocation.parse(
+                "progressiveskills:physique_training"
+        )).orElseThrow();
+        assertEquals(4, tree.nodes().size());
+        assertEquals(com.envisione.progressiveskills.common.tree.TreeScope.SKILL, tree.scope());
+        assertEquals(64, trees.nodeLineageFingerprint(
+                tree.id(), ResourceLocation.parse("progressiveskills:physique_training/conditioning")
+        ).length());
     }
 
     @Test
@@ -185,6 +198,67 @@ class StarterPackInstallerTest {
         )).orElseThrow();
         assertEquals(3, ((RequirementExpression.All) stoneRule.requirements()).children().size());
         assertEquals(2, rules.requirementIndex().edgeCount());
+    }
+
+    @Test
+    void treeCompilerRejectsDeferredCoreSurfacesAndInvalidGraphs() throws IOException {
+        Path root = temporaryDirectory.resolve("packs");
+        Path pack = StarterPackInstaller.install(root);
+        Path tree = pack.resolve("trees/physique_training.toml");
+        String starter = Files.readString(tree);
+
+        Files.writeString(tree, starter.replace("scope = \"skill\"", "scope = \"class\""));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "type = \"attribute\"", "type = \"ability\""
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "cost = 1", "cost_formula = \"rank * rank\""
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "cost = 1", "cost = 1\nmax_rank = 2"
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "dependency_policy = \"cascade_refund\"",
+                "dependency_policy = \"cascade_refund\"\nexclusive_group = \"progressiveskills:path\""
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "row = 0\ncol = 0", "layout = { mode = \"generated\" }"
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "requires = []\nrequires_any = []",
+                "requires = [\"progressiveskills:physique_training/momentum\"]\nrequires_any = []"
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "currency = \"progressiveskills:global_points\"",
+                "currency = \"progressiveskills:missing\""
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "bind = \"progressiveskills:physique\"",
+                "bind = \"progressiveskills:missing\""
+        ));
+        assertFalse(stage(root).valid());
+
+        Files.writeString(tree, starter.replace(
+                "min_level = { \"progressiveskills:physique\" = 1 }",
+                "min_level = { \"progressiveskills:missing\" = 1 }"
+        ));
+        assertFalse(stage(root).valid());
     }
 
     private static com.envisione.progressiveskills.common.rule.RuleDefinition stoneRule(Path root) {

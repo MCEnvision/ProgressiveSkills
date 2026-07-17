@@ -25,4 +25,18 @@ class VisibleStateSyncTest {
                 VisibleStateCodec.encodeDelta(delta), VisibleStateCodec.encodeDelta(delta).length + 1);
         assertThrows(IllegalArgumentException.class, () -> VisibleStateCodec.decodeDelta(trailing));
     }
+
+    @Test
+    void nodeRanksRoundTripAndDeltaInStableOrder() {
+        VisiblePlayerState before = NetworkFixtures.state(
+                4, 3, Map.of(), Map.of(NetworkFixtures.NODE_ROOT, 1));
+        VisiblePlayerState after = NetworkFixtures.state(
+                5, 4, Map.of(), Map.of(NetworkFixtures.NODE_BRANCH, 1));
+
+        assertEquals(before, VisibleStateCodec.decode(VisibleStateCodec.encode(before)));
+        StateDelta delta = StateDelta.between(before, after, VisibleStateCodec.digest(after));
+        assertEquals(Map.of(NetworkFixtures.NODE_BRANCH, 1), delta.changedNodeRanks());
+        assertEquals(java.util.Set.of(NetworkFixtures.NODE_ROOT), delta.removedNodeRanks());
+        assertEquals(after, before.apply(VisibleStateCodec.decodeDelta(VisibleStateCodec.encodeDelta(delta))));
+    }
 }

@@ -4,9 +4,11 @@ import java.util.Objects;
 
 /** Physical adapter outcome for one transition action. */
 public record ActionExecution(boolean successful, String detail) {
+    public static final int MAX_DETAIL_LENGTH = 512;
+
     public ActionExecution {
         detail = Objects.requireNonNull(detail, "detail").strip();
-        if (detail.isEmpty() || detail.length() > 512) {
+        if (detail.isEmpty() || detail.length() > MAX_DETAIL_LENGTH) {
             throw new IllegalArgumentException("Action execution detail must be bounded and nonblank");
         }
     }

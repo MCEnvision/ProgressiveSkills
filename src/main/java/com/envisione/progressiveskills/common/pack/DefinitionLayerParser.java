@@ -23,6 +23,7 @@ public final class DefinitionLayerParser {
     private static final Set<String> SKILL_COMPANION_FIELDS = Set.of(
             "curve", "level_currency_awards", "xp_sources", "levels", "scaling"
     );
+    private static final Set<String> TREE_COMPANION_FIELDS = Set.of("nodes");
 
     public ParsedDefinitionLayer parse(
             PackLayer pack,
@@ -38,9 +39,14 @@ public final class DefinitionLayerParser {
         var rootFields = new java.util.HashSet<>(
                 Set.of("schema_version", "merge_intent", "expected_old_digest", "patches", tableName)
         );
-        Set<String> companionFields = kind.equals(
-                com.envisione.progressiveskills.common.id.DefinitionKinds.SKILL
-        ) ? SKILL_COMPANION_FIELDS : Set.of();
+        Set<String> companionFields;
+        if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.SKILL)) {
+            companionFields = SKILL_COMPANION_FIELDS;
+        } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.TREE)) {
+            companionFields = TREE_COMPANION_FIELDS;
+        } else {
+            companionFields = Set.of();
+        }
         rootFields.addAll(companionFields);
         TomlValues.rejectUnknown(root, rootFields, "definition root");
         if (TomlValues.integer(root, "schema_version") != 2) {

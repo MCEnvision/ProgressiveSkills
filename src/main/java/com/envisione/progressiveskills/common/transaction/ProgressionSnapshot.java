@@ -13,6 +13,7 @@ public record ProgressionSnapshot(
         long stateRevision,
         Map<ResourceLocation, Long> balances,
         Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership,
+        Map<PurchaseInstanceId, PaidCostRecord> paidCosts,
         Map<EntitlementKey, Long> projectedValues,
         int receiptCount,
         int idempotencyCount,
@@ -24,11 +25,25 @@ public record ProgressionSnapshot(
         }
         balances = immutableBalances(balances);
         ownership = immutableOwnership(ownership);
+        paidCosts = immutablePaidCosts(paidCosts);
         projectedValues = immutableProjected(projectedValues);
     }
 
     public static ProgressionSnapshot empty() {
-        return new ProgressionSnapshot(0, Map.of(), Map.of(), Map.of(), 0, 0, 0);
+        return new ProgressionSnapshot(0, Map.of(), Map.of(), Map.of(), Map.of(), 0, 0, 0);
+    }
+
+    public ProgressionSnapshot(
+            long stateRevision,
+            Map<ResourceLocation, Long> balances,
+            Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership,
+            Map<EntitlementKey, Long> projectedValues,
+            int receiptCount,
+            int idempotencyCount,
+            int auditCount
+    ) {
+        this(stateRevision, balances, ownership, Map.of(), projectedValues,
+                receiptCount, idempotencyCount, auditCount);
     }
 
     private static Map<ResourceLocation, Long> immutableBalances(Map<ResourceLocation, Long> source) {
@@ -55,6 +70,25 @@ public record ProgressionSnapshot(
         Objects.requireNonNull(source, "projectedValues");
         var sorted = new TreeMap<EntitlementKey, Long>();
         sorted.putAll(source);
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<PurchaseInstanceId, PaidCostRecord> immutablePaidCosts(
+            Map<PurchaseInstanceId, PaidCostRecord> source
+    ) {
+        Objects.requireNonNull(source, "paidCosts");
+        if (source.size() > PersistedTransactionState.MAX_PAID_COST_RECORDS) {
+            throw new IllegalArgumentException("Paid cost record count exceeds capacity");
+        }
+        var sorted = new TreeMap<PurchaseInstanceId, PaidCostRecord>();
+        source.forEach((key, value) -> {
+            Objects.requireNonNull(key, "paid cost key");
+            Objects.requireNonNull(value, "paid cost record");
+            if (!key.equals(value.instanceId())) {
+                throw new IllegalArgumentException("Paid cost key does not match its record");
+            }
+            sorted.put(key, value);
+        });
         return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }
 }

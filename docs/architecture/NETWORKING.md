@@ -81,7 +81,7 @@ The only Phase 6 intent is a non-mutating `NOOP_TEST` used by automated protocol
 - rejects stale definition/state revisions and sends a targeted full resync;
 - derives all validity, costs, amounts, targets, and effects from server authority.
 
-Reconnect-safe rewards continue to use the Phase 4/5 durable transaction/idempotency ledger, never the ephemeral network replay cache.
+Reconnect-safe value delivery uses durable transaction receipts and the bounded retained transaction-result window. The ephemeral connection replay cache handles in-session duplicates and rejects requests older than its retained window.
 
 ## Lifecycle and operator commands
 

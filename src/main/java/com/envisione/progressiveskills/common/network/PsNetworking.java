@@ -4,6 +4,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.Objects;
@@ -16,6 +18,8 @@ public final class PsNetworking {
     private static final ClientNetworkState CLIENT = ClientNetworkState.systemClock();
     private static final ServerNetworkSessions SERVER = ServerNetworkSessions.systemClock();
     private static volatile Supplier<String> clientConnectionIdentity = () -> "";
+    private static volatile ServerNetworkSessions.IntentExecutor serverIntentExecutor =
+            ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS;
 
     private PsNetworking() {
     }
@@ -33,6 +37,8 @@ public final class PsNetworking {
                         NetworkPayloads.StateDeltaPayload.STREAM_CODEC, PsNetworking::receiveStateDelta)
                 .playToClient(NetworkPayloads.IntentResult.TYPE,
                         NetworkPayloads.IntentResult.STREAM_CODEC, PsNetworking::receiveIntentResult)
+                .playToClient(NetworkPayloads.TreeRefundPreview.TYPE,
+                        NetworkPayloads.TreeRefundPreview.STREAM_CODEC, PsNetworking::receiveTreeRefundPreview)
                 .playToServer(NetworkPayloads.ClientHello.TYPE,
                         NetworkPayloads.ClientHello.STREAM_CODEC, PsNetworking::receiveClientHello)
                 .playToServer(NetworkPayloads.TransferAck.TYPE,
@@ -86,6 +92,38 @@ public final class PsNetworking {
         CLIENT.clearDefinitionCache();
     }
 
+    public static void configureServerIntentExecutor(ServerNetworkSessions.IntentExecutor executor) {
+        serverIntentExecutor = Objects.requireNonNull(executor, "executor");
+    }
+
+    public static boolean sendTreeIntent(
+            NetworkPayloads.IntentType intentType,
+            TreeIntentPayload payload
+    ) {
+        Optional<NetworkPayloads.Intent> intent = CLIENT.prepareIntent(intentType, payload);
+        intent.ifPresent(PacketDistributor::sendToServer);
+        return intent.isPresent();
+    }
+
+    public static boolean sendTreeBuy(ResourceLocation treeId, ResourceLocation nodeId) {
+        return sendTreeIntent(
+                NetworkPayloads.IntentType.TREE_BUY, TreeIntentPayload.buy(treeId, nodeId));
+    }
+
+    public static boolean sendTreeRefundPreview(ResourceLocation treeId, ResourceLocation nodeId) {
+        return sendTreeIntent(NetworkPayloads.IntentType.TREE_REFUND_PREVIEW,
+                TreeIntentPayload.refundPreview(treeId, nodeId));
+    }
+
+    public static boolean sendTreeRefundConfirm(
+            ResourceLocation treeId,
+            ResourceLocation nodeId,
+            String previewDigest
+    ) {
+        return sendTreeIntent(NetworkPayloads.IntentType.TREE_REFUND_CONFIRM,
+                TreeIntentPayload.refundConfirm(treeId, nodeId, previewDigest));
+    }
+
     /** Installs a client resolver for the selected world destination. */
     public static void configureClientConnectionIdentity(Supplier<String> resolver) {
         clientConnectionIdentity = Objects.requireNonNull(resolver, "resolver");
@@ -125,6 +163,13 @@ public final class PsNetworking {
         clientHandle(context, () -> CLIENT.receiveIntentResult(payload));
     }
 
+    private static void receiveTreeRefundPreview(
+            NetworkPayloads.TreeRefundPreview payload,
+            IPayloadContext context
+    ) {
+        clientHandle(context, () -> CLIENT.receiveTreeRefundPreview(payload));
+    }
+
     private static void receiveClientHello(NetworkPayloads.ClientHello payload, IPayloadContext context) {
         serverHandle(context, () -> {
             replyAll(context, SERVER.handleClientHello(context.player().getUUID(), payload));
@@ -150,7 +195,7 @@ public final class PsNetworking {
 
     private static void receiveIntent(NetworkPayloads.Intent payload, IPayloadContext context) {
         serverHandle(context, () -> replyAll(context,
-                SERVER.handleIntent(context.player().getUUID(), payload)));
+                SERVER.handleIntent(context.player().getUUID(), payload, serverIntentExecutor)));
     }
 
     private static void replyAll(IPayloadContext context, List<CustomPacketPayload> payloads) {

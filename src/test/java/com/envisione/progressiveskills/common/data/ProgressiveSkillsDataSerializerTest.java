@@ -7,10 +7,14 @@ import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.DeliveryContract;
 import com.envisione.progressiveskills.common.transaction.GrantSourceId;
 import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
+import com.envisione.progressiveskills.common.transaction.PaidCostMutation;
+import com.envisione.progressiveskills.common.transaction.PaidCostRecord;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.ProgressionTransactionService;
+import com.envisione.progressiveskills.common.transaction.PurchaseInstanceId;
 import com.envisione.progressiveskills.common.transaction.RepeatPolicy;
 import com.envisione.progressiveskills.common.transaction.TransactionPlan;
+import com.envisione.progressiveskills.common.transaction.TransactionId;
 import com.envisione.progressiveskills.common.transaction.TransactionStatus;
 import com.envisione.progressiveskills.common.transaction.TransactionStep;
 import com.envisione.progressiveskills.common.transaction.TransitionAction;
@@ -24,7 +28,9 @@ import java.time.Instant;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,6 +74,8 @@ class ProgressiveSkillsDataSerializerTest {
         assertEquals(first.actionResults(), replay.actionResults());
         assertEquals(0, resumedExecutions.get());
         assertEquals(1, resumedService.snapshot(PLAYER).balances().get(POINTS));
+        assertEquals(1, resumedService.snapshot(PLAYER).paidCosts().size());
+        assertEquals(1, resumedService.audit(PLAYER).getFirst().paidCostMutations().size());
     }
 
     @Test
@@ -190,6 +198,7 @@ class ProgressiveSkillsDataSerializerTest {
     }
 
     private static CascadePlan plan() {
+        var key = new IdempotencyKey("persistence/round-trip/" + PLAYER);
         var action = new TransitionAction(
                 id("item"),
                 new GrantSourceId(id("manual"), id("persistence_test"), id("persistence_test/item")),
@@ -199,16 +208,26 @@ class ProgressiveSkillsDataSerializerTest {
                 DeliveryContract.EFFECTIVELY_ONCE,
                 TransitionFailurePolicy.STOP
         );
+        var instance = new PurchaseInstanceId(id("tree"), id("persistence_tree"), id("root"), 1);
+        var paid = new PaidCostRecord(
+                instance,
+                TransactionId.derive(PLAYER, key),
+                DEFINITION,
+                "b".repeat(64),
+                Map.of(POINTS, 1L),
+                Set.of(action.source())
+        );
         var step = new TransactionStep(
                 id("persistence_test"),
                 List.of(new BalanceMutation(POINTS, 1, 0, 1)),
                 List.of(),
+                List.of(PaidCostMutation.insert(paid)),
                 List.of(action)
         );
         return CascadePlan.single(new TransactionPlan(
                 PLAYER,
                 PLAYER,
-                new IdempotencyKey("persistence/round-trip/" + PLAYER),
+                key,
                 0,
                 DEFINITION,
                 ProgressionCause.ADMIN,

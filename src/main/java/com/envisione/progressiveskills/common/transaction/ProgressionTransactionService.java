@@ -1,5 +1,6 @@
 package com.envisione.progressiveskills.common.transaction;
 
+import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.diagnostic.CoreDiagnostics;
 import net.minecraft.resources.ResourceLocation;
 
@@ -18,14 +19,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
-/**
- * Bounded single-authority transaction coordinator.
- *
- * <p>All plans are fully validated against copied state before an atomic persistent projection and
- * in-memory commit. Transition actions run only after commit. Exact receipts and idempotency results
- * are fail-closed and never evicted; audit and reversible snapshots use explicit bounded retention.</p>
- */
+/** Coordinates bounded progression transactions. */
 public final class ProgressionTransactionService {
+    public static final int DEFAULT_MAX_RECEIPTS_PER_ACCOUNT = 512;
+    public static final int DEFAULT_MAX_IDEMPOTENCY_RESULTS_PER_ACCOUNT = 512;
+    public static final int DEFAULT_MAX_AUDIT_RECORDS_PER_ACCOUNT = 256;
+    public static final int DEFAULT_MAX_PAID_COSTS_PER_ACCOUNT = 512;
     public static final String OK = "PS-TX-OK";
     public static final String STALE_STATE = CoreDiagnostics.STALE_TRANSACTION_STATE.value();
     public static final String BALANCE_REJECTED = CoreDiagnostics.BALANCE_TRANSACTION_REJECTED.value();
@@ -35,11 +34,14 @@ public final class ProgressionTransactionService {
     public static final String LEDGER_FULL = CoreDiagnostics.TRANSACTION_LEDGER_FULL.value();
     public static final String PROJECTION_FAILED = CoreDiagnostics.PERSISTENT_PROJECTION_FAILED.value();
     public static final String ROLLBACK_REJECTED = CoreDiagnostics.TRANSACTION_ROLLBACK_REJECTED.value();
+    public static final String ACCOUNT_UNAVAILABLE = CoreDiagnostics.PLAYER_DATA_QUARANTINED.value();
+    private static final String MAXIMUM_ACTION_DETAIL = "\u0800".repeat(ActionExecution.MAX_DETAIL_LENGTH);
 
     private final int maxAccounts;
     private final int maxReceiptsPerAccount;
     private final int maxIdempotencyResultsPerAccount;
     private final int maxAuditRecordsPerAccount;
+    private final int maxPaidCostsPerAccount;
     private final Clock clock;
     private final Map<UUID, Account> accounts = new LinkedHashMap<>();
 
@@ -50,19 +52,78 @@ public final class ProgressionTransactionService {
             int maxAuditRecordsPerAccount,
             Clock clock
     ) {
+        this(maxAccounts, maxReceiptsPerAccount, maxIdempotencyResultsPerAccount,
+                maxAuditRecordsPerAccount, DEFAULT_MAX_PAID_COSTS_PER_ACCOUNT, clock);
+    }
+
+    public ProgressionTransactionService(
+            int maxAccounts,
+            int maxReceiptsPerAccount,
+            int maxIdempotencyResultsPerAccount,
+            int maxAuditRecordsPerAccount,
+            int maxPaidCostsPerAccount,
+            Clock clock
+    ) {
         if (maxAccounts < 1 || maxReceiptsPerAccount < 1
-                || maxIdempotencyResultsPerAccount < 1 || maxAuditRecordsPerAccount < 1) {
+                || maxIdempotencyResultsPerAccount < 1 || maxAuditRecordsPerAccount < 1
+                || maxPaidCostsPerAccount < 1
+                || maxPaidCostsPerAccount > PersistedTransactionState.MAX_PAID_COST_RECORDS) {
             throw new IllegalArgumentException("Transaction service limits must be positive");
         }
         this.maxAccounts = maxAccounts;
         this.maxReceiptsPerAccount = maxReceiptsPerAccount;
         this.maxIdempotencyResultsPerAccount = maxIdempotencyResultsPerAccount;
         this.maxAuditRecordsPerAccount = maxAuditRecordsPerAccount;
+        this.maxPaidCostsPerAccount = maxPaidCostsPerAccount;
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     public static ProgressionTransactionService boundedDefaults() {
-        return new ProgressionTransactionService(256, 512, 512, 256, Clock.systemUTC());
+        return new ProgressionTransactionService(
+                256,
+                DEFAULT_MAX_RECEIPTS_PER_ACCOUNT,
+                DEFAULT_MAX_IDEMPOTENCY_RESULTS_PER_ACCOUNT,
+                DEFAULT_MAX_AUDIT_RECORDS_PER_ACCOUNT,
+                DEFAULT_MAX_PAID_COSTS_PER_ACCOUNT,
+                Clock.systemUTC()
+        );
+    }
+
+    public synchronized TransactionResult executeLoaded(
+            CascadePlan cascade,
+            DefinitionRevision currentDefinition,
+            PersistentProjector projector,
+            TransitionActionExecutor actionExecutor
+    ) {
+        return executeLoaded(
+                cascade,
+                currentDefinition,
+                projector,
+                actionExecutor,
+                (targetId, candidate) -> ProgressiveSkillsDataSerializer.transactionStateRejection(
+                        targetId, candidate, currentDefinition
+                )
+        );
+    }
+
+    public synchronized TransactionResult executeLoaded(
+            CascadePlan cascade,
+            DefinitionRevision currentDefinition,
+            PersistentProjector projector,
+            TransitionActionExecutor actionExecutor,
+            PersistentStateValidator stateValidator
+    ) {
+        Objects.requireNonNull(cascade, "cascade");
+        TransactionPlan plan = cascade.transaction();
+        if (!accounts.containsKey(plan.targetId())) {
+            return uncachedRejection(
+                    TransactionId.derive(plan.targetId(), plan.idempotencyKey()),
+                    ACCOUNT_UNAVAILABLE,
+                    "Player transaction state is not loaded",
+                    plan.expectedStateRevision()
+            );
+        }
+        return execute(cascade, currentDefinition, projector, actionExecutor, stateValidator);
     }
 
     public synchronized TransactionResult execute(
@@ -71,10 +132,29 @@ public final class ProgressionTransactionService {
             PersistentProjector projector,
             TransitionActionExecutor actionExecutor
     ) {
+        return execute(
+                cascade,
+                currentDefinition,
+                projector,
+                actionExecutor,
+                (targetId, candidate) -> ProgressiveSkillsDataSerializer.transactionStateRejection(
+                        targetId, candidate, currentDefinition
+                )
+        );
+    }
+
+    public synchronized TransactionResult execute(
+            CascadePlan cascade,
+            DefinitionRevision currentDefinition,
+            PersistentProjector projector,
+            TransitionActionExecutor actionExecutor,
+            PersistentStateValidator stateValidator
+    ) {
         Objects.requireNonNull(cascade, "cascade");
         Objects.requireNonNull(currentDefinition, "currentDefinition");
         Objects.requireNonNull(projector, "projector");
         Objects.requireNonNull(actionExecutor, "actionExecutor");
+        Objects.requireNonNull(stateValidator, "stateValidator");
         TransactionPlan plan = cascade.transaction();
         TransactionId transactionId = TransactionId.derive(plan.targetId(), plan.idempotencyKey());
         Account account = accountFor(plan.targetId());
@@ -86,31 +166,31 @@ public final class ProgressionTransactionService {
         if (prior != null) {
             return prior.asReplay();
         }
-        if (account.idempotencyResults.size() >= maxIdempotencyResultsPerAccount) {
-            return uncachedRejection(
-                    transactionId, LEDGER_FULL, "Exact idempotency ledger is full", account.revision
-            );
-        }
         if (!plan.definitionRevision().equals(currentDefinition)) {
             return rejectAndCache(account, plan, transactionId, STALE_DEFINITION,
-                    "Definition generation or digest changed after the plan was captured");
+                    "Definition generation or digest changed after the plan was captured", stateValidator);
         }
         if (plan.expectedStateRevision() != account.revision) {
             return rejectAndCache(account, plan, transactionId, STALE_STATE,
-                    "Expected state revision " + plan.expectedStateRevision() + " but found " + account.revision);
+                    "Expected state revision " + plan.expectedStateRevision() + " but found " + account.revision,
+                    stateValidator);
         }
 
         CoreState before = account.copyState();
         CoreState working = before.copy();
         List<BalanceMutation> balanceMutations = flattenBalanceMutations(cascade);
+        List<PaidCostMutation> paidCostMutations = flattenPaidCostMutations(cascade);
         List<TransitionAction> actions = flattenActions(cascade);
         try {
             applyBalances(working.balances, balanceMutations);
             applyEntitlements(working.ownership, flattenEntitlementMutations(cascade));
+            applyPaidCosts(working.paidCosts, paidCostMutations, maxPaidCostsPerAccount);
             working.projected = resolveEffective(working.ownership);
+        } catch (PaidCostCapacityException exception) {
+            return rejectAndCache(account, plan, transactionId, LEDGER_FULL, safeMessage(exception), stateValidator);
         } catch (ArithmeticException | IllegalArgumentException exception) {
             String code = exception instanceof ArithmeticException ? BALANCE_REJECTED : LIFECYCLE_REJECTED;
-            return rejectAndCache(account, plan, transactionId, code, safeMessage(exception));
+            return rejectAndCache(account, plan, transactionId, code, safeMessage(exception), stateValidator);
         }
 
         List<ProjectionChange> projectionChanges = projectionDiff(before.projected, working.projected);
@@ -118,10 +198,12 @@ public final class ProgressionTransactionService {
         try {
             projectionRejection = boundedReason(projector.validate(plan.targetId(), projectionChanges));
         } catch (RuntimeException exception) {
-            return rejectAndCache(account, plan, transactionId, PROJECTION_FAILED, safeMessage(exception));
+            return rejectAndCache(account, plan, transactionId, PROJECTION_FAILED, safeMessage(exception),
+                    stateValidator);
         }
         if (projectionRejection.isPresent()) {
-            return rejectAndCache(account, plan, transactionId, PROJECTION_FAILED, projectionRejection.orElseThrow());
+            return rejectAndCache(account, plan, transactionId, PROJECTION_FAILED,
+                    projectionRejection.orElseThrow(), stateValidator);
         }
 
         Set<ReceiptKey> newReceiptKeys = new HashSet<>();
@@ -137,23 +219,46 @@ public final class ProgressionTransactionService {
             try {
                 actionRejection = boundedReason(actionExecutor.validate(plan.targetId(), action));
             } catch (RuntimeException exception) {
-                return rejectAndCache(account, plan, transactionId, ACTION_REJECTED, safeMessage(exception));
+                return rejectAndCache(account, plan, transactionId, ACTION_REJECTED, safeMessage(exception),
+                        stateValidator);
             }
             if (actionRejection.isPresent()) {
                 return rejectAndCache(account, plan, transactionId, ACTION_REJECTED,
-                        actionRejection.orElseThrow());
+                        actionRejection.orElseThrow(), stateValidator);
             }
         }
         if ((long) account.receipts.size() + newReceiptKeys.size() > maxReceiptsPerAccount) {
             return rejectAndCache(account, plan, transactionId, LEDGER_FULL,
-                    "Exact transition receipt ledger is full");
+                    "Exact transition receipt ledger is full", stateValidator);
         }
 
         long committedRevision;
         try {
             committedRevision = Math.addExact(account.revision, 1);
         } catch (ArithmeticException exception) {
-            return rejectAndCache(account, plan, transactionId, STALE_STATE, "State revision overflow");
+            return rejectAndCache(account, plan, transactionId, STALE_STATE, "State revision overflow",
+                    stateValidator);
+        }
+        PersistenceReservation reservation = reserveCommitPersistence(
+                account,
+                working,
+                committedRevision,
+                plan,
+                transactionId,
+                balanceMutations,
+                paidCostMutations,
+                projectionChanges,
+                actions,
+                newReceiptKeys,
+                stateValidator
+        );
+        if (!reservation.accepted()) {
+            return uncachedRejection(
+                    transactionId,
+                    LEDGER_FULL,
+                    "Persistent transaction state is full. " + reservation.rejection(),
+                    account.revision
+            );
         }
         account.install(working, committedRevision);
         try {
@@ -161,7 +266,7 @@ public final class ProgressionTransactionService {
         } catch (RuntimeException exception) {
             account.install(before, before.revision);
             return rejectAndCache(account, plan, transactionId, PROJECTION_FAILED,
-                    "Persistent projection rejected atomically: " + safeMessage(exception));
+                    "Persistent projection rejected atomically. " + safeMessage(exception), stateValidator);
         }
         List<TransitionActionResult> actionResults = executeActions(
                 account,
@@ -189,9 +294,10 @@ public final class ProgressionTransactionService {
                 projectionChanges,
                 actionResults
         );
+        applyPersistenceRetention(account, reservation, plan.idempotencyKey());
         account.idempotencyResults.put(plan.idempotencyKey(), result);
         boolean reversible = actions.isEmpty();
-        recordAudit(account, plan, result, balanceMutations, reversible);
+        recordAudit(account, plan, result, balanceMutations, paidCostMutations, reversible);
         if (reversible) {
             account.rollbackRecords.put(transactionId, new RollbackRecord(plan.targetId(), account.revision, before));
         }
@@ -208,12 +314,39 @@ public final class ProgressionTransactionService {
             PersistentProjector projector,
             String reason
     ) {
+        return rollback(
+                actorId,
+                targetId,
+                originalTransaction,
+                idempotencyKey,
+                expectedStateRevision,
+                currentDefinition,
+                projector,
+                reason,
+                (candidateTarget, candidate) -> ProgressiveSkillsDataSerializer.transactionStateRejection(
+                        candidateTarget, candidate, currentDefinition
+                )
+        );
+    }
+
+    public synchronized TransactionResult rollback(
+            UUID actorId,
+            UUID targetId,
+            TransactionId originalTransaction,
+            IdempotencyKey idempotencyKey,
+            long expectedStateRevision,
+            DefinitionRevision currentDefinition,
+            PersistentProjector projector,
+            String reason,
+            PersistentStateValidator stateValidator
+    ) {
         Objects.requireNonNull(actorId, "actorId");
         Objects.requireNonNull(targetId, "targetId");
         Objects.requireNonNull(originalTransaction, "originalTransaction");
         Objects.requireNonNull(idempotencyKey, "idempotencyKey");
         Objects.requireNonNull(currentDefinition, "currentDefinition");
         Objects.requireNonNull(projector, "projector");
+        Objects.requireNonNull(stateValidator, "stateValidator");
         TransactionId rollbackId = TransactionId.derive(targetId, idempotencyKey);
         Account account = accountFor(targetId);
         if (account == null) {
@@ -222,9 +355,6 @@ public final class ProgressionTransactionService {
         TransactionResult prior = account.idempotencyResults.get(idempotencyKey);
         if (prior != null) {
             return prior.asReplay();
-        }
-        if (account.idempotencyResults.size() >= maxIdempotencyResultsPerAccount) {
-            return uncachedRejection(rollbackId, LEDGER_FULL, "Exact idempotency ledger is full", account.revision);
         }
         TransactionStep step = TransactionStep.empty(ResourceLocation.fromNamespaceAndPath(
                 "progressiveskills", "rollback"
@@ -241,56 +371,83 @@ public final class ProgressionTransactionService {
         );
         if (expectedStateRevision != account.revision) {
             return rejectAndCache(account, plan, rollbackId, STALE_STATE,
-                    "Rollback expected state revision " + expectedStateRevision + " but found " + account.revision);
+                    "Rollback expected state revision " + expectedStateRevision + " but found " + account.revision,
+                    stateValidator);
         }
         RollbackRecord rollback = account.rollbackRecords.get(originalTransaction);
         if (rollback == null || !rollback.targetId.equals(targetId)) {
             return rejectAndCache(account, plan, rollbackId, ROLLBACK_REJECTED,
-                    "Transaction is not retained as a reversible boundary");
+                    "Transaction is not retained as a reversible boundary", stateValidator);
         }
         if (rollback.afterRevision != account.revision) {
             return rejectAndCache(account, plan, rollbackId, ROLLBACK_REJECTED,
-                    "Later state changes prevent rollback of this transaction");
+                    "Later state changes prevent rollback of this transaction", stateValidator);
         }
         List<ProjectionChange> changes = projectionDiff(account.projected, rollback.before.projected);
         Optional<String> rejection;
         try {
             rejection = boundedReason(projector.validate(targetId, changes));
         } catch (RuntimeException exception) {
-            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, safeMessage(exception));
+            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, safeMessage(exception),
+                    stateValidator);
         }
         if (rejection.isPresent()) {
-            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, rejection.orElseThrow());
+            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, rejection.orElseThrow(),
+                    stateValidator);
         }
         long beforeRevision = account.revision;
         long committedRevision;
         try {
             committedRevision = Math.addExact(account.revision, 1);
         } catch (ArithmeticException exception) {
-            return rejectAndCache(account, plan, rollbackId, STALE_STATE, "State revision overflow");
+            return rejectAndCache(account, plan, rollbackId, STALE_STATE, "State revision overflow",
+                    stateValidator);
         }
         CoreState current = account.copyState();
-        account.install(rollback.before, committedRevision);
-        try {
-            projector.apply(targetId, changes);
-        } catch (RuntimeException exception) {
-            account.install(current, current.revision);
-            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, safeMessage(exception));
-        }
-        account.rollbackRecords.remove(originalTransaction);
+        List<PaidCostMutation> paidCostMutations = paidCostDiff(current.paidCosts, rollback.before.paidCosts);
         var result = new TransactionResult(
                 rollbackId,
                 TransactionStatus.COMMITTED,
                 beforeRevision,
-                account.revision,
+                committedRevision,
                 OK,
                 "Rollback committed as a new monotonic transaction",
                 false,
                 changes,
                 List.of()
         );
+        AuditRecord auditRecord = auditRecord(plan, result, List.of(), paidCostMutations, false);
+        PersistenceReservation reservation = reservePersistence(
+                account,
+                targetId,
+                rollback.before,
+                committedRevision,
+                account.receipts,
+                idempotencyKey,
+                result,
+                auditRecord,
+                stateValidator
+        );
+        if (!reservation.accepted()) {
+            return uncachedRejection(
+                    rollbackId,
+                    LEDGER_FULL,
+                    "Persistent transaction state is full. " + reservation.rejection(),
+                    account.revision
+            );
+        }
+        account.install(rollback.before, committedRevision);
+        try {
+            projector.apply(targetId, changes);
+        } catch (RuntimeException exception) {
+            account.install(current, current.revision);
+            return rejectAndCache(account, plan, rollbackId, PROJECTION_FAILED, safeMessage(exception),
+                    stateValidator);
+        }
+        account.rollbackRecords.remove(originalTransaction);
+        applyPersistenceRetention(account, reservation, idempotencyKey);
         account.idempotencyResults.put(idempotencyKey, result);
-        recordAudit(account, plan, result, List.of(), false);
+        recordAudit(account, plan, result, List.of(), paidCostMutations, false);
         return result;
     }
 
@@ -385,6 +542,16 @@ public final class ProgressionTransactionService {
         return account == null ? PersistedTransactionState.empty() : account.persistedState();
     }
 
+    public synchronized boolean hasAccount(UUID targetId) {
+        return accounts.containsKey(Objects.requireNonNull(targetId, "targetId"));
+    }
+
+    public synchronized Optional<PersistedTransactionState> loadedAccount(UUID targetId) {
+        Objects.requireNonNull(targetId, "targetId");
+        Account account = accounts.get(targetId);
+        return account == null ? Optional.empty() : Optional.of(account.persistedState());
+    }
+
     /**
      * Restores one durable account without projecting it. Callers must keep quarantined data out of
      * this method and invoke {@link #forceReproject(UUID, PersistentProjector)} after a successful load.
@@ -394,7 +561,8 @@ public final class ProgressionTransactionService {
         Objects.requireNonNull(state, "state");
         if (state.receipts().size() > maxReceiptsPerAccount
                 || state.idempotencyResults().size() > maxIdempotencyResultsPerAccount
-                || state.auditRecords().size() > maxAuditRecordsPerAccount) {
+                || state.auditRecords().size() > maxAuditRecordsPerAccount
+                || state.paidCosts().size() > maxPaidCostsPerAccount) {
             throw new IllegalArgumentException("Persisted transaction state exceeds configured ledger limits");
         }
         for (AuditRecord record : state.auditRecords()) {
@@ -423,6 +591,7 @@ public final class ProgressionTransactionService {
                 state.stateRevision(),
                 copyBalances(state.balances()),
                 copyOwnership(state.ownership()),
+                copyPaidCosts(state.paidCosts()),
                 new TreeMap<>(projected)
         ), state.stateRevision());
         restored.receipts.clear();
@@ -510,12 +679,219 @@ public final class ProgressionTransactionService {
         return List.copyOf(results);
     }
 
+    private PersistenceReservation reserveCommitPersistence(
+            Account account,
+            CoreState working,
+            long committedRevision,
+            TransactionPlan plan,
+            TransactionId transactionId,
+            List<BalanceMutation> balanceMutations,
+            List<PaidCostMutation> paidCostMutations,
+            List<ProjectionChange> projectionChanges,
+            List<TransitionAction> actions,
+            Set<ReceiptKey> newReceiptKeys,
+            PersistentStateValidator stateValidator
+    ) {
+        var actionResults = new ArrayList<TransitionActionResult>();
+        actions.forEach(action -> actionResults.add(new TransitionActionResult(
+                action,
+                ActionDisposition.SKIPPED_EXISTING_RECEIPT,
+                MAXIMUM_ACTION_DETAIL
+        )));
+        TransactionStatus status = actions.isEmpty()
+                ? TransactionStatus.COMMITTED
+                : TransactionStatus.COMMITTED_WITH_ACTION_FAILURES;
+        String message = actions.isEmpty()
+                ? "Transaction committed"
+                : "State committed; one or more transition actions failed and were audited";
+        var result = new TransactionResult(
+                transactionId,
+                status,
+                account.revision,
+                committedRevision,
+                actions.isEmpty() ? OK : ACTION_REJECTED,
+                message,
+                false,
+                projectionChanges,
+                actionResults
+        );
+        var receipts = new TreeMap<>(account.receipts);
+        for (TransitionAction action : actions) {
+            Optional<ReceiptKey> key = receiptKey(plan.targetId(), transactionId, action);
+            if (key.isPresent() && newReceiptKeys.contains(key.orElseThrow())) {
+                receipts.putIfAbsent(key.orElseThrow(), new GrantReceipt(
+                        key.orElseThrow(),
+                        transactionId,
+                        plan.definitionRevision(),
+                        clock.instant(),
+                        DeliveryContract.EFFECTIVELY_ONCE,
+                        MAXIMUM_ACTION_DETAIL
+                ));
+            }
+        }
+        AuditRecord auditRecord = auditRecord(
+                plan,
+                result,
+                balanceMutations,
+                paidCostMutations,
+                actions.isEmpty()
+        );
+        return reservePersistence(
+                account,
+                plan.targetId(),
+                working,
+                committedRevision,
+                receipts,
+                plan.idempotencyKey(),
+                result,
+                auditRecord,
+                stateValidator
+        );
+    }
+
+    private PersistenceReservation reservePersistence(
+            Account account,
+            UUID targetId,
+            CoreState state,
+            long stateRevision,
+            Map<ReceiptKey, GrantReceipt> receipts,
+            IdempotencyKey idempotencyKey,
+            TransactionResult result,
+            AuditRecord auditRecord,
+            PersistentStateValidator stateValidator
+    ) {
+        var idempotency = new TreeMap<>(account.idempotencyResults);
+        idempotency.put(idempotencyKey, result);
+        int idempotencyEvictions = 0;
+        while (idempotency.size() > maxIdempotencyResultsPerAccount) {
+            if (!removeOldestIdempotency(idempotency, idempotencyKey)) {
+                return PersistenceReservation.rejected("Replay retention cannot reserve the current result");
+            }
+            idempotencyEvictions++;
+        }
+
+        var audits = new ArrayDeque<>(account.auditRecords);
+        audits.addLast(auditRecord);
+        int auditEvictions = 0;
+        while (audits.size() > maxAuditRecordsPerAccount) {
+            audits.removeFirst();
+            auditEvictions++;
+        }
+
+        String rejection = persistenceRejection(
+                state,
+                stateRevision,
+                receipts,
+                idempotency,
+                audits,
+                stateValidator,
+                targetId
+        );
+        while (!rejection.isEmpty() && audits.size() > 1) {
+            int targetSize = Math.max(1, audits.size() / 2);
+            while (audits.size() > targetSize) {
+                audits.removeFirst();
+                auditEvictions++;
+            }
+            rejection = persistenceRejection(
+                    state, stateRevision, receipts, idempotency, audits, stateValidator, targetId
+            );
+        }
+        while (!rejection.isEmpty() && idempotency.size() > 1) {
+            int targetSize = Math.max(1, idempotency.size() / 2);
+            while (idempotency.size() > targetSize) {
+                if (!removeOldestIdempotency(idempotency, idempotencyKey)) {
+                    break;
+                }
+                idempotencyEvictions++;
+            }
+            rejection = persistenceRejection(
+                    state, stateRevision, receipts, idempotency, audits, stateValidator, targetId
+            );
+        }
+        if (!rejection.isEmpty()) {
+            return PersistenceReservation.rejected(rejection);
+        }
+        return PersistenceReservation.accepted(idempotencyEvictions, auditEvictions);
+    }
+
+    private static String persistenceRejection(
+            CoreState state,
+            long stateRevision,
+            Map<ReceiptKey, GrantReceipt> receipts,
+            Map<IdempotencyKey, TransactionResult> idempotency,
+            ArrayDeque<AuditRecord> audits,
+            PersistentStateValidator stateValidator,
+            UUID targetId
+    ) {
+        try {
+            var candidate = new PersistedTransactionState(
+                    stateRevision,
+                    state.balances,
+                    state.ownership,
+                    state.paidCosts,
+                    receipts,
+                    idempotency,
+                    List.copyOf(audits)
+            );
+            return boundedReason(stateValidator.rejection(targetId, candidate)).orElse("");
+        } catch (RuntimeException exception) {
+            return safeMessage(exception);
+        }
+    }
+
+    private static boolean removeOldestIdempotency(
+            Map<IdempotencyKey, TransactionResult> results,
+            IdempotencyKey protectedKey
+    ) {
+        IdempotencyKey oldestKey = null;
+        TransactionResult oldestResult = null;
+        for (var entry : results.entrySet()) {
+            if (entry.getKey().equals(protectedKey)) {
+                continue;
+            }
+            TransactionResult candidate = entry.getValue();
+            if (oldestResult == null
+                    || candidate.afterRevision() < oldestResult.afterRevision()
+                    || candidate.afterRevision() == oldestResult.afterRevision()
+                    && candidate.beforeRevision() < oldestResult.beforeRevision()
+                    || candidate.afterRevision() == oldestResult.afterRevision()
+                    && candidate.beforeRevision() == oldestResult.beforeRevision()
+                    && entry.getKey().compareTo(oldestKey) < 0) {
+                oldestKey = entry.getKey();
+                oldestResult = candidate;
+            }
+        }
+        if (oldestKey == null) {
+            return false;
+        }
+        results.remove(oldestKey);
+        return true;
+    }
+
+    private static void applyPersistenceRetention(
+            Account account,
+            PersistenceReservation reservation,
+            IdempotencyKey protectedKey
+    ) {
+        for (int index = 0; index < reservation.idempotencyEvictions(); index++) {
+            if (!removeOldestIdempotency(account.idempotencyResults, protectedKey)) {
+                throw new IllegalStateException("Reserved replay retention could not be applied");
+            }
+        }
+        for (int index = 0; index < reservation.auditEvictions(); index++) {
+            AuditRecord removed = account.auditRecords.removeFirst();
+            account.rollbackRecords.remove(removed.transactionId());
+        }
+    }
+
     private TransactionResult rejectAndCache(
             Account account,
             TransactionPlan plan,
             TransactionId id,
             String code,
-            String message
+            String message,
+            PersistentStateValidator stateValidator
     ) {
         var result = new TransactionResult(
                 id,
@@ -528,8 +904,29 @@ public final class ProgressionTransactionService {
                 List.of(),
                 List.of()
         );
+        AuditRecord auditRecord = auditRecord(plan, result, List.of(), List.of(), false);
+        PersistenceReservation reservation = reservePersistence(
+                account,
+                plan.targetId(),
+                account.copyState(),
+                account.revision,
+                account.receipts,
+                plan.idempotencyKey(),
+                result,
+                auditRecord,
+                stateValidator
+        );
+        if (!reservation.accepted()) {
+            return uncachedRejection(
+                    id,
+                    LEDGER_FULL,
+                    "Persistent transaction state is full. " + reservation.rejection(),
+                    account.revision
+            );
+        }
+        applyPersistenceRetention(account, reservation, plan.idempotencyKey());
         account.idempotencyResults.put(plan.idempotencyKey(), result);
-        recordAudit(account, plan, result, List.of(), false);
+        appendAudit(account, auditRecord);
         return result;
     }
 
@@ -557,9 +954,20 @@ public final class ProgressionTransactionService {
             TransactionPlan plan,
             TransactionResult result,
             List<BalanceMutation> balances,
+            List<PaidCostMutation> paidCosts,
             boolean reversible
     ) {
-        var record = new AuditRecord(
+        appendAudit(account, auditRecord(plan, result, balances, paidCosts, reversible));
+    }
+
+    private AuditRecord auditRecord(
+            TransactionPlan plan,
+            TransactionResult result,
+            List<BalanceMutation> balances,
+            List<PaidCostMutation> paidCosts,
+            boolean reversible
+    ) {
+        return new AuditRecord(
                 result.transactionId(),
                 plan.actorId(),
                 plan.targetId(),
@@ -572,10 +980,14 @@ public final class ProgressionTransactionService {
                 result.afterRevision(),
                 reversible,
                 balances,
+                paidCosts,
                 result.projectionChanges(),
                 result.actionResults(),
                 result.message()
         );
+    }
+
+    private void appendAudit(Account account, AuditRecord record) {
         account.auditRecords.addLast(record);
         while (account.auditRecords.size() > maxAuditRecordsPerAccount) {
             AuditRecord removed = account.auditRecords.removeFirst();
@@ -589,6 +1001,10 @@ public final class ProgressionTransactionService {
 
     private static List<EntitlementMutation> flattenEntitlementMutations(CascadePlan cascade) {
         return cascade.steps().stream().flatMap(step -> step.entitlementMutations().stream()).toList();
+    }
+
+    private static List<PaidCostMutation> flattenPaidCostMutations(CascadePlan cascade) {
+        return cascade.steps().stream().flatMap(step -> step.paidCostMutations().stream()).toList();
     }
 
     private static List<TransitionAction> flattenActions(CascadePlan cascade) {
@@ -606,11 +1022,7 @@ public final class ProgressionTransactionService {
                 throw new ArithmeticException("Balance " + mutation.balanceId() + " would become " + after
                         + " outside " + mutation.minimum() + ".." + mutation.maximum());
             }
-            if (after == 0) {
-                balances.remove(mutation.balanceId());
-            } else {
-                balances.put(mutation.balanceId(), after);
-            }
+            balances.put(mutation.balanceId(), after);
         }
     }
 
@@ -629,6 +1041,46 @@ public final class ProgressionTransactionService {
                 ownership.remove(mutation.key());
             }
         }
+    }
+
+    private static void applyPaidCosts(
+            Map<PurchaseInstanceId, PaidCostRecord> paidCosts,
+            List<PaidCostMutation> mutations,
+            int maximum
+    ) {
+        for (PaidCostMutation mutation : mutations) {
+            Optional<PaidCostRecord> current = Optional.ofNullable(paidCosts.get(mutation.instanceId()));
+            if (!current.equals(mutation.expected())) {
+                throw new IllegalArgumentException("Paid cost state does not match expected record for "
+                        + mutation.instanceId());
+            }
+            if (mutation.replacement().isPresent()) {
+                paidCosts.put(mutation.instanceId(), mutation.replacement().orElseThrow());
+            } else {
+                paidCosts.remove(mutation.instanceId());
+            }
+            if (paidCosts.size() > maximum) {
+                throw new PaidCostCapacityException("Exact paid cost ledger is full");
+            }
+        }
+    }
+
+    private static List<PaidCostMutation> paidCostDiff(
+            Map<PurchaseInstanceId, PaidCostRecord> before,
+            Map<PurchaseInstanceId, PaidCostRecord> after
+    ) {
+        var keys = new java.util.TreeSet<PurchaseInstanceId>();
+        keys.addAll(before.keySet());
+        keys.addAll(after.keySet());
+        var mutations = new ArrayList<PaidCostMutation>();
+        for (PurchaseInstanceId key : keys) {
+            Optional<PaidCostRecord> oldValue = Optional.ofNullable(before.get(key));
+            Optional<PaidCostRecord> newValue = Optional.ofNullable(after.get(key));
+            if (!oldValue.equals(newValue)) {
+                mutations.add(new PaidCostMutation(key, oldValue, newValue));
+            }
+        }
+        return List.copyOf(mutations);
     }
 
     private static Map<EntitlementKey, Long> resolveEffective(
@@ -729,10 +1181,26 @@ public final class ProgressionTransactionService {
         return message.substring(0, Math.min(message.length(), 512));
     }
 
+    private record PersistenceReservation(
+            boolean accepted,
+            int idempotencyEvictions,
+            int auditEvictions,
+            String rejection
+    ) {
+        private static PersistenceReservation accepted(int idempotencyEvictions, int auditEvictions) {
+            return new PersistenceReservation(true, idempotencyEvictions, auditEvictions, "");
+        }
+
+        private static PersistenceReservation rejected(String rejection) {
+            return new PersistenceReservation(false, 0, 0, rejection);
+        }
+    }
+
     private static final class Account {
         private long revision;
         private Map<ResourceLocation, Long> balances = new TreeMap<>(ResourceLocation::compareNamespaced);
         private Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership = new TreeMap<>();
+        private Map<PurchaseInstanceId, PaidCostRecord> paidCosts = new TreeMap<>();
         private Map<EntitlementKey, Long> projected = new TreeMap<>();
         private final Map<ReceiptKey, GrantReceipt> receipts = new TreeMap<>();
         private final Map<IdempotencyKey, TransactionResult> idempotencyResults = new TreeMap<>();
@@ -740,12 +1208,14 @@ public final class ProgressionTransactionService {
         private final Map<TransactionId, RollbackRecord> rollbackRecords = new TreeMap<>();
 
         private CoreState copyState() {
-            return new CoreState(revision, copyBalances(balances), copyOwnership(ownership), new TreeMap<>(projected));
+            return new CoreState(revision, copyBalances(balances), copyOwnership(ownership),
+                    copyPaidCosts(paidCosts), new TreeMap<>(projected));
         }
 
         private void install(CoreState state, long newRevision) {
             balances = copyBalances(state.balances);
             ownership = copyOwnership(state.ownership);
+            paidCosts = copyPaidCosts(state.paidCosts);
             projected = new TreeMap<>(state.projected);
             revision = newRevision;
         }
@@ -755,6 +1225,7 @@ public final class ProgressionTransactionService {
                     revision,
                     balances,
                     ownership,
+                    paidCosts,
                     projected,
                     receipts.size(),
                     idempotencyResults.size(),
@@ -767,6 +1238,7 @@ public final class ProgressionTransactionService {
                     revision,
                     balances,
                     ownership,
+                    paidCosts,
                     receipts,
                     idempotencyResults,
                     List.copyOf(auditRecords)
@@ -778,22 +1250,26 @@ public final class ProgressionTransactionService {
         private final long revision;
         private final Map<ResourceLocation, Long> balances;
         private final Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership;
+        private final Map<PurchaseInstanceId, PaidCostRecord> paidCosts;
         private Map<EntitlementKey, Long> projected;
 
         private CoreState(
                 long revision,
                 Map<ResourceLocation, Long> balances,
                 Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership,
+                Map<PurchaseInstanceId, PaidCostRecord> paidCosts,
                 Map<EntitlementKey, Long> projected
         ) {
             this.revision = revision;
             this.balances = balances;
             this.ownership = ownership;
+            this.paidCosts = paidCosts;
             this.projected = projected;
         }
 
         private CoreState copy() {
-            return new CoreState(revision, copyBalances(balances), copyOwnership(ownership), new TreeMap<>(projected));
+            return new CoreState(revision, copyBalances(balances), copyOwnership(ownership),
+                    copyPaidCosts(paidCosts), new TreeMap<>(projected));
         }
     }
 
@@ -816,5 +1292,19 @@ public final class ProgressionTransactionService {
         var result = new TreeMap<EntitlementKey, Map<GrantSourceId, EntitlementContribution>>();
         source.forEach((key, owners) -> result.put(key, new TreeMap<>(owners)));
         return result;
+    }
+
+    private static Map<PurchaseInstanceId, PaidCostRecord> copyPaidCosts(
+            Map<PurchaseInstanceId, PaidCostRecord> source
+    ) {
+        return new TreeMap<>(source);
+    }
+
+    private static final class PaidCostCapacityException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        private PaidCostCapacityException(String message) {
+            super(message);
+        }
     }
 }

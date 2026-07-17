@@ -19,6 +19,7 @@ public record AuditRecord(
         long afterRevision,
         boolean reversible,
         List<BalanceMutation> balanceMutations,
+        List<PaidCostMutation> paidCostMutations,
         List<ProjectionChange> projectionChanges,
         List<TransitionActionResult> actionResults,
         String message
@@ -33,8 +34,31 @@ public record AuditRecord(
         Objects.requireNonNull(completedAt, "completedAt");
         Objects.requireNonNull(status, "status");
         balanceMutations = List.copyOf(Objects.requireNonNull(balanceMutations, "balanceMutations"));
+        paidCostMutations = List.copyOf(Objects.requireNonNull(paidCostMutations, "paidCostMutations"));
         projectionChanges = List.copyOf(Objects.requireNonNull(projectionChanges, "projectionChanges"));
         actionResults = List.copyOf(Objects.requireNonNull(actionResults, "actionResults"));
         message = Objects.requireNonNull(message, "message");
+    }
+
+    public AuditRecord(
+            TransactionId transactionId,
+            UUID actorId,
+            UUID targetId,
+            ProgressionCause cause,
+            String reason,
+            DefinitionRevision definitionRevision,
+            Instant completedAt,
+            TransactionStatus status,
+            long beforeRevision,
+            long afterRevision,
+            boolean reversible,
+            List<BalanceMutation> balanceMutations,
+            List<ProjectionChange> projectionChanges,
+            List<TransitionActionResult> actionResults,
+            String message
+    ) {
+        this(transactionId, actorId, targetId, cause, reason, definitionRevision, completedAt,
+                status, beforeRevision, afterRevision, reversible, balanceMutations, List.of(),
+                projectionChanges, actionResults, message);
     }
 }

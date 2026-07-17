@@ -21,6 +21,8 @@ import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.RepeatPolicy;
 import com.envisione.progressiveskills.common.transaction.TransactionStatus;
 import com.envisione.progressiveskills.common.transaction.TransitionFailurePolicy;
+import com.envisione.progressiveskills.common.tree.TreeDependencyPolicy;
+import com.envisione.progressiveskills.common.tree.TreeScope;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Arrays;
@@ -49,6 +51,8 @@ public final class CoreSchemas {
         builder.register(definitionPatch());
         builder.register(skillDefinition());
         builder.register(currencyDefinition());
+        builder.register(treeDefinition());
+        builder.register(treeNode());
         builder.register(ruleDefinition());
         builder.register(requirementExpression());
         builder.register(numericExpression());
@@ -67,6 +71,9 @@ public final class CoreSchemas {
         builder.register(visiblePlayerState());
         builder.register(stateDelta());
         builder.register(networkIntent());
+        builder.register(paidCostRecord());
+        builder.register(treeIntent());
+        builder.register(treeRefundPreview());
         return builder.build();
     }
 
@@ -429,6 +436,154 @@ public final class CoreSchemas {
                                 "Phase 7 authority scope.", "character",
                                 CoreDiagnostics.INVALID_CURRENCY, EditorWidget.SELECT, 80)
                                 .allowedValues("character").defaultString("character").omitWhenDefault().build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor treeDefinition() {
+        return schema(
+                "tree_definition",
+                SchemaAudience.AUTHORING,
+                "Tree definition",
+                "Bounded single rank Core progression tree with exact currency costs and cascade refunds.",
+                List.of(
+                        field("bind", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Skill identity required for skill scope and forbidden for global scope.",
+                                "mypack:mining",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.RESOURCE_LOCATION, 70).build(),
+                        field("currency", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Named character currency debited by node purchases and restored by exact refunds.",
+                                "progressiveskills:global_points",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.RESOURCE_LOCATION, 80).build(),
+                        field("dependency_policy", SchemaValueType.ENUM, false,
+                                "Policy used when refunding a node with owned transitive dependents.",
+                                "cascade_refund",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.SELECT, 90)
+                                .allowedValues(Arrays.stream(TreeDependencyPolicy.values())
+                                        .map(TreeDependencyPolicy::serializedName).toArray(String[]::new))
+                                .defaultString("cascade_refund").omitWhenDefault().build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized tree description.",
+                                "{ fallback = \"A practical mining specialization.\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized tree name used by commands and presentation.",
+                                "{ fallback = \"Mining Paths\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.COMPONENT, 20).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether the tree accepts purchases and retains valid ownership during reconciliation. Refunds remain available.",
+                                "true",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.CHECKBOX, 50)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Tree icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:iron_pickaxe\", fallback = \"minecraft:barrier\", alt = \"Iron pickaxe\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.ICON, 40).build(),
+                        field("nodes", SchemaValueType.LIST, true,
+                                "One to sixty four stable acyclic node entries merged by node id.",
+                                "[{ id = \"mypack:mining/root\", cost = 1, row = 0, col = 0 }]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 100)
+                                .diff(DiffPolicy.MERGE_BY_KEY).build(),
+                        field("scope", SchemaValueType.ENUM, true,
+                                "Global tree or tree bound to one skill.",
+                                "skill",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.SELECT, 60)
+                                .allowedValues(Arrays.stream(TreeScope.values())
+                                        .map(TreeScope::serializedName).toArray(String[]::new))
+                                .build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate terms used by tree search.",
+                                "[\"Mining\", \"Ore\"]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 45)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor treeNode() {
+        return schema(
+                "tree_node",
+                SchemaAudience.AUTHORING,
+                "Tree node",
+                "Stable single rank node with bounded prerequisites, exact cost, and persistent attribute grants.",
+                List.of(
+                        field("col", SchemaValueType.INTEGER, true,
+                                "Horizontal grid coordinate between negative and positive four thousand ninety six.",
+                                "1",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.INTEGER, 70).build(),
+                        field("cost", SchemaValueType.INTEGER, true,
+                                "Positive named currency amount recorded exactly when purchased.",
+                                "3",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.INTEGER, 50).build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized node description.",
+                                "{ fallback = \"Improves mining endurance.\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.COMPONENT, 25).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized node name.",
+                                "{ fallback = \"Stone Sense\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.COMPONENT, 20).build(),
+                        field("grants", SchemaValueType.LIST, false,
+                                "Up to thirty two stable persistent attribute grants merged by grant id.",
+                                "[{ id = \"mypack:mining/root/toughness\", type = \"attribute\", attribute = \"minecraft:generic.armor\", operation = \"add_value\", value = 1.0 }]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 120)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("grants.attribute", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Registered player attribute targeted by this grant.",
+                                "minecraft:generic.armor",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.RESOURCE_LOCATION, 123).build(),
+                        field("grants.id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable source identity for this persistent grant.",
+                                "mypack:mining/root/toughness",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.RESOURCE_LOCATION, 121).build(),
+                        field("grants.operation", SchemaValueType.ENUM, true,
+                                "Supported deterministic attribute operation.",
+                                "add_value",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.SELECT, 124)
+                                .allowedValues(Arrays.stream(AttributeOperation.values())
+                                        .map(AttributeOperation::serializedName).toArray(String[]::new))
+                                .build(),
+                        field("grants.type", SchemaValueType.ENUM, true,
+                                "Core tree grant type.",
+                                "attribute",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.SELECT, 122)
+                                .allowedValues("attribute").build(),
+                        field("grants.value", SchemaValueType.DECIMAL, true,
+                                "Nonzero fixed point attribute contribution.",
+                                "1.0",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.DECIMAL, 125).build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Node icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:stone\", fallback = \"minecraft:barrier\", alt = \"Stone\" }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.ICON, 30).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Stable node identity unique across the complete live tree catalog.",
+                                "mypack:mining/root",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("min_level", SchemaValueType.MAP, false,
+                                "Up to thirty two skill ids mapped to nonnegative minimum levels.",
+                                "{ \"mypack:mining\" = 5 }",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.KEY_VALUE, 100)
+                                .defaultEmptyObject().omitWhenDefault().build(),
+                        field("requires", SchemaValueType.LIST, false,
+                                "Same tree node ids that must all be owned.",
+                                "[\"mypack:mining/root\"]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 80)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("requires_any", SchemaValueType.LIST, false,
+                                "Same tree node ids of which at least one must be owned when nonempty.",
+                                "[\"mypack:mining/left\", \"mypack:mining/right\"]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 90)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("row", SchemaValueType.INTEGER, true,
+                                "Vertical grid coordinate between negative and positive four thousand ninety six.",
+                                "0",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.INTEGER, 60).build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate terms used by node search.",
+                                "[\"Armor\"]",
+                                CoreDiagnostics.INVALID_TREE, EditorWidget.LIST, 40)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build()
                 )
         );
     }
@@ -1375,9 +1530,10 @@ public final class CoreSchemas {
                                 "Client-observed gameplay definition generation.", "7",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
                         runtimeField("intent_type", SchemaValueType.ENUM,
-                                "Closed server-registered intent family.", "noop_test",
+                                "Closed server-registered intent family.", "tree_buy",
                                 CoreDiagnostics.NETWORK_PROTOCOL_MISMATCH, 60)
-                                .allowedValues("noop_test").build(),
+                                .allowedValues("noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm")
+                                .build(),
                         runtimeField("payload", SchemaValueType.STRING,
                                 "Small type-specific bounded selection payload; never effect amounts or commands.", "\"\"",
                                 CoreDiagnostics.NETWORK_TRANSFER_REJECTED, 70).build(),
@@ -1394,6 +1550,119 @@ public final class CoreSchemas {
                         runtimeField("state_revision", SchemaValueType.INTEGER,
                                 "Client-observed authoritative state revision.", "3",
                                 CoreDiagnostics.NETWORK_STALE_REVISION, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor paidCostRecord() {
+        return schema(
+                "paid_cost_record",
+                SchemaAudience.INTERNAL,
+                "Historical paid cost record",
+                "Immutable purchase identity, definition lineage, exact paid balances, and persistent grant sources.",
+                List.of(
+                        runtimeField("definition_revision", SchemaValueType.OBJECT,
+                                "Definition generation and semantic digest active when the purchase committed.",
+                                "{ generation = 10, semantic_digest = \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" }",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 30).build(),
+                        runtimeField("instance_id", SchemaValueType.OBJECT,
+                                "Owner kind, owner id, purchase id, and one based rank identity.",
+                                "{ owner_kind = \"progressiveskills:tree\", owner_id = \"mypack:mining\", purchase_id = \"mypack:mining/root\", rank = 1 }",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 10).build(),
+                        runtimeField("owner_lineage", SchemaValueType.STRING,
+                                "Lowercase SHA 256 of the tree and node grant lineage that owns this purchase.",
+                                "b".repeat(64),
+                                CoreDiagnostics.TREE_ORPHANED_PURCHASE, 40).build(),
+                        runtimeField("paid_balances", SchemaValueType.MAP,
+                                "Up to eight positive exact currency debits preserved for refund.",
+                                "{ \"progressiveskills:global_points\" = 3 }",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 50).build(),
+                        runtimeField("persistent_sources", SchemaValueType.LIST,
+                                "Up to thirty two source owned persistent grants installed by the purchase.",
+                                "[\"progressiveskills:tree[mypack:mining]/mypack:mining/root/toughness\"]",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 60).build(),
+                        runtimeField("purchase_transaction_id", SchemaValueType.STRING,
+                                "Transaction UUID that originally committed the exact payment.",
+                                "00000000-0000-0000-0000-000000000710",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor treeIntent() {
+        return schema(
+                "tree_intent",
+                SchemaAudience.INTERNAL,
+                "Tree mutation intent payload",
+                "Bounded serverbound node selection with no client supplied cost, grant, balance, or refund amount.",
+                List.of(
+                        runtimeField("node_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Selected stable node identity interpreted only inside the selected tree.",
+                                "mypack:mining/root",
+                                CoreDiagnostics.INVALID_TREE, 20).build(),
+                        runtimeOptionalField("preview_digest", SchemaValueType.STRING,
+                                "Required only when the enclosing network intent is tree_refund_confirm and forbidden otherwise.",
+                                "c".repeat(64),
+                                CoreDiagnostics.TREE_REFUND_DENIED, 30).build(),
+                        runtimeField("tree_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Selected stable tree identity.",
+                                "mypack:mining",
+                                CoreDiagnostics.INVALID_TREE, 10).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor treeRefundPreview() {
+        return schema(
+                "tree_refund_preview",
+                SchemaAudience.INTERNAL,
+                "Tree cascade refund preview payload",
+                "Clientbound revision pinned affected nodes, exact historical refunds, blockers, and confirmation digest.",
+                List.of(
+                        networkField("affected_nodes", SchemaValueType.LIST,
+                                "Up to sixty four selected and owned dependent nodes in authoritative reverse topological refund order.",
+                                "[\"mypack:mining/deep\", \"mypack:mining/root\"]",
+                                CoreDiagnostics.TREE_REFUND_DENIED, 80).build(),
+                        networkField("blockers", SchemaValueType.LIST,
+                                "Up to sixty four bounded reasons that make confirmation unavailable.",
+                                "[]",
+                                CoreDiagnostics.TREE_REFUND_DENIED, 110).build(),
+                        networkField("definition_generation", SchemaValueType.INTEGER,
+                                "Definition generation used to calculate the preview.",
+                                "10",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 30).build(),
+                        networkField("node_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Node selected for cascade refund.",
+                                "mypack:mining/root",
+                                CoreDiagnostics.TREE_REFUND_DENIED, 70).build(),
+                        networkField("preview_digest", SchemaValueType.STRING,
+                                "Lowercase SHA 256 covering the selected cascade and historical payment evidence.",
+                                "d".repeat(64),
+                                CoreDiagnostics.TREE_REFUND_DENIED, 100).build(),
+                        networkField("refund_balances", SchemaValueType.MAP,
+                                "Up to sixty four exact nonnegative currency totals recovered from affected paid cost records.",
+                                "{ \"progressiveskills:global_points\" = 6 }",
+                                CoreDiagnostics.PAID_COST_LEDGER_INVALID, 90).build(),
+                        networkField("request_id", SchemaValueType.INTEGER,
+                                "Serverbound preview request identity returned to the requesting client.",
+                                "14",
+                                CoreDiagnostics.NETWORK_RATE_LIMITED, 20).build(),
+                        networkField("semantic_digest", SchemaValueType.STRING,
+                                "Gameplay definition digest used to calculate the preview.",
+                                "e".repeat(64),
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 40).build(),
+                        networkField("session_id", SchemaValueType.STRING,
+                                "Current connection session UUID.",
+                                "00000000-0000-0000-0000-000000000711",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 10).build(),
+                        networkField("state_revision", SchemaValueType.INTEGER,
+                                "Authoritative player state revision used to calculate the preview.",
+                                "8",
+                                CoreDiagnostics.NETWORK_STALE_REVISION, 50).build(),
+                        networkField("tree_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Tree containing every affected purchase.",
+                                "mypack:mining",
+                                CoreDiagnostics.TREE_REFUND_DENIED, 60).build()
                 )
         );
     }

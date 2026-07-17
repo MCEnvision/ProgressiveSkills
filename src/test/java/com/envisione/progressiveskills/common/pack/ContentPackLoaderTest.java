@@ -292,10 +292,10 @@ class ContentPackLoaderTest {
     void plannedButUnavailableGameplaySchemasFailClosed() throws IOException {
         Path root = temporaryDirectory.resolve("packs");
         writePack(root, "future-pack", "future:core", "future", List.of(), 0);
-        write(root.resolve("future-pack/trees/mining.toml"), """
+        write(root.resolve("future-pack/classes/miner.toml"), """
                 schema_version = 2
-                [tree]
-                id = "future:mining"
+                [class]
+                id = "future:miner"
                 """);
 
         StagingResult result = loader(root).stage(List.of(root(root)), AvailableEnvironment.empty());

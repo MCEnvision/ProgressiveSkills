@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -20,7 +21,8 @@ class ServerNetworkSessionsTest {
                 NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
                 1, NetworkFixtures.definitions(), initial);
         incompatible.handleClientHello(NetworkFixtures.PLAYER, new NetworkPayloads.ClientHello(
-                incompatibleHello.sessionId(), 2, NetworkLimits.REQUIRED_FEATURES, false));
+                incompatibleHello.sessionId(), NetworkLimits.PROTOCOL_VERSION + 1,
+                NetworkLimits.REQUIRED_FEATURES, false));
         assertEquals(ServerNetworkSessions.ServerPhase.REJECTED,
                 incompatible.status(NetworkFixtures.PLAYER).orElseThrow().phase());
 
@@ -29,7 +31,8 @@ class ServerNetworkSessionsTest {
                 NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
                 1, NetworkFixtures.definitions(), initial);
         retry.handleClientHello(NetworkFixtures.PLAYER, new NetworkPayloads.ClientHello(
-                retryHello.sessionId(), 1, NetworkLimits.REQUIRED_FEATURES, false));
+                retryHello.sessionId(), NetworkLimits.PROTOCOL_VERSION,
+                NetworkLimits.REQUIRED_FEATURES, false));
         var resync = new NetworkPayloads.ResyncRequest(retryHello.sessionId(), "definition digest mismatch");
         assertTrue(!retry.handleResync(NetworkFixtures.PLAYER, resync).isEmpty());
         assertTrue(retry.handleResync(NetworkFixtures.PLAYER, resync).isEmpty());
@@ -109,6 +112,101 @@ class ServerNetworkSessionsTest {
         assertEquals(NetworkPayloads.IntentStatus.RATE_LIMITED,
                 result(server.handleIntent(NetworkFixtures.PLAYER,
                         intent(secondHello, 28, changed.stateRevision()))).status());
+    }
+
+    @Test
+    void validatedTreeExecutorRunsOnceAndReplaysTheFinalPreviewResponse() {
+        var server = ServerNetworkSessions.systemClock();
+        var client = ClientNetworkState.systemClock();
+        DefinitionProjection definitions = NetworkFixtures.treeDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(
+                definitions, 0, 0, Map.of(NetworkFixtures.CURRENCY.toString(), 10L),
+                Map.of(NetworkFixtures.NODE_ROOT, 1));
+        NetworkPayloads.ServerHello hello = server.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        NetworkPayloads.ClientHello reply = client.receiveHello(hello);
+        completePayloadExchange(server, client, server.handleClientHello(NetworkFixtures.PLAYER, reply));
+        var calls = new AtomicInteger();
+        var request = new NetworkPayloads.Intent(
+                hello.sessionId(), 0, 1, NetworkFixtures.SEMANTIC, 0,
+                NetworkPayloads.IntentType.TREE_REFUND_PREVIEW,
+                TreeIntentPayload.refundPreview(NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT)
+                        .encode(NetworkPayloads.IntentType.TREE_REFUND_PREVIEW)
+        );
+        ServerNetworkSessions.IntentExecutor executor = (playerId, intent, treePayload) -> {
+            calls.incrementAndGet();
+            var preview = new NetworkPayloads.TreeRefundPreview(
+                    intent.sessionId(), intent.requestId(), intent.definitionGeneration(),
+                    intent.semanticDigest(), intent.stateRevision(), treePayload.treeId(),
+                    treePayload.nodeId(), List.of(NetworkFixtures.NODE_BRANCH, NetworkFixtures.NODE_ROOT),
+                    Map.of(NetworkFixtures.CURRENCY, 3L), "d".repeat(64), List.of()
+            );
+            return ServerNetworkSessions.IntentExecution.accepted("Refund preview ready", preview);
+        };
+
+        List<CustomPacketPayload> accepted = server.handleIntent(
+                NetworkFixtures.PLAYER, request, executor);
+        List<CustomPacketPayload> replayed = server.handleIntent(
+                NetworkFixtures.PLAYER, request, executor);
+        assertEquals(accepted, replayed);
+        assertEquals(1, calls.get());
+        assertEquals(NetworkPayloads.IntentStatus.ACCEPTED, result(accepted).status());
+        assertEquals(List.of(NetworkFixtures.NODE_BRANCH, NetworkFixtures.NODE_ROOT),
+                assertInstanceOf(NetworkPayloads.TreeRefundPreview.class, accepted.get(1)).affectedNodes());
+
+        var malformed = new NetworkPayloads.Intent(
+                hello.sessionId(), 1, 1, NetworkFixtures.SEMANTIC, 0,
+                NetworkPayloads.IntentType.TREE_BUY, "bad");
+        assertEquals(NetworkPayloads.IntentStatus.INVALID,
+                result(server.handleIntent(NetworkFixtures.PLAYER, malformed, executor)).status());
+        assertEquals(1, calls.get());
+
+        var stale = new NetworkPayloads.Intent(
+                hello.sessionId(), 2, 1, NetworkFixtures.SEMANTIC, 99,
+                NetworkPayloads.IntentType.TREE_BUY,
+                TreeIntentPayload.buy(NetworkFixtures.TREE, NetworkFixtures.NODE_BRANCH)
+                        .encode(NetworkPayloads.IntentType.TREE_BUY));
+        assertEquals(NetworkPayloads.IntentStatus.STALE_STATE,
+                result(server.handleIntent(NetworkFixtures.PLAYER, stale, executor)).status());
+        assertEquals(1, calls.get());
+    }
+
+    @Test
+    void quarantinedStateRejectsTreeIntentBeforeExecutor() {
+        var server = ServerNetworkSessions.systemClock();
+        var client = ClientNetworkState.systemClock();
+        DefinitionProjection definitions = NetworkFixtures.treeDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(
+                definitions, 0, 0, Map.of(), Map.of(), true
+        );
+        NetworkPayloads.ServerHello hello = server.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state
+        );
+        completePayloadExchange(server, client, server.handleClientHello(
+                NetworkFixtures.PLAYER, client.receiveHello(hello)
+        ));
+        var calls = new AtomicInteger();
+        var request = new NetworkPayloads.Intent(
+                hello.sessionId(), 0, 1, NetworkFixtures.SEMANTIC, 0,
+                NetworkPayloads.IntentType.TREE_BUY,
+                TreeIntentPayload.buy(NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT)
+                        .encode(NetworkPayloads.IntentType.TREE_BUY)
+        );
+
+        var response = result(server.handleIntent(
+                NetworkFixtures.PLAYER,
+                request,
+                (playerId, intent, payload) -> {
+                    calls.incrementAndGet();
+                    return ServerNetworkSessions.IntentExecution.accepted("Unexpected execution");
+                }
+        ));
+
+        assertEquals(NetworkPayloads.IntentStatus.INVALID, response.status());
+        assertEquals(0, calls.get());
+        assertTrue(response.message().contains("quarantined"));
     }
 
     private static NetworkPayloads.Intent intent(

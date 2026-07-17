@@ -57,6 +57,11 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode INVALID_ATTRIBUTE_GRANT = code("PS-SKILL-004");
     public static final DiagnosticCode SKILL_STATE_DRIFT = code("PS-SKILL-005");
     public static final DiagnosticCode INVALID_CURRENCY = code("PS-CURRENCY-001");
+    public static final DiagnosticCode INVALID_TREE = code("PS-TREE-001");
+    public static final DiagnosticCode TREE_PURCHASE_DENIED = code("PS-TREE-002");
+    public static final DiagnosticCode TREE_REFUND_DENIED = code("PS-TREE-003");
+    public static final DiagnosticCode TREE_ORPHANED_PURCHASE = code("PS-TREE-004");
+    public static final DiagnosticCode PAID_COST_LEDGER_INVALID = code("PS-TREE-005");
     public static final DiagnosticCode INVALID_RULE = code("PS-RULE-001");
     public static final DiagnosticCode UNKNOWN_RULE_TRIGGER = code("PS-RULE-002");
     public static final DiagnosticCode INVALID_RULE_MATCHER = code("PS-RULE-003");
@@ -281,6 +286,26 @@ public final class CoreDiagnostics {
                         "Named currency definition is invalid",
                         "Currency scope, initial value, and checked bounds must form one consistent contract.",
                         "Use character scope and keep the initial value inside the declared minimum and maximum.", false))
+                .register(descriptor(INVALID_TREE, DiagnosticSeverity.ERROR,
+                        "Tree definition is invalid",
+                        "A Core tree must be bounded, acyclic, single rank, and use valid same tree prerequisites.",
+                        "Correct the tree and node fields using the generated tree schemas.", false))
+                .register(descriptor(TREE_PURCHASE_DENIED, DiagnosticSeverity.WARNING,
+                        "Tree purchase was denied",
+                        "Unknown, disabled, owned, unaffordable, or requirement blocked nodes cannot be purchased.",
+                        "Review the purchase blockers and submit a fresh intent against current state.", true))
+                .register(descriptor(TREE_REFUND_DENIED, DiagnosticSeverity.WARNING,
+                        "Tree refund was denied",
+                        "A refund requires current ownership, exact historical cost evidence, and a matching cascade preview.",
+                        "Request a fresh refund preview and resolve every reported blocker before confirming.", true))
+                .register(descriptor(TREE_ORPHANED_PURCHASE, DiagnosticSeverity.WARNING,
+                        "Tree purchase is orphaned",
+                        "Persisted purchase evidence no longer maps to the same tree node lineage.",
+                        "Restore a compatible definition or review the orphan before an explicit migration or refund.", false))
+                .register(descriptor(PAID_COST_LEDGER_INVALID, DiagnosticSeverity.ERROR,
+                        "Paid cost ledger is invalid",
+                        "Missing, malformed, conflicting, or overflowing historical payment evidence prevents an exact refund.",
+                        "Restore verified paid cost records before allowing a purchase mutation or refund.", false))
                 .register(descriptor(INVALID_RULE, DiagnosticSeverity.ERROR,
                         "Rule definition is invalid",
                         "A gameplay route must compile to one bounded deterministic transaction path.",

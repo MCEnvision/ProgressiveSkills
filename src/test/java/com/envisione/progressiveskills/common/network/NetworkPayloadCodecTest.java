@@ -7,7 +7,12 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
+import net.minecraft.resources.ResourceLocation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -19,7 +24,8 @@ class NetworkPayloadCodecTest {
         UUID session = UUID.randomUUID();
         var transfer = PreparedTransfer.create(session, TransferKind.FULL_STATE, new byte[128]);
         assertRoundTrip(NetworkPayloads.ClientHello.STREAM_CODEC,
-                new NetworkPayloads.ClientHello(session, 1, NetworkLimits.REQUIRED_FEATURES, false));
+                new NetworkPayloads.ClientHello(
+                        session, NetworkLimits.PROTOCOL_VERSION, NetworkLimits.REQUIRED_FEATURES, false));
         assertRoundTrip(NetworkPayloads.TransferAck.STREAM_CODEC,
                 new NetworkPayloads.TransferAck(session, transfer.start().transferId(),
                         TransferKind.FULL_STATE, transfer.start().digest()));
@@ -30,6 +36,50 @@ class NetworkPayloadCodecTest {
         assertRoundTrip(NetworkPayloads.Intent.STREAM_CODEC,
                 new NetworkPayloads.Intent(session, 7, 1, "b".repeat(64), 4,
                         NetworkPayloads.IntentType.NOOP_TEST, ""));
+    }
+
+    @Test
+    void treeIntentsAreCanonicalAndStrictlyShaped() {
+        TreeIntentPayload buy = TreeIntentPayload.buy(NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT);
+        String encodedBuy = buy.encode(NetworkPayloads.IntentType.TREE_BUY);
+        assertEquals(buy, TreeIntentPayload.decode(NetworkPayloads.IntentType.TREE_BUY, encodedBuy));
+
+        TreeIntentPayload confirm = TreeIntentPayload.refundConfirm(
+                NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT, "f".repeat(64));
+        String encodedConfirm = confirm.encode(NetworkPayloads.IntentType.TREE_REFUND_CONFIRM);
+        assertEquals(confirm, TreeIntentPayload.decode(
+                NetworkPayloads.IntentType.TREE_REFUND_CONFIRM, encodedConfirm));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeIntentPayload.decode(NetworkPayloads.IntentType.TREE_BUY, encodedConfirm));
+        assertThrows(IllegalArgumentException.class,
+                () -> TreeIntentPayload.decode(NetworkPayloads.IntentType.TREE_BUY, encodedBuy + "\n"));
+        assertThrows(IllegalArgumentException.class,
+                () -> buy.encode(NetworkPayloads.IntentType.NOOP_TEST));
+    }
+
+    @Test
+    void refundPreviewPreservesCascadeOrderAtTheAcceptedBoundary() {
+        UUID session = UUID.randomUUID();
+        List<ResourceLocation> affected = IntStream.range(0, NetworkLimits.MAX_TREE_PREVIEW_NODES)
+                .mapToObj(index -> ResourceLocation.parse("example:node_" + index)).toList().reversed();
+        var balances = new LinkedHashMap<ResourceLocation, Long>();
+        var blockers = new java.util.ArrayList<String>();
+        for (int index = 0; index < NetworkLimits.MAX_TREE_PREVIEW_BALANCES; index++) {
+            balances.put(ResourceLocation.parse("example:currency_" + index), (long) index);
+        }
+        for (int index = 0; index < NetworkLimits.MAX_TREE_PREVIEW_BLOCKERS; index++) {
+            blockers.add("Blocker " + index);
+        }
+        var preview = new NetworkPayloads.TreeRefundPreview(
+                session, 9, 1, NetworkFixtures.SEMANTIC, 3,
+                NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT,
+                affected, balances, "e".repeat(64), blockers
+        );
+
+        var decoded = roundTrip(NetworkPayloads.TreeRefundPreview.STREAM_CODEC, preview);
+        assertEquals(affected, decoded.affectedNodes());
+        assertEquals(NetworkLimits.MAX_TREE_PREVIEW_BALANCES, decoded.refundBalances().size());
+        assertEquals(NetworkLimits.MAX_TREE_PREVIEW_BLOCKERS, decoded.blockers().size());
     }
 
     @Test
@@ -69,13 +119,21 @@ class NetworkPayloadCodecTest {
             StreamCodec<FriendlyByteBuf, T> codec,
             T payload
     ) {
+        assertEquals(payload, roundTrip(codec, payload));
+    }
+
+    private static <T extends CustomPacketPayload> T roundTrip(
+            StreamCodec<FriendlyByteBuf, T> codec,
+            T payload
+    ) {
         var buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {
             codec.encode(buffer, payload);
             assertTrue(buffer.readableBytes() < 32 * 1_024);
             assertTrue(buffer.readableBytes() <= NetworkLimits.MAX_SERVERBOUND_PAYLOAD_BYTES);
-            assertEquals(payload, codec.decode(buffer));
+            T decoded = codec.decode(buffer);
             assertEquals(0, buffer.readableBytes());
+            return decoded;
         } finally {
             buffer.release();
         }

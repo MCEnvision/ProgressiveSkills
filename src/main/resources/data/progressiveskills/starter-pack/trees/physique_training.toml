@@ -1,0 +1,88 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:physique_training"
+display = { key = "tree.progressiveskills.physique_training", fallback = "Physique Training" }
+description = { key = "tree.progressiveskills.physique_training.desc", fallback = "Choose focused physical improvements." }
+icon = { type = "item", value = "minecraft:knowledge_book", fallback = "minecraft:barrier", alt = "Knowledge book" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:physique"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:physique_training/conditioning"
+display = { key = "node.progressiveskills.conditioning", fallback = "Conditioning" }
+description = { key = "node.progressiveskills.conditioning.desc", fallback = "Build a stronger foundation." }
+icon = { type = "item", value = "minecraft:apple", fallback = "minecraft:barrier", alt = "Apple" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:physique" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/conditioning/health"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 1.0
+
+[[nodes]]
+id = "progressiveskills:physique_training/technique"
+display = { key = "node.progressiveskills.technique", fallback = "Technique" }
+description = { key = "node.progressiveskills.technique.desc", fallback = "Turn training into precise force." }
+icon = { type = "item", value = "minecraft:iron_sword", fallback = "minecraft:barrier", alt = "Iron sword" }
+cost = 1
+row = 0
+col = 2
+requires = []
+requires_any = []
+min_level = { "progressiveskills:physique" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/technique/damage"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:physique_training/resilience"
+display = { key = "node.progressiveskills.resilience", fallback = "Resilience" }
+description = { key = "node.progressiveskills.resilience.desc", fallback = "Harden the body through conditioning." }
+icon = { type = "item", value = "minecraft:iron_chestplate", fallback = "minecraft:barrier", alt = "Iron chestplate" }
+cost = 2
+row = 1
+col = 0
+requires = ["progressiveskills:physique_training/conditioning"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/resilience/armor"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 1.0
+
+[[nodes]]
+id = "progressiveskills:physique_training/momentum"
+display = { key = "node.progressiveskills.momentum", fallback = "Momentum" }
+description = { key = "node.progressiveskills.momentum.desc", fallback = "Carry either discipline into faster movement." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Rabbit foot" }
+cost = 2
+row = 2
+col = 1
+requires = []
+requires_any = ["progressiveskills:physique_training/technique", "progressiveskills:physique_training/resilience"]
+min_level = { "progressiveskills:physique" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/momentum/speed"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.03

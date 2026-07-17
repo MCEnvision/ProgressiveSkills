@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.common.data;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 
 /** Pure raw-tag migrations that run only after the input passes hard NBT limits. */
@@ -14,6 +15,7 @@ public final class PlayerDataMigrations {
         while (version < ProgressiveSkillsData.CURRENT_DATA_VERSION) {
             current = switch (version) {
                 case 1 -> migrateV1ToV2(current);
+                case 2 -> migrateV2ToV3(current);
                 default -> throw new IllegalArgumentException("No player-data migration from version " + version);
             };
             version++;
@@ -44,6 +46,19 @@ public final class PlayerDataMigrations {
         }
         output.remove("definition_generation");
         output.remove("definition_digest");
+        return output;
+    }
+
+    static CompoundTag migrateV2ToV3(CompoundTag input) {
+        CompoundTag output = input.copy();
+        output.putInt("data_version", 3);
+        CompoundTag transaction = output.contains("transaction", Tag.TAG_COMPOUND)
+                ? output.getCompound("transaction").copy()
+                : new CompoundTag();
+        if (!transaction.contains("paid_costs")) {
+            transaction.put("paid_costs", new ListTag());
+        }
+        output.put("transaction", transaction);
         return output;
     }
 }

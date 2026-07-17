@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,6 +82,56 @@ class ClientNetworkStateTest {
         assertEquals(ClientNetworkState.ClientPhase.RESYNC_REQUIRED, client.snapshot().phase());
     }
 
+    @Test
+    void activeClientPreparesMonotonicTreeIntentsAndAcceptsOnlyCurrentPreview() {
+        DefinitionProjection definitions = NetworkFixtures.treeDefinitions();
+        VisiblePlayerState state = NetworkFixtures.state(
+                definitions, 0, 7, Map.of(NetworkFixtures.CURRENCY.toString(), 10L),
+                Map.of(NetworkFixtures.NODE_ROOT, 1));
+        var sessions = ServerNetworkSessions.systemClock();
+        NetworkPayloads.ServerHello hello = sessions.begin(
+                NetworkFixtures.PLAYER, NetworkFixtures.SERVER, 1, NetworkFixtures.SEMANTIC,
+                1, definitions, state);
+        var client = ClientNetworkState.systemClock();
+        client.receiveHello("tree-test", NetworkFixtures.PLAYER, hello);
+        receiveFullClientState(client, hello, definitions, state);
+
+        NetworkPayloads.Intent buy = client.prepareIntent(
+                NetworkPayloads.IntentType.TREE_BUY,
+                TreeIntentPayload.buy(NetworkFixtures.TREE, NetworkFixtures.NODE_BRANCH)
+        ).orElseThrow();
+        NetworkPayloads.Intent previewIntent = client.prepareIntent(
+                NetworkPayloads.IntentType.TREE_REFUND_PREVIEW,
+                TreeIntentPayload.refundPreview(NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT)
+        ).orElseThrow();
+        assertEquals(0, buy.requestId());
+        assertEquals(1, previewIntent.requestId());
+        assertEquals(state.stateRevision(), previewIntent.stateRevision());
+
+        var preview = new NetworkPayloads.TreeRefundPreview(
+                hello.sessionId(), previewIntent.requestId(), 1, NetworkFixtures.SEMANTIC,
+                state.stateRevision(), NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT,
+                List.of(NetworkFixtures.NODE_BRANCH, NetworkFixtures.NODE_ROOT),
+                Map.of(NetworkFixtures.CURRENCY, 3L), "a".repeat(64), List.of()
+        );
+        client.receiveTreeRefundPreview(preview);
+        assertEquals(preview, client.snapshot().treeRefundPreview().orElseThrow());
+
+        NetworkPayloads.Intent confirm = client.prepareIntent(
+                NetworkPayloads.IntentType.TREE_REFUND_CONFIRM,
+                TreeIntentPayload.refundConfirm(
+                        NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT, preview.previewDigest())
+        ).orElseThrow();
+        assertEquals(2, confirm.requestId());
+        assertTrue(client.snapshot().treeRefundPreview().isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> client.receiveTreeRefundPreview(
+                new NetworkPayloads.TreeRefundPreview(
+                        hello.sessionId(), previewIntent.requestId(), 1, NetworkFixtures.SEMANTIC,
+                        state.stateRevision() + 1, NetworkFixtures.TREE, NetworkFixtures.NODE_ROOT,
+                        List.of(), Map.of(), "b".repeat(64), List.of()
+                )));
+    }
+
     private static void cacheDefinitions(
             ClientNetworkState client,
             NetworkPayloads.ServerHello hello
@@ -90,5 +141,22 @@ class ClientNetworkStateTest {
                 DefinitionProjectionCodec.encode(NetworkFixtures.definitions()));
         client.receiveTransferStart(definitions.start());
         definitions.chunks().forEach(client::receiveTransferChunk);
+    }
+
+    private static void receiveFullClientState(
+            ClientNetworkState client,
+            NetworkPayloads.ServerHello hello,
+            DefinitionProjection definitions,
+            VisiblePlayerState state
+    ) {
+        PreparedTransfer definitionTransfer = PreparedTransfer.create(
+                hello.sessionId(), TransferKind.DEFINITIONS,
+                DefinitionProjectionCodec.encode(definitions));
+        client.receiveTransferStart(definitionTransfer.start());
+        definitionTransfer.chunks().forEach(client::receiveTransferChunk);
+        PreparedTransfer stateTransfer = PreparedTransfer.create(
+                hello.sessionId(), TransferKind.FULL_STATE, VisibleStateCodec.encode(state));
+        client.receiveTransferStart(stateTransfer.start());
+        stateTransfer.chunks().forEach(client::receiveTransferChunk);
     }
 }

@@ -175,26 +175,40 @@ public final class ServerNetworkSessions {
             UUID playerId,
             NetworkPayloads.Intent payload
     ) {
+        return handleIntent(playerId, payload, IntentExecutor.REJECT_TREE_INTENTS);
+    }
+
+    public synchronized List<CustomPacketPayload> handleIntent(
+            UUID playerId,
+            NetworkPayloads.Intent payload,
+            IntentExecutor executor
+    ) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(payload, "payload");
+        Objects.requireNonNull(executor, "executor");
         Session session = sessions.get(playerId);
         if (session == null) {
             return List.of(staleSessionResult(payload.sessionId(), payload.requestId(), 0));
         }
-        if (!payload.sessionId().equals(session.hello.sessionId())
-                || session.phase != ServerPhase.ACTIVE) {
+        if (!payload.sessionId().equals(session.hello.sessionId())) {
             return List.of(staleSessionResult(
                     session.hello.sessionId(), payload.requestId(), session.currentState.stateRevision()));
         }
-        NetworkPayloads.IntentResult cached = session.requestResults.get(payload.requestId());
+        List<CustomPacketPayload> cached = session.requestResponses.get(payload.requestId());
         if (cached != null) {
-            return List.of(cached);
+            return cached;
+        }
+        if (session.phase != ServerPhase.ACTIVE) {
+            return List.of(staleSessionResult(
+                    session.hello.sessionId(), payload.requestId(), session.currentState.stateRevision()));
         }
         if (!session.intentBucket.tryConsume(Instant.now(clock))) {
-            return List.of(cacheAndReturn(session, payload.requestId(), NetworkPayloads.IntentStatus.RATE_LIMITED,
-                    "Intent rate limit exceeded"));
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.RATE_LIMITED,
+                    "Intent rate limit exceeded");
         }
         if (session.highestRequestId >= 0 && payload.requestId() <= session.highestRequestId) {
-            return List.of(cacheAndReturn(session, payload.requestId(), NetworkPayloads.IntentStatus.TOO_OLD,
-                    "Request id is older than the highest monotonic request"));
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.TOO_OLD,
+                    "Request id is older than the highest monotonic request");
         }
         long maximum = session.highestRequestId < 0
                 ? NetworkLimits.MAX_FUTURE_REQUEST_JUMP
@@ -202,38 +216,47 @@ public final class ServerNetworkSessions {
                 ? Long.MAX_VALUE
                 : session.highestRequestId + NetworkLimits.MAX_FUTURE_REQUEST_JUMP;
         if (payload.requestId() > maximum) {
-            return List.of(cacheAndReturn(session, payload.requestId(), NetworkPayloads.IntentStatus.FUTURE_JUMP,
-                    "Request id jumps beyond the bounded replay window"));
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.FUTURE_JUMP,
+                    "Request id jumps beyond the bounded replay window");
         }
         session.highestRequestId = Math.max(session.highestRequestId, payload.requestId());
         NetworkPayloads.IntentResult response;
-        boolean stale = false;
         if (payload.definitionGeneration() != session.currentState.definitionRevision().generation()
                 || !payload.semanticDigest().equals(session.currentState.definitionRevision().semanticDigest())) {
             response = result(session, payload.requestId(), NetworkPayloads.IntentStatus.STALE_DEFINITION,
                     "Intent definition generation is stale");
-            stale = true;
+            return cacheWithFullState(session, payload.requestId(), response);
         } else if (payload.stateRevision() != session.currentState.stateRevision()) {
             response = result(session, payload.requestId(), NetworkPayloads.IntentStatus.STALE_STATE,
                     "Intent state revision is stale");
-            stale = true;
-        } else if (payload.intentType() != NetworkPayloads.IntentType.NOOP_TEST || !payload.payload().isEmpty()) {
-            response = result(session, payload.requestId(), NetworkPayloads.IntentStatus.INVALID,
-                    "Intent type or payload is not available in this phase");
-        } else {
-            response = result(session, payload.requestId(), NetworkPayloads.IntentStatus.ACCEPTED,
-                    "Bounded no-op intent accepted without gameplay mutation");
+            return cacheWithFullState(session, payload.requestId(), response);
         }
-        cacheResult(session, payload.requestId(), response);
-        session.lastActivity = Instant.now(clock);
-        if (!stale) {
-            return List.of(response);
+        if (payload.intentType() == NetworkPayloads.IntentType.NOOP_TEST) {
+            if (!payload.payload().isEmpty()) {
+                return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.INVALID,
+                        "No op intent payload must be empty");
+            }
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.ACCEPTED,
+                    "Bounded no op intent accepted without gameplay mutation");
         }
-        var responses = new ArrayList<CustomPacketPayload>();
-        session.resyncCount = Math.addExact(session.resyncCount, 1);
-        responses.add(response);
-        responses.addAll(sendFullState(session));
-        return List.copyOf(responses);
+        if (session.currentState.quarantined()) {
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.INVALID,
+                    "Player progression data is quarantined");
+        }
+        try {
+            TreeIntentPayload treePayload = TreeIntentPayload.decode(payload.intentType(), payload.payload());
+            IntentExecution execution = Objects.requireNonNull(
+                    executor.execute(playerId, payload, treePayload), "intent execution");
+            response = result(session, payload.requestId(), execution.status(), execution.message());
+            List<CustomPacketPayload> responses = validateExecutionResponses(
+                    session, payload, treePayload, response, execution.followups());
+            cacheResponses(session, payload.requestId(), responses);
+            session.lastActivity = Instant.now(clock);
+            return responses;
+        } catch (RuntimeException exception) {
+            return cacheSingle(session, payload.requestId(), NetworkPayloads.IntentStatus.INVALID,
+                    safeIntentMessage(exception));
+        }
     }
 
     public synchronized List<CustomPacketPayload> sync(UUID playerId, VisiblePlayerState state) {
@@ -292,7 +315,7 @@ public final class ServerNetworkSessions {
                 session.lastAcknowledgedSyncRevision,
                 session.deltaCount,
                 session.resyncCount,
-                session.requestResults.size()
+                session.requestResponses.size()
         ));
     }
 
@@ -360,22 +383,133 @@ public final class ServerNetworkSessions {
                 (sessionId + ":" + requestId).getBytes(StandardCharsets.UTF_8));
     }
 
-    private static void cacheResult(Session session, long requestId, NetworkPayloads.IntentResult result) {
-        session.requestResults.put(requestId, result);
-        while (session.requestResults.size() > NetworkLimits.MAX_REQUEST_RESULTS) {
-            session.requestResults.pollFirstEntry();
+    private static void cacheResponses(
+            Session session,
+            long requestId,
+            List<CustomPacketPayload> responses
+    ) {
+        session.requestResponses.put(requestId, List.copyOf(responses));
+        while (session.requestResponses.size() > NetworkLimits.MAX_REQUEST_RESULTS) {
+            session.requestResponses.pollFirstEntry();
         }
     }
 
-    private static NetworkPayloads.IntentResult cacheAndReturn(
+    private List<CustomPacketPayload> cacheSingle(
             Session session,
             long requestId,
             NetworkPayloads.IntentStatus status,
             String message
     ) {
         NetworkPayloads.IntentResult response = result(session, requestId, status, message);
-        cacheResult(session, requestId, response);
-        return response;
+        List<CustomPacketPayload> responses = List.of(response);
+        cacheResponses(session, requestId, responses);
+        session.lastActivity = Instant.now(clock);
+        return responses;
+    }
+
+    private List<CustomPacketPayload> cacheWithFullState(
+            Session session,
+            long requestId,
+            NetworkPayloads.IntentResult response
+    ) {
+        var responses = new ArrayList<CustomPacketPayload>();
+        session.resyncCount = Math.addExact(session.resyncCount, 1);
+        responses.add(response);
+        responses.addAll(sendFullState(session));
+        List<CustomPacketPayload> finalResponses = List.copyOf(responses);
+        cacheResponses(session, requestId, finalResponses);
+        session.lastActivity = Instant.now(clock);
+        return finalResponses;
+    }
+
+    private static List<CustomPacketPayload> validateExecutionResponses(
+            Session session,
+            NetworkPayloads.Intent intent,
+            TreeIntentPayload treePayload,
+            NetworkPayloads.IntentResult response,
+            List<CustomPacketPayload> followups
+    ) {
+        Objects.requireNonNull(followups, "intent followups");
+        if (followups.size() > 1) {
+            throw new IllegalArgumentException("Intent execution returned too many followups");
+        }
+        var responses = new ArrayList<CustomPacketPayload>();
+        responses.add(response);
+        for (CustomPacketPayload followup : followups) {
+            if (!(followup instanceof NetworkPayloads.TreeRefundPreview preview)
+                    || intent.intentType() != NetworkPayloads.IntentType.TREE_REFUND_PREVIEW
+                    || !preview.sessionId().equals(session.hello.sessionId())
+                    || preview.requestId() != intent.requestId()
+                    || preview.definitionGeneration() != intent.definitionGeneration()
+                    || !preview.semanticDigest().equals(intent.semanticDigest())
+                    || preview.stateRevision() != intent.stateRevision()
+                    || !preview.treeId().equals(treePayload.treeId())
+                    || !preview.nodeId().equals(treePayload.nodeId())) {
+                throw new IllegalArgumentException("Intent execution returned an invalid followup");
+            }
+            responses.add(preview);
+        }
+        return List.copyOf(responses);
+    }
+
+    private static String safeIntentMessage(RuntimeException exception) {
+        String message = exception.getMessage();
+        if (message == null || message.isBlank()) {
+            message = "Intent execution failed";
+        }
+        var safe = new StringBuilder();
+        message.codePoints().forEach(character -> {
+            if (!Character.isISOControl(character)) {
+                String next = new String(Character.toChars(character));
+                if ((safe.toString() + next).getBytes(StandardCharsets.UTF_8).length
+                        <= NetworkLimits.MAX_RESYNC_REASON_BYTES) {
+                    safe.append(next);
+                }
+            }
+        });
+        return safe.isEmpty() ? "Intent execution failed" : safe.toString();
+    }
+
+    @FunctionalInterface
+    public interface IntentExecutor {
+        IntentExecutor REJECT_TREE_INTENTS = (playerId, intent, payload) ->
+                IntentExecution.invalid("Tree intents are not configured on this server");
+
+        IntentExecution execute(
+                UUID playerId,
+                NetworkPayloads.Intent intent,
+                TreeIntentPayload payload
+        );
+    }
+
+    public record IntentExecution(
+            NetworkPayloads.IntentStatus status,
+            String message,
+            List<CustomPacketPayload> followups
+    ) {
+        public IntentExecution {
+            Objects.requireNonNull(status, "status");
+            message = NetworkLimits.requireBoundedText(
+                    message, NetworkLimits.MAX_RESYNC_REASON_BYTES, "intent execution message");
+            followups = List.copyOf(Objects.requireNonNull(followups, "followups"));
+            if (status != NetworkPayloads.IntentStatus.ACCEPTED
+                    && status != NetworkPayloads.IntentStatus.INVALID) {
+                throw new IllegalArgumentException("Intent executor may only accept or reject an intent");
+            }
+        }
+
+        public static IntentExecution accepted(String message) {
+            return new IntentExecution(NetworkPayloads.IntentStatus.ACCEPTED, message, List.of());
+        }
+
+        public static IntentExecution accepted(String message, CustomPacketPayload followup) {
+            return new IntentExecution(
+                    NetworkPayloads.IntentStatus.ACCEPTED, message, List.of(followup));
+        }
+
+        public static IntentExecution invalid(String message) {
+            return new IntentExecution(NetworkPayloads.IntentStatus.INVALID, message, List.of());
+        }
     }
 
     public enum ServerPhase {
@@ -407,7 +541,7 @@ public final class ServerNetworkSessions {
         private final NetworkPayloads.ServerHello hello;
         private final byte[] definitionBytes;
         private final TokenBucket intentBucket;
-        private final TreeMap<Long, NetworkPayloads.IntentResult> requestResults = new TreeMap<>();
+        private final TreeMap<Long, List<CustomPacketPayload>> requestResponses = new TreeMap<>();
         private Optional<PreparedTransfer> definitionTransfer = Optional.empty();
         private Optional<PreparedTransfer> stateTransfer = Optional.empty();
         private VisiblePlayerState currentState;

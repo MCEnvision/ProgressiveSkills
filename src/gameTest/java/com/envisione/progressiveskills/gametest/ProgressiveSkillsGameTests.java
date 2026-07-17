@@ -13,6 +13,7 @@ import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.envisione.progressiveskills.server.transaction.PlayerPersistentProjector;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import com.envisione.progressiveskills.server.rule.BlockProvenanceSavedData;
+import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -37,6 +38,7 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /** Real-server proof for staged packs, transaction lifecycles, and Phase 5 persistence. */
@@ -393,6 +395,106 @@ public final class ProgressiveSkillsGameTests {
                             SkillStateIds.activeXp(physiqueId)
                     ) == beforeRuleXp + FixedPoint.parse("30"),
                     "A route table rebuild must retain first time source memory"
+            );
+
+            var treeId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "physique_training"
+            );
+            var conditioningId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "physique_training/conditioning"
+            );
+            var resilienceId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "physique_training/resilience"
+            );
+            var pointsId = ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "global_points"
+            );
+            double treeHealthBefore = player.getAttributeValue(Attributes.MAX_HEALTH);
+            double treeArmorBefore = player.getAttributeValue(Attributes.ARMOR);
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps tree list", playerSource) == 1,
+                    "The live Core tree catalog must be listed"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree info " + treeId, playerSource
+                    ) == 1,
+                    "The starter Physique tree must be inspectable"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree preview buy " + treeId + " " + conditioningId, playerSource
+                    ) == 1,
+                    "The first tree node must preview from authoritative state"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree buy " + treeId + " " + conditioningId, playerSource
+                    ) == 1,
+                    "The first tree node purchase must commit"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(pointsId) == 5,
+                    "The first tree purchase must debit exactly one point"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.MAX_HEALTH) - treeHealthBefore - 1.0D)
+                            < 0.000001D,
+                    "The Conditioning source must add exactly one max health point"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree buy " + treeId + " " + conditioningId, playerSource
+                    ) == 0,
+                    "A purchased node must not charge or grant twice"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree buy " + treeId + " " + resilienceId, playerSource
+                    ) == 1,
+                    "A dependent tree node purchase must commit"
+            );
+            var purchasedTreeState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    purchasedTreeState.balances().get(pointsId) == 3
+                            && purchasedTreeState.paidCosts().size() == 2,
+                    "Both purchases and their exact paid records must commit together"
+            );
+            helper.assertTrue(
+                    player.getData(PsDataAttachments.PLAYER_DATA).transactionState().paidCosts().size() == 2,
+                    "Paid tree records must be present in the persisted player attachment"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.ARMOR) - treeArmorBefore - 1.0D)
+                            < 0.000001D,
+                    "The Resilience source must add exactly one armor point"
+            );
+            var treeRefundPreview = TreeRuntime.previewRefund(player, treeId, conditioningId);
+            helper.assertTrue(
+                    treeRefundPreview.affectedNodes().equals(List.of(resilienceId, conditioningId))
+                            && treeRefundPreview.refundBalances().get(pointsId) == 3,
+                    "Cascade preview must order the dependent first and total historical payments"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps tree refund " + treeId + " " + conditioningId + " "
+                                    + treeRefundPreview.digest(),
+                            playerSource
+                    ) == 1,
+                    "The reviewed cascade refund must commit once"
+            );
+            var refundedTreeState = context.service().snapshot(player.getUUID());
+            helper.assertTrue(
+                    refundedTreeState.balances().get(pointsId) == 6
+                            && refundedTreeState.paidCosts().isEmpty(),
+                    "Cascade refund must restore exact historical payments and clear paid records"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.MAX_HEALTH) - treeHealthBefore)
+                            < 0.000001D
+                            && Math.abs(player.getAttributeValue(Attributes.ARMOR) - treeArmorBefore)
+                            < 0.000001D,
+                    "Cascade refund must remove only the two tree owned grants"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,

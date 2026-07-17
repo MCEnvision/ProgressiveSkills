@@ -8,10 +8,18 @@ import com.envisione.progressiveskills.common.network.DefinitionProjectionCodec;
 import com.envisione.progressiveskills.common.network.PsNetworking;
 import com.envisione.progressiveskills.common.network.NetworkPayloads;
 import com.envisione.progressiveskills.common.network.ServerNetworkSessions;
+import com.envisione.progressiveskills.common.network.TreeIntentPayload;
 import com.envisione.progressiveskills.common.network.VisiblePlayerState;
 import com.envisione.progressiveskills.common.rule.RuleMemoryKeys;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
+import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
+import com.envisione.progressiveskills.common.transaction.ProgressionSnapshot;
+import com.envisione.progressiveskills.common.id.DefinitionKinds;
+import com.envisione.progressiveskills.common.skill.SkillCatalog;
+import com.envisione.progressiveskills.common.tree.TreeCatalog;
+import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -27,13 +35,20 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 /** Projects server authority into one bounded, sanitized protocol session per online player. */
 @EventBusSubscriber(modid = ProjectIdentity.MOD_ID)
 public final class NetworkRuntime {
     private static final AtomicReference<CachedDefinitions> CACHED_DEFINITIONS = new AtomicReference<>();
+    private static final AtomicReference<MinecraftServer> ACTIVE_SERVER = new AtomicReference<>();
+
+    static {
+        PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
+    }
 
     private NetworkRuntime() {
     }
@@ -55,7 +70,9 @@ public final class NetworkRuntime {
     @SubscribeEvent
     static void onServerStopping(ServerStoppingEvent event) {
         PsNetworking.clearServerSessions();
+        PsNetworking.configureServerIntentExecutor(ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS);
         CACHED_DEFINITIONS.set(null);
+        ACTIVE_SERVER.compareAndSet(event.getServer(), null);
     }
 
     @SubscribeEvent
@@ -71,6 +88,8 @@ public final class NetworkRuntime {
     }
 
     public static void begin(ServerPlayer player) {
+        ACTIVE_SERVER.set(player.getServer());
+        PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
         if (!player.connection.hasChannel(NetworkPayloads.ServerHello.TYPE)) {
             PsNetworking.removeServerSession(player.getUUID());
             return;
@@ -144,7 +163,9 @@ public final class NetworkRuntime {
 
         var data = player.getData(PsDataAttachments.PLAYER_DATA);
         var dataView = data.view();
-        var state = transactionContext.orElseThrow().service().snapshot(player.getUUID());
+        TransactionRuntime.Context transactions = transactionContext.orElseThrow();
+        var state = transactions.service().snapshot(player.getUUID());
+        boolean progressionReady = transactions.ready(player);
         Map<String, Long> balances = visibleBalances(state.balances());
         Map<String, Long> effective = new LinkedHashMap<>();
         state.projectedValues().forEach((key, value) -> effective.put(key.toString(), value));
@@ -157,9 +178,10 @@ public final class NetworkRuntime {
                 presentationDigest,
                 balances,
                 effective,
+                visibleNodeRanks(state, cached.trees()),
                 dataView.orphans().size(),
                 dataView.operationReceipts().size(),
-                !data.active()
+                !progressionReady
         );
         return new Projection(definition, live.generation(), presentationDigest, definitions, visible);
     }
@@ -174,6 +196,182 @@ public final class NetworkRuntime {
             }
         });
         return balances;
+    }
+
+    static Map<net.minecraft.resources.ResourceLocation, Integer> visibleNodeRanks(
+            ProgressionSnapshot snapshot,
+            TreeCatalog trees
+    ) {
+        var ranks = new java.util.TreeMap<net.minecraft.resources.ResourceLocation, Integer>(
+                net.minecraft.resources.ResourceLocation::compareNamespaced
+        );
+        snapshot.paidCosts().values().forEach(record -> {
+            var instance = record.instanceId();
+            if (!instance.ownerKind().equals(DefinitionKinds.TREE.id()) || instance.rank() != 1) {
+                return;
+            }
+            trees.node(instance.ownerId(), instance.purchaseId()).ifPresent(node -> {
+                if (record.ownerLineage().equals(
+                        trees.nodeLineageFingerprint(instance.ownerId(), instance.purchaseId()))) {
+                    ranks.put(instance.purchaseId(), 1);
+                }
+            });
+        });
+        return Map.copyOf(ranks);
+    }
+
+    private static ServerNetworkSessions.IntentExecution executeTreeIntent(
+            UUID playerId,
+            NetworkPayloads.Intent intent,
+            TreeIntentPayload payload
+    ) {
+        MinecraftServer server = ACTIVE_SERVER.get();
+        if (server == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Server progression runtime is unavailable");
+        }
+        ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+        if (player == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
+        }
+        return dispatchTreeIntent(intent, payload, new LiveTreeIntentOperations(player));
+    }
+
+    static ServerNetworkSessions.IntentExecution dispatchTreeIntent(
+            NetworkPayloads.Intent intent,
+            TreeIntentPayload payload,
+            TreeIntentOperations operations
+    ) {
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(payload, "payload");
+        Objects.requireNonNull(operations, "operations");
+        if (!operations.active()) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player progression data is quarantined");
+        }
+        return switch (intent.intentType()) {
+            case TREE_BUY -> mutationExecution(
+                    operations.purchase(payload.treeId(), payload.nodeId(), treeIntentKey(intent)),
+                    "Tree node purchased"
+            );
+            case TREE_REFUND_PREVIEW -> refundPreviewExecution(
+                    intent, operations.previewRefund(payload.treeId(), payload.nodeId())
+            );
+            case TREE_REFUND_CONFIRM -> mutationExecution(
+                    operations.refund(
+                            payload.treeId(),
+                            payload.nodeId(),
+                            payload.previewDigest().orElseThrow(),
+                            treeIntentKey(intent)
+                    ),
+                    "Tree refund committed"
+            );
+            case NOOP_TEST -> ServerNetworkSessions.IntentExecution.invalid("No op is handled before dispatch");
+        };
+    }
+
+    private static ServerNetworkSessions.IntentExecution mutationExecution(
+            TreeMutationOutcome outcome,
+            String acceptedMessage
+    ) {
+        if (!outcome.committed()) {
+            return ServerNetworkSessions.IntentExecution.invalid(outcome.message());
+        }
+        return ServerNetworkSessions.IntentExecution.accepted(acceptedMessage);
+    }
+
+    private static ServerNetworkSessions.IntentExecution refundPreviewExecution(
+            NetworkPayloads.Intent intent,
+            TreeProgression.RefundPreview preview
+    ) {
+        var followup = new NetworkPayloads.TreeRefundPreview(
+                intent.sessionId(),
+                intent.requestId(),
+                intent.definitionGeneration(),
+                intent.semanticDigest(),
+                intent.stateRevision(),
+                preview.treeId(),
+                preview.selectedNode(),
+                preview.affectedNodes(),
+                preview.refundBalances(),
+                preview.digest(),
+                preview.blockers()
+        );
+        return ServerNetworkSessions.IntentExecution.accepted("Tree refund preview ready", followup);
+    }
+
+    private static IdempotencyKey treeIntentKey(NetworkPayloads.Intent intent) {
+        return new IdempotencyKey("phase10/network/" + intent.sessionId() + "/" + intent.requestId());
+    }
+
+    interface TreeIntentOperations {
+        boolean active();
+
+        TreeMutationOutcome purchase(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId,
+                IdempotencyKey idempotencyKey
+        );
+
+        TreeProgression.RefundPreview previewRefund(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId
+        );
+
+        TreeMutationOutcome refund(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        );
+    }
+
+    record TreeMutationOutcome(boolean committed, String message) {
+        TreeMutationOutcome {
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    private record LiveTreeIntentOperations(ServerPlayer player) implements TreeIntentOperations {
+        private LiveTreeIntentOperations {
+            Objects.requireNonNull(player, "player");
+        }
+
+        @Override
+        public boolean active() {
+            return TransactionRuntime.context(player.getServer())
+                    .map(context -> context.ready(player))
+                    .orElse(false);
+        }
+
+        @Override
+        public TreeMutationOutcome purchase(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId,
+                IdempotencyKey idempotencyKey
+        ) {
+            var transaction = TreeRuntime.purchase(player, treeId, nodeId, idempotencyKey).transaction();
+            return new TreeMutationOutcome(transaction.status().committed(), transaction.message());
+        }
+
+        @Override
+        public TreeProgression.RefundPreview previewRefund(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId
+        ) {
+            return TreeRuntime.previewRefund(player, treeId, nodeId);
+        }
+
+        @Override
+        public TreeMutationOutcome refund(
+                net.minecraft.resources.ResourceLocation treeId,
+                net.minecraft.resources.ResourceLocation nodeId,
+                String previewDigest,
+                IdempotencyKey idempotencyKey
+        ) {
+            var transaction = TreeRuntime.refund(
+                    player, treeId, nodeId, previewDigest, idempotencyKey
+            ).transaction();
+            return new TreeMutationOutcome(transaction.status().committed(), transaction.message());
+        }
     }
 
     private static void sendAll(ServerPlayer player, List<CustomPacketPayload> payloads) {
@@ -191,11 +389,14 @@ public final class NetworkRuntime {
             return current;
         }
         DefinitionProjection definitions = DefinitionProjection.from(canonicalIr);
+        SkillCatalog skills = SkillCatalog.from(canonicalIr);
+        TreeCatalog trees = TreeCatalog.from(canonicalIr, skills);
         CachedDefinitions replacement = new CachedDefinitions(
                 generation,
                 semanticDigest,
                 definitions,
-                BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions))
+                BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions)),
+                trees
         );
         CACHED_DEFINITIONS.set(replacement);
         return replacement;
@@ -214,7 +415,8 @@ public final class NetworkRuntime {
             long generation,
             String semanticDigest,
             DefinitionProjection definitions,
-            String presentationDigest
+            String presentationDigest,
+            TreeCatalog trees
     ) {
     }
 }

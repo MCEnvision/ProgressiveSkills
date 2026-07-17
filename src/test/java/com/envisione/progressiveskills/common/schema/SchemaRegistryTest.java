@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(30, ids.size());
+        assertEquals(35, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(
@@ -106,6 +106,54 @@ class SchemaRegistryTest {
                 List.of("always", "once_per_transaction", "once_per_character"),
                 action.fields().stream().filter(field -> field.path().equals("repeat_policy"))
                         .findFirst().orElseThrow().allowedValues()
+        );
+    }
+
+    @Test
+    void phaseTenTreeContractsExposeExactAuthoringAndRuntimeShapes() {
+        var registry = CoreSchemas.createRegistry();
+        var tree = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "tree_definition"));
+        var treeFields = tree.fields().stream().collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var node = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "tree_node"));
+        var nodeFields = node.fields().stream().collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var paid = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "paid_cost_record"));
+        var intent = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "tree_intent"));
+        var intentFields = intent.fields().stream().collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var networkIntent = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "network_intent"));
+        var refund = registry.require(ResourceLocation.fromNamespaceAndPath("progressiveskills", "tree_refund_preview"));
+
+        assertEquals(List.of("global", "skill"), treeFields.get("scope").allowedValues());
+        assertEquals(
+                new SchemaDefaultValue.StringValue("cascade_refund"),
+                treeFields.get("dependency_policy").defaultValue().orElseThrow()
+        );
+        assertTrue(treeFields.get("nodes").required());
+        assertEquals(DiffPolicy.MERGE_BY_KEY, treeFields.get("nodes").diffPolicy());
+        assertEquals(List.of("attribute"), nodeFields.get("grants.type").allowedValues());
+        assertEquals(
+                List.of("add_value", "add_multiplied_base", "add_multiplied_total"),
+                nodeFields.get("grants.operation").allowedValues()
+        );
+        assertEquals(DiffPolicy.SET, nodeFields.get("requires").diffPolicy());
+        assertTrue(paid.fields().stream().allMatch(field -> field.projection() == ProjectionPolicy.SERVER_ONLY));
+        assertEquals(
+                CoreDiagnostics.TREE_ORPHANED_PURCHASE,
+                paid.fields().stream().filter(field -> field.path().equals("owner_lineage"))
+                        .findFirst().orElseThrow().diagnosticCode()
+        );
+        assertEquals(
+                List.of("noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm"),
+                networkIntent.fields().stream().filter(field -> field.path().equals("intent_type"))
+                        .findFirst().orElseThrow().allowedValues()
+        );
+        assertEquals(List.of("node_id", "preview_digest", "tree_id"),
+                intent.fields().stream().map(FieldDescriptor::path).toList());
+        assertFalse(intentFields.get("preview_digest").required());
+        assertTrue(refund.fields().stream().allMatch(field -> field.projection() == ProjectionPolicy.CLIENT_VISIBLE));
+        assertEquals(
+                CoreDiagnostics.PAID_COST_LEDGER_INVALID,
+                refund.fields().stream().filter(field -> field.path().equals("refund_balances"))
+                        .findFirst().orElseThrow().diagnosticCode()
         );
     }
 

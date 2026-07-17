@@ -316,7 +316,7 @@ class ProgressionTransactionServiceTest {
     }
 
     @Test
-    void exactLedgersFailClosedAndAuditUsesBoundedRetention() {
+    void replayRetentionRollsForwardAndAuditUsesBoundedRetention() {
         var service = new ProgressionTransactionService(1, 1, 2, 1,
                 Clock.fixed(Instant.parse("2026-07-16T12:00:00Z"), ZoneOffset.UTC));
         var projector = new RecordingProjector();
@@ -325,10 +325,15 @@ class ProgressionTransactionServiceTest {
                 DEFINITIONS, projector, executor);
         service.execute(plan("test/two", 1, List.of(), List.of(), List.of()),
                 DEFINITIONS, projector, executor);
-        TransactionResult full = service.execute(plan("test/three", 2, List.of(), List.of(), List.of()),
+        CascadePlan thirdPlan = plan("test/three", 2, List.of(), List.of(), List.of());
+        TransactionResult third = service.execute(thirdPlan,
                 DEFINITIONS, projector, executor);
+        TransactionResult replay = service.execute(thirdPlan, DEFINITIONS, projector, executor);
 
-        assertEquals(ProgressionTransactionService.LEDGER_FULL, full.diagnosticCode());
+        assertTrue(third.status().committed());
+        assertTrue(replay.replayed());
+        assertEquals(3, service.snapshot(TARGET).stateRevision());
+        assertEquals(1, service.snapshot(TARGET).receiptCount());
         assertEquals(1, service.audit(TARGET).size());
         assertEquals(2, service.snapshot(TARGET).idempotencyCount());
     }

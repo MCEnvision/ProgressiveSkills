@@ -1,6 +1,8 @@
 package com.envisione.progressiveskills.common.network;
 
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
+import com.envisione.progressiveskills.common.id.StableId;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,11 +26,36 @@ public record StateDelta(
         Set<String> removedBalances,
         Map<String, Long> changedEffectiveValues,
         Set<String> removedEffectiveValues,
+        Map<ResourceLocation, Integer> changedNodeRanks,
+        Set<ResourceLocation> removedNodeRanks,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined,
         String resultingStateDigest
 ) {
+    public StateDelta(
+            UUID playerId,
+            long baseSyncRevision,
+            long newSyncRevision,
+            long newStateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> changedBalances,
+            Set<String> removedBalances,
+            Map<String, Long> changedEffectiveValues,
+            Set<String> removedEffectiveValues,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined,
+            String resultingStateDigest
+    ) {
+        this(playerId, baseSyncRevision, newSyncRevision, newStateRevision, definitionRevision,
+                presentationRevision, presentationDigest, changedBalances, removedBalances,
+                changedEffectiveValues, removedEffectiveValues, Map.of(), Set.of(), orphanCount,
+                operationReceiptCount, quarantined, resultingStateDigest);
+    }
+
     public StateDelta {
         Objects.requireNonNull(playerId, "playerId");
         if (baseSyncRevision < 0 || newSyncRevision <= baseSyncRevision || newStateRevision < 0
@@ -41,9 +68,14 @@ public record StateDelta(
         removedBalances = copySet(removedBalances);
         changedEffectiveValues = copyMap(changedEffectiveValues);
         removedEffectiveValues = copySet(removedEffectiveValues);
+        changedNodeRanks = copyNodeRanks(changedNodeRanks);
+        removedNodeRanks = copyNodeIds(removedNodeRanks);
         if (!Collections.disjoint(changedBalances.keySet(), removedBalances)
                 || !Collections.disjoint(changedEffectiveValues.keySet(), removedEffectiveValues)) {
             throw new IllegalArgumentException("State delta cannot change and remove the same path");
+        }
+        if (!Collections.disjoint(changedNodeRanks.keySet(), removedNodeRanks)) {
+            throw new IllegalArgumentException("State delta cannot change and remove the same node rank");
         }
         resultingStateDigest = NetworkLimits.requireDigest(resultingStateDigest, "resultingStateDigest");
     }
@@ -61,8 +93,33 @@ public record StateDelta(
                 changes(before.balances(), after.balances()), removals(before.balances(), after.balances()),
                 changes(before.effectiveValues(), after.effectiveValues()),
                 removals(before.effectiveValues(), after.effectiveValues()),
+                nodeChanges(before.nodeRanks(), after.nodeRanks()),
+                nodeRemovals(before.nodeRanks(), after.nodeRanks()),
                 after.orphanCount(), after.operationReceiptCount(), after.quarantined(), digest
         );
+    }
+
+    private static Map<ResourceLocation, Integer> nodeChanges(
+            Map<ResourceLocation, Integer> before,
+            Map<ResourceLocation, Integer> after
+    ) {
+        var changed = new TreeMap<ResourceLocation, Integer>(ResourceLocation::compareNamespaced);
+        after.forEach((key, value) -> {
+            if (!Objects.equals(before.get(key), value)) {
+                changed.put(key, value);
+            }
+        });
+        return changed;
+    }
+
+    private static Set<ResourceLocation> nodeRemovals(
+            Map<ResourceLocation, Integer> before,
+            Map<ResourceLocation, Integer> after
+    ) {
+        var removed = new TreeSet<ResourceLocation>(ResourceLocation::compareNamespaced);
+        removed.addAll(before.keySet());
+        removed.removeAll(after.keySet());
+        return removed;
     }
 
     private static Map<String, Long> changes(Map<String, Long> before, Map<String, Long> after) {
@@ -102,6 +159,32 @@ public record StateDelta(
         var sorted = new TreeSet<String>();
         source.forEach(value -> sorted.add(NetworkLimits.requireBoundedText(
                 value, NetworkLimits.MAX_KEY_BYTES, "removed delta key")));
+        return Collections.unmodifiableSet(sorted);
+    }
+
+    private static Map<ResourceLocation, Integer> copyNodeRanks(Map<ResourceLocation, Integer> source) {
+        Objects.requireNonNull(source, "node rank delta");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("State delta node ranks exceed capacity");
+        }
+        var sorted = new TreeMap<ResourceLocation, Integer>(ResourceLocation::compareNamespaced);
+        source.forEach((node, rank) -> {
+            ResourceLocation stable = StableId.requireValid(node);
+            if (rank == null || rank != 1) {
+                throw new IllegalArgumentException("Core node rank delta must equal one");
+            }
+            sorted.put(stable, rank);
+        });
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Set<ResourceLocation> copyNodeIds(Set<ResourceLocation> source) {
+        Objects.requireNonNull(source, "removed node ranks");
+        if (source.size() > NetworkLimits.MAX_VISIBLE_VALUES) {
+            throw new IllegalArgumentException("State delta removed node ranks exceed capacity");
+        }
+        var sorted = new TreeSet<ResourceLocation>(ResourceLocation::compareNamespaced);
+        source.forEach(node -> sorted.add(StableId.requireValid(node)));
         return Collections.unmodifiableSet(sorted);
     }
 }

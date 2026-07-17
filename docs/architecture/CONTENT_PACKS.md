@@ -1,12 +1,14 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 staging implemented, with Phase 9 skill, currency, rule, direct-requirement, and rounding support in the TOML adapter.
+Status: Phase 3 staging implemented, with Phase 10 skill, currency, rule, requirement, rounding, and tree support in the TOML adapter.
+
+Phase 10 tree authoring is implemented as a beta checkpoint. The supported boundary is documented in [TREES_AND_REFUNDS.md](TREES_AND_REFUNDS.md), with automated evidence in [PHASE-10.md](../verification/PHASE-10.md).
 
 ## Runtime result
 
 ProgressiveSkills now discovers real content-pack directories, validates their manifests and dependencies, compiles supported TOML definitions into immutable canonical IR, and publishes a whole registry generation. A first launch seeds one dependency-free starter pack without overwriting later operator edits.
 
-The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, `currencies/`, and `rules/`. A rule may contain the bounded direct requirements described below. Other planned gameplay directories, including standalone `predicates/` and `requirements/`, remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
+The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, `currencies/`, `rules/`, and `trees/`. A rule may contain the bounded direct requirements described below. Other planned gameplay directories, including standalone `predicates/` and `requirements/`, remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
 
 ## Server roots
 
@@ -143,6 +145,16 @@ value = "Updated display text"
 
 `replacements.toml` declares direct, same-kind old-to-terminal aliases. Sources must be retired, targets must exist, IDs must stay in the owning namespace, and conflicting, chained, cyclic, cross-kind, or dangling replacements fail validation.
 
+## Phase 10 tree files
+
+Phase 10 assigns `trees/<id>.toml` to a typed tree compiler. Its Core surface is limited to stable single-rank nodes, literal named-currency costs, authored grid positions, acyclic `requires` AND edges, `requires_any` OR edges, bounded minimum skill levels, transitive cascade refund, and source-owned attribute grants.
+
+The compiler must reject the complete staged snapshot when a tree has a duplicate or dangling node ID, invalid scope or bind, unknown currency or skill, cycle, self edge, invalid cost, unsupported grant, unsupported Creator field, or legal refund closure that cannot fit the atomic transaction limits. Array order is never node identity.
+
+Tree cost and layout changes participate in semantic digest and staged diff. A published cost change affects future purchases only. Every completed purchase retains its original currency and amount in a durable paid cost record, so reload cannot rewrite refund history. A tree file cannot supply or reconstruct that player accounting state.
+
+Tree and node presentation plus disclosed graph fields enter the sanitized definition projection. Paid cost records, raw grant owners, hidden policies, and server-only evaluation data remain outside content projection. See [TREES_AND_REFUNDS.md](TREES_AND_REFUNDS.md) for the authority, lineage, reconciliation, and accessibility contract.
+
 ## Staging and publication
 
 The live registry and dry-run candidate are separate immutable snapshots:
@@ -200,4 +212,4 @@ The implementation currently enforces, among the lower per-record bounds inherit
 
 ## Deferred boundaries
 
-The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, and Phase 9 direct rule requirements and rounding are implemented. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, trees, classes, abilities, locale tables, datapack JSON, external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.
+The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, Phase 9 direct rule requirements and rounding, and Phase 10 Core tree lifecycle are implemented. Phase 10 remains a beta checkpoint until the final player mass test is approved. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, classes, abilities, locale tables, datapack JSON, external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.

@@ -68,6 +68,27 @@ class DefinitionProjectionCodecTest {
                 () -> DefinitionProjectionCodec.decode(new byte[]{0, 0, 0, 1, 127, -1, -1, -1}));
     }
 
+    @Test
+    void sanitizedTreeViewRoundTripsWithoutServerGrantData() {
+        DefinitionProjection projection = NetworkFixtures.treeDefinitions();
+        byte[] encoded = DefinitionProjectionCodec.encode(projection);
+        DefinitionProjection decoded = DefinitionProjectionCodec.decode(encoded);
+
+        assertEquals(projection, decoded);
+        DefinitionProjection.TreeView tree = decoded.definitions().values().iterator().next()
+                .tree().orElseThrow();
+        assertEquals(-5, tree.currencyMinimum());
+        assertEquals(7, tree.currencyInitial());
+        assertEquals(7, tree.visibleCurrencyBalance(Map.of()));
+        assertEquals(0, tree.visibleCurrencyBalance(Map.of(NetworkFixtures.CURRENCY.toString(), 0L)));
+        assertEquals(List.of(NetworkFixtures.NODE_ROOT), tree.nodes().stream()
+                .filter(node -> node.id().equals(NetworkFixtures.NODE_BRANCH))
+                .findFirst().orElseThrow().requires());
+        String wire = new String(encoded, StandardCharsets.UTF_8);
+        assertFalse(wire.contains("persistent_source"));
+        assertFalse(wire.contains("entitlement"));
+    }
+
     private static ResourceLocation id(String value) {
         return ResourceLocation.parse(value);
     }

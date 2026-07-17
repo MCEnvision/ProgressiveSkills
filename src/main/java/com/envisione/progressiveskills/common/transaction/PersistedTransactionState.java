@@ -14,28 +14,44 @@ public record PersistedTransactionState(
         long stateRevision,
         Map<ResourceLocation, Long> balances,
         Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership,
+        Map<PurchaseInstanceId, PaidCostRecord> paidCosts,
         Map<ReceiptKey, GrantReceipt> receipts,
         Map<IdempotencyKey, TransactionResult> idempotencyResults,
         List<AuditRecord> auditRecords
 ) {
+    public static final int MAX_PAID_COST_RECORDS = 4_096;
+
     public PersistedTransactionState {
         if (stateRevision < 0) {
             throw new IllegalArgumentException("Persisted state revision must not be negative");
         }
         balances = immutableBalances(balances);
         ownership = immutableOwnership(ownership);
+        paidCosts = immutablePaidCosts(paidCosts);
         receipts = immutableSorted(receipts);
         idempotencyResults = immutableSorted(idempotencyResults);
         auditRecords = List.copyOf(Objects.requireNonNull(auditRecords, "auditRecords"));
     }
 
     public static PersistedTransactionState empty() {
-        return new PersistedTransactionState(0, Map.of(), Map.of(), Map.of(), Map.of(), List.of());
+        return new PersistedTransactionState(0, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), List.of());
     }
 
     public boolean isEmpty() {
         return stateRevision == 0 && balances.isEmpty() && ownership.isEmpty()
-                && receipts.isEmpty() && idempotencyResults.isEmpty() && auditRecords.isEmpty();
+                && paidCosts.isEmpty() && receipts.isEmpty()
+                && idempotencyResults.isEmpty() && auditRecords.isEmpty();
+    }
+
+    public PersistedTransactionState(
+            long stateRevision,
+            Map<ResourceLocation, Long> balances,
+            Map<EntitlementKey, Map<GrantSourceId, EntitlementContribution>> ownership,
+            Map<ReceiptKey, GrantReceipt> receipts,
+            Map<IdempotencyKey, TransactionResult> idempotencyResults,
+            List<AuditRecord> auditRecords
+    ) {
+        this(stateRevision, balances, ownership, Map.of(), receipts, idempotencyResults, auditRecords);
     }
 
     private static Map<ResourceLocation, Long> immutableBalances(Map<ResourceLocation, Long> source) {
@@ -63,6 +79,25 @@ public record PersistedTransactionState(
                 throw new IllegalArgumentException("Persisted entitlement owner map must not be empty: " + key);
             }
             sorted.put(Objects.requireNonNull(key, "entitlement key"), Collections.unmodifiableMap(ownerCopy));
+        });
+        return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
+    }
+
+    private static Map<PurchaseInstanceId, PaidCostRecord> immutablePaidCosts(
+            Map<PurchaseInstanceId, PaidCostRecord> source
+    ) {
+        Objects.requireNonNull(source, "paidCosts");
+        if (source.size() > MAX_PAID_COST_RECORDS) {
+            throw new IllegalArgumentException("Paid cost record count exceeds " + MAX_PAID_COST_RECORDS);
+        }
+        var sorted = new TreeMap<PurchaseInstanceId, PaidCostRecord>();
+        source.forEach((key, value) -> {
+            Objects.requireNonNull(key, "paid cost key");
+            Objects.requireNonNull(value, "paid cost record");
+            if (!key.equals(value.instanceId())) {
+                throw new IllegalArgumentException("Paid cost key does not match its record");
+            }
+            sorted.put(key, value);
         });
         return Collections.unmodifiableMap(new LinkedHashMap<>(sorted));
     }

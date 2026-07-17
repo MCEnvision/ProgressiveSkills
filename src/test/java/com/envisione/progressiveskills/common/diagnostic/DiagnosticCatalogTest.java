@@ -60,4 +60,20 @@ class DiagnosticCatalogTest {
                 )
         );
     }
+
+    @Test
+    void treeDiagnosticsHaveStableCodesAndIntentionalSeverities() {
+        var catalog = CoreDiagnostics.catalog();
+
+        assertEquals("PS-TREE-001", CoreDiagnostics.INVALID_TREE.value());
+        assertEquals("PS-TREE-002", CoreDiagnostics.TREE_PURCHASE_DENIED.value());
+        assertEquals("PS-TREE-003", CoreDiagnostics.TREE_REFUND_DENIED.value());
+        assertEquals("PS-TREE-004", CoreDiagnostics.TREE_ORPHANED_PURCHASE.value());
+        assertEquals("PS-TREE-005", CoreDiagnostics.PAID_COST_LEDGER_INVALID.value());
+        assertEquals(DiagnosticSeverity.ERROR, catalog.require(CoreDiagnostics.INVALID_TREE).defaultSeverity());
+        assertEquals(DiagnosticSeverity.WARNING, catalog.require(CoreDiagnostics.TREE_PURCHASE_DENIED).defaultSeverity());
+        assertEquals(DiagnosticSeverity.WARNING, catalog.require(CoreDiagnostics.TREE_REFUND_DENIED).defaultSeverity());
+        assertEquals(DiagnosticSeverity.WARNING, catalog.require(CoreDiagnostics.TREE_ORPHANED_PURCHASE).defaultSeverity());
+        assertEquals(DiagnosticSeverity.ERROR, catalog.require(CoreDiagnostics.PAID_COST_LEDGER_INVALID).defaultSeverity());
+    }
 }

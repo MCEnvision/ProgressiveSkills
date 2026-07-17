@@ -25,6 +25,8 @@ public final class ClientNetworkState {
     private Optional<DefinitionProjection> activeDefinitions = Optional.empty();
     private Optional<VisiblePlayerState> visibleState = Optional.empty();
     private Optional<NetworkPayloads.IntentResult> lastIntentResult = Optional.empty();
+    private Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview = Optional.empty();
+    private long nextRequestId;
     private ClientPhase phase = ClientPhase.DISCONNECTED;
 
     public ClientNetworkState(Clock clock) {
@@ -137,6 +139,7 @@ public final class ClientNetworkState {
                     throw new IllegalArgumentException("Full state belongs to another player");
                 }
                 visibleState = Optional.of(state);
+                treeRefundPreview = Optional.empty();
                 phase = ClientPhase.ACTIVE;
             }
             return Optional.of(new NetworkPayloads.TransferAck(
@@ -168,6 +171,9 @@ public final class ClientNetworkState {
                 throw new IllegalArgumentException("state delta result digest mismatch");
             }
             visibleState = Optional.of(next);
+            if (next.stateRevision() != current.stateRevision()) {
+                treeRefundPreview = Optional.empty();
+            }
             return new NetworkPayloads.StateAck(payload.sessionId(), next.syncRevision(), digest);
         } catch (RuntimeException exception) {
             phase = ClientPhase.RESYNC_REQUIRED;
@@ -178,6 +184,53 @@ public final class ClientNetworkState {
     public synchronized void receiveIntentResult(NetworkPayloads.IntentResult result) {
         requireSession(result.sessionId());
         lastIntentResult = Optional.of(result);
+    }
+
+    public synchronized void receiveTreeRefundPreview(NetworkPayloads.TreeRefundPreview preview) {
+        Objects.requireNonNull(preview, "preview");
+        requireSession(preview.sessionId());
+        if (phase != ClientPhase.ACTIVE || visibleState.isEmpty() || activeDefinitions.isEmpty()) {
+            throw new IllegalArgumentException("Tree refund preview arrived before active synchronized state");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        if (preview.definitionGeneration() != currentHello.definitionGeneration()
+                || !preview.semanticDigest().equals(currentHello.semanticDigest())
+                || preview.stateRevision() != currentState.stateRevision()
+                || preview.requestId() >= nextRequestId
+                || !containsTreeNode(activeDefinitions.orElseThrow(), preview.treeId(), preview.nodeId())) {
+            throw new IllegalArgumentException("Tree refund preview does not match active synchronized state");
+        }
+        treeRefundPreview = Optional.of(preview);
+    }
+
+    public synchronized Optional<NetworkPayloads.Intent> prepareIntent(
+            NetworkPayloads.IntentType intentType,
+            TreeIntentPayload payload
+    ) {
+        Objects.requireNonNull(intentType, "intentType");
+        Objects.requireNonNull(payload, "payload");
+        if (phase != ClientPhase.ACTIVE || hello.isEmpty() || visibleState.isEmpty()) {
+            return Optional.empty();
+        }
+        if (!containsTreeNode(activeDefinitions.orElseThrow(), payload.treeId(), payload.nodeId())) {
+            throw new IllegalArgumentException("Tree intent references an unavailable tree node");
+        }
+        if (nextRequestId == Long.MAX_VALUE) {
+            throw new IllegalStateException("Tree intent request sequence is exhausted");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        long requestId = nextRequestId++;
+        if (intentType == NetworkPayloads.IntentType.TREE_REFUND_PREVIEW
+                || intentType == NetworkPayloads.IntentType.TREE_REFUND_CONFIRM) {
+            treeRefundPreview = Optional.empty();
+        }
+        return Optional.of(new NetworkPayloads.Intent(
+                currentHello.sessionId(), requestId, currentHello.definitionGeneration(),
+                currentHello.semanticDigest(), currentState.stateRevision(), intentType,
+                payload.encode(intentType)
+        ));
     }
 
     public synchronized void disconnect() {
@@ -198,8 +251,10 @@ public final class ClientNetworkState {
                 phase,
                 hello.map(NetworkPayloads.ServerHello::sessionId),
                 activeDefinitions.map(value -> value.definitions().size()).orElse(0),
+                activeDefinitions,
                 visibleState,
                 lastIntentResult,
+                treeRefundPreview,
                 definitionCache.size()
         );
     }
@@ -232,6 +287,8 @@ public final class ClientNetworkState {
         activeDefinitions = Optional.empty();
         visibleState = Optional.empty();
         lastIntentResult = Optional.empty();
+        treeRefundPreview = Optional.empty();
+        nextRequestId = 0;
     }
 
     private void putCache(CacheKey key, DefinitionProjection projection) {
@@ -262,6 +319,19 @@ public final class ClientNetworkState {
         return reason.isBlank() ? "invalid synchronized state" : reason;
     }
 
+    private static boolean containsTreeNode(
+            DefinitionProjection projection,
+            net.minecraft.resources.ResourceLocation treeId,
+            net.minecraft.resources.ResourceLocation nodeId
+    ) {
+        return projection.definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().id().equals(treeId))
+                .map(Map.Entry::getValue)
+                .flatMap(entry -> entry.tree().stream())
+                .flatMap(tree -> tree.nodes().stream())
+                .anyMatch(node -> node.id().equals(nodeId));
+    }
+
     public enum ClientPhase {
         DISCONNECTED,
         WAITING_DEFINITIONS,
@@ -274,10 +344,20 @@ public final class ClientNetworkState {
             ClientPhase phase,
             Optional<UUID> sessionId,
             int definitionCount,
+            Optional<DefinitionProjection> activeDefinitions,
             Optional<VisiblePlayerState> visibleState,
             Optional<NetworkPayloads.IntentResult> lastIntentResult,
+            Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview,
             int cachedDefinitionSets
     ) {
+        public Snapshot {
+            Objects.requireNonNull(phase, "phase");
+            sessionId = Objects.requireNonNull(sessionId, "sessionId");
+            activeDefinitions = Objects.requireNonNull(activeDefinitions, "activeDefinitions");
+            visibleState = Objects.requireNonNull(visibleState, "visibleState");
+            lastIntentResult = Objects.requireNonNull(lastIntentResult, "lastIntentResult");
+            treeRefundPreview = Objects.requireNonNull(treeRefundPreview, "treeRefundPreview");
+        }
     }
 
     private record CacheKey(

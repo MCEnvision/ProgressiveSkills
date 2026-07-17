@@ -4,14 +4,15 @@ import java.util.Objects;
 
 /** Hard protocol ceilings shared by codecs, transfer assembly, and tests. */
 public final class NetworkLimits {
-    public static final int PROTOCOL_VERSION = 1;
-    public static final String REGISTRAR_VERSION = "1";
+    public static final int PROTOCOL_VERSION = 2;
+    public static final String REGISTRAR_VERSION = "2";
     public static final long FEATURE_DEFINITION_PROJECTION = 1L;
     public static final long FEATURE_FULL_STATE = 1L << 1;
     public static final long FEATURE_STATE_DELTA = 1L << 2;
     public static final long FEATURE_BOUNDED_INTENTS = 1L << 3;
+    public static final long FEATURE_CORE_TREES = 1L << 4;
     public static final long REQUIRED_FEATURES = FEATURE_DEFINITION_PROJECTION
-            | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS;
+            | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS | FEATURE_CORE_TREES;
 
     public static final int MAX_DEFINITIONS = 4_096;
     public static final int MAX_VISIBLE_VALUES = 4_096;
@@ -32,6 +33,12 @@ public final class NetworkLimits {
     public static final long MAX_FUTURE_REQUEST_JUMP = 1_024;
     public static final long SESSION_TIMEOUT_MILLIS = 30_000;
     public static final int MAX_RESYNC_REASON_BYTES = 256;
+    public static final int MAX_TREE_NODES_PER_VIEW = 64;
+    public static final int MAX_TREE_PREREQUISITES = 64;
+    public static final int MAX_TREE_MINIMUM_SKILLS = 32;
+    public static final int MAX_TREE_PREVIEW_NODES = 64;
+    public static final int MAX_TREE_PREVIEW_BALANCES = 64;
+    public static final int MAX_TREE_PREVIEW_BLOCKERS = 64;
 
     private NetworkLimits() {
     }
