@@ -1,6 +1,6 @@
 # Networking and Client Projection
 
-Status: Phase 6 implemented; automated protocol/security checks pass and the real-client checkpoint awaits user acceptance.
+Status: Phase 6 accepted after automated protocol and security checks plus the real client checkpoint.
 
 ## Authority and handshake
 

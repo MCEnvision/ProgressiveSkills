@@ -1,6 +1,6 @@
 # Phase 6 Verification Record
 
-Status: implementation and automated verification complete; manual real-client networking checkpoint pending.
+Status: accepted after automated verification and the real client networking checkpoint.
 
 This record covers “Networking handshake + definition projection.” It does not claim skill XP, rules, formulas, trees, classes, abilities, baseline UI, or later gameplay intent types.
 
@@ -42,7 +42,7 @@ bash .ci/smoke-client.sh
 | NeoForge GameTest | local pass | All 1 required tests passed with payload registration and lifecycle wiring loaded; the synthetic non-negotiated test connection is safely ignored while the full real-server persistence workflow remains green. |
 | Dedicated server/client smoke | local pass | Production-only server reached ready state and production-only client reached the title screen; both error-marker gates passed. |
 | Release JAR | local pass | 643,855 bytes; archive verification passed; SHA-256 `a30e765d0111bb97cfd6513d2cef776cd4b579a0f497afc995bfac169ae5ffba`. |
-| Manual networking workflow | user pending | Follow the five-step checkpoint in `NETWORKING.md` and provide the log if anything differs. |
+| Manual networking workflow | user pass | A real NeoForge 21.1.238 client proved an active reconnect cache hit across changed temporary transport ids, a changed definition publish to generation 2, a fresh active resync with matching revisions, and a clean restore publish to generation 3. |
 
 ## Acceptance checklist
 
@@ -59,4 +59,4 @@ bash .ci/smoke-client.sh
 - [x] Published reloads invalidate sessions and require a fresh digest-bound handshake.
 - [x] Disconnect clears all authority; only bounded sanitized definitions retain TTL/LRU cache state.
 - [x] Final clean build, schema verification, GameTest, smokes, and release archive pass.
-- [ ] User completes the real-client join/delta/reconnect/reload/resync checkpoint.
+- [x] User completed the real-client join/delta/reconnect/reload/resync checkpoint.
