@@ -20,6 +20,9 @@ import java.util.Set;
 /** Parses reserved layer metadata and path-derived identity without claiming gameplay-schema validity. */
 public final class DefinitionLayerParser {
     private static final Set<String> PATCH_FIELDS = Set.of("op", "path", "value", "target_id");
+    private static final Set<String> SKILL_COMPANION_FIELDS = Set.of(
+            "curve", "level_currency_awards", "xp_sources", "levels", "scaling"
+    );
 
     public ParsedDefinitionLayer parse(
             PackLayer pack,
@@ -32,11 +35,14 @@ public final class DefinitionLayerParser {
         var provenance = new Provenance(pack.manifest().id(), relative, "toml");
         Map<String, Object> root = document.values();
         String tableName = kind.id().getPath();
-        TomlValues.rejectUnknown(
-                root,
-                Set.of("schema_version", "merge_intent", "expected_old_digest", "patches", tableName),
-                "definition root"
+        var rootFields = new java.util.HashSet<>(
+                Set.of("schema_version", "merge_intent", "expected_old_digest", "patches", tableName)
         );
+        Set<String> companionFields = kind.equals(
+                com.envisione.progressiveskills.common.id.DefinitionKinds.SKILL
+        ) ? SKILL_COMPANION_FIELDS : Set.of();
+        rootFields.addAll(companionFields);
+        TomlValues.rejectUnknown(root, rootFields, "definition root");
         if (TomlValues.integer(root, "schema_version") != 2) {
             throw new IllegalArgumentException("Definition schema_version must be 2");
         }
@@ -52,13 +58,18 @@ public final class DefinitionLayerParser {
         }
         var fields = new LinkedHashMap<>(table);
         fields.remove("id");
+        for (String companion : companionFields) {
+            if (root.containsKey(companion) && fields.putIfAbsent(companion, root.get(companion)) != null) {
+                throw new IllegalArgumentException("Definition field collides with root table " + companion);
+            }
+        }
         if ((intent == PackMergeIntent.PATCH || intent == PackMergeIntent.DISABLE) && !fields.isEmpty()) {
             throw new IllegalArgumentException(intent.name().toLowerCase(java.util.Locale.ROOT)
                     + " layers cannot declare definition fields");
         }
         List<DefinitionPatch> patches = parsePatches(root, intent);
         SourceMap documentSources = document.sourceMap(provenance);
-        SourceMap sourceMap = definitionSourceMap(documentSources, tableName);
+        SourceMap sourceMap = definitionSourceMap(documentSources, tableName, companionFields);
         List<SourceReference> patchSources = patchSources(documentSources, provenance, patches.size());
         return new ParsedDefinitionLayer(
                 pack,
@@ -115,7 +126,11 @@ public final class DefinitionLayerParser {
         return List.copyOf(patches);
     }
 
-    private static SourceMap definitionSourceMap(SourceMap documentMap, String tableName) {
+    private static SourceMap definitionSourceMap(
+            SourceMap documentMap,
+            String tableName,
+            Set<String> companionFields
+    ) {
         var builder = SourceMap.builder();
         String prefix = tableName + ".";
         documentMap.fields().forEach((path, reference) -> {
@@ -124,6 +139,11 @@ public final class DefinitionLayerParser {
                 if (!normalized.equals("id")) {
                     builder.put(normalized, reference);
                 }
+            } else if (companionFields.stream().anyMatch(
+                    companion -> path.equals(companion) || path.startsWith(companion + ".")
+                            || path.startsWith(companion + "[")
+            )) {
+                builder.put(path, reference);
             }
         });
         return builder.build();

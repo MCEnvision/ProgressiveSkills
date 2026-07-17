@@ -1,0 +1,63 @@
+schema_version = 2
+
+[skill]
+id = "progressiveskills:physique"
+display = { key = "skill.progressiveskills.physique", fallback = "Physique" }
+description = { key = "skill.progressiveskills.physique.desc", fallback = "Raw physical conditioning." }
+icon = { type = "item", value = "minecraft:iron_chestplate", fallback = "minecraft:barrier", alt = "Iron chestplate" }
+max_level = 10
+enabled = true
+overflow = "bank"
+negative_xp_policy = "deny"
+
+[curve]
+type = "linear"
+base = 100
+step = 25
+rounding = "ceil"
+
+[[level_currency_awards]]
+id = "progressiveskills:physique/level_points"
+amount_per_level = 1
+currency = "progressiveskills:global_points"
+award_basis = "lifetime_highest_level"
+award_scope = "character"
+
+[[xp_sources]]
+id = "progressiveskills:physique/training"
+action = "custom"
+key = "progressiveskills:physique_training"
+amount = 25
+repeat_policy = "always"
+
+[[levels]]
+id = "progressiveskills:physique/level_1"
+level = 1
+
+[[levels.effects]]
+id = "progressiveskills:physique/level_1_health"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 2.0
+
+[[levels]]
+id = "progressiveskills:physique/level_6"
+level = 6
+milestone = true
+
+[[levels.effects]]
+id = "progressiveskills:physique/level_6_jump"
+type = "attribute"
+attribute = "minecraft:generic.jump_strength"
+operation = "add_multiplied_base"
+value = 0.15
+
+[[scaling]]
+id = "progressiveskills:physique/health_scaling"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+per_level = 2.0
+from_level = 2
+to_level = 5

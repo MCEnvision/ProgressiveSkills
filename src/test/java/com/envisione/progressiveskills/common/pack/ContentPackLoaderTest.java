@@ -292,11 +292,10 @@ class ContentPackLoaderTest {
     void plannedButUnavailableGameplaySchemasFailClosed() throws IOException {
         Path root = temporaryDirectory.resolve("packs");
         writePack(root, "future-pack", "future:core", "future", List.of(), 0);
-        write(root.resolve("future-pack/skills/mining.toml"), """
+        write(root.resolve("future-pack/trees/mining.toml"), """
                 schema_version = 2
-                [skill]
+                [tree]
                 id = "future:mining"
-                max_level = 10
                 """);
 
         StagingResult result = loader(root).stage(List.of(root(root)), AvailableEnvironment.empty());
@@ -304,6 +303,28 @@ class ContentPackLoaderTest {
         assertFalse(result.valid());
         assertTrue(result.diagnostics().diagnostics().stream().anyMatch(diagnostic ->
                 diagnostic.descriptor().code().equals(CoreDiagnostics.UNSUPPORTED_DEFINITION_SCHEMA)));
+    }
+
+    @Test
+    void overflowingSkillCurveProducesAStagingDiagnosticInsteadOfEscaping() throws IOException {
+        Path root = temporaryDirectory.resolve("packs");
+        writePack(root, "curve-pack", "curve:core", "curve", List.of(), 0);
+        write(root.resolve("curve-pack/skills/overflow.toml"), """
+                schema_version = 2
+                [skill]
+                display = { fallback = "Overflow" }
+                icon = { type = "item", value = "minecraft:stone", fallback = "minecraft:barrier", alt = "Stone" }
+                max_level = 2
+                [curve]
+                type = "flat"
+                base = 9223372036854
+                """);
+
+        StagingResult result = loader(root).stage(List.of(root(root)), AvailableEnvironment.empty());
+
+        assertFalse(result.valid());
+        assertTrue(result.diagnostics().diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.descriptor().code().equals(CoreDiagnostics.INVALID_TOML)));
     }
 
     static ContentPackLoader loader(Path ignored) {

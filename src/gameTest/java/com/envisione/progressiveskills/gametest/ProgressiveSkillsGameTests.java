@@ -3,10 +3,13 @@ package com.envisione.progressiveskills.gametest;
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.data.ProgressiveSkillsDataSerializer;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
+import com.envisione.progressiveskills.common.skill.FixedPoint;
+import com.envisione.progressiveskills.common.skill.SkillStateIds;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.offline.PendingOperationSavedData;
 import com.envisione.progressiveskills.server.offline.PendingProgressionOperation;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
+import com.envisione.progressiveskills.server.transaction.PlayerPersistentProjector;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -17,6 +20,7 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -132,6 +136,83 @@ public final class ProgressiveSkillsGameTests {
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps lifecycle audit", playerSource) == 1,
                     "The in-game lifecycle audit must remain inspectable"
+            );
+            float initialJumpStrength = (float) player.getAttributeValue(Attributes.JUMP_STRENGTH);
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps skill get progressiveskills:physique", playerSource
+                    ) == 1,
+                    "The starter Physique skill must be inspectable"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps xp @s progressiveskills:physique 100", playerSource
+                    ) == 1,
+                    "A manual fixed point XP award must commit"
+            );
+            helper.assertTrue(
+                    player.getMaxHealth() == initialMaxHealth + 2,
+                    "Physique level one must add one heart"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps xp source @s progressiveskills:physique_training", playerSource
+                    ) == 1,
+                    "The stable custom Physique XP source must commit"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps xp @s progressiveskills:physique 850", playerSource
+                    ) == 1,
+                    "A level jump must commit all crossed highest level rewards"
+            );
+            helper.assertTrue(
+                    player.getMaxHealth() == initialMaxHealth + 10,
+                    "Discrete and scaling Physique health grants must resolve together"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.JUMP_STRENGTH)
+                            - initialJumpStrength * 1.15D) < 0.000001D,
+                    "Physique level six must add the multiplied base jump grant"
+            );
+            var skillSnapshot = context.service().snapshot(player.getUUID());
+            var physiqueId = ResourceLocation.fromNamespaceAndPath("progressiveskills", "physique");
+            helper.assertTrue(
+                    skillSnapshot.balances().get(SkillStateIds.activeXp(physiqueId)) == FixedPoint.parse("975"),
+                    "Physique fixed point XP must equal the exact awarded total"
+            );
+            helper.assertTrue(
+                    skillSnapshot.balances().get(SkillStateIds.level(physiqueId)) == 6,
+                    "Physique level must derive from the exact curve boundary"
+            );
+            helper.assertTrue(
+                    skillSnapshot.balances().get(ResourceLocation.fromNamespaceAndPath(
+                            "progressiveskills", "global_points"
+                    )) == 6,
+                    "Lifetime highest level currency must award exactly once per crossed level"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps xp @s progressiveskills:physique -1", playerSource
+                    ) == 0,
+                    "Negative XP must fail closed"
+            );
+            var phase7Persisted = context.service().exportAccount(player.getUUID());
+            PlayerPersistentProjector.clearKnownModifier(player);
+            context.service().unloadAccount(player.getUUID());
+            context.service().restoreAccount(player.getUUID(), phase7Persisted);
+            helper.assertTrue(
+                    context.service().forceReproject(player.getUUID(), context.projector()).successful(),
+                    "Restored Physique ownership must reproject"
+            );
+            helper.assertTrue(
+                    player.getMaxHealth() == initialMaxHealth + 10,
+                    "Physique health grants must survive exact state restoration"
+            );
+            helper.assertTrue(
+                    Math.abs(player.getAttributeValue(Attributes.JUMP_STRENGTH)
+                            - initialJumpStrength * 1.15D) < 0.000001D,
+                    "Physique jump grants must survive exact state restoration"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,

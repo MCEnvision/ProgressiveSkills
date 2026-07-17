@@ -27,6 +27,10 @@ public final class TypedDefinitionCompiler {
             value = new CanonicalValue.IconValue(
                     TomlPresentationCompiler.icon(fields, key + " icon_spec")
             );
+        } else if (key.kind().equals(DefinitionKinds.SKILL)) {
+            return SkillTomlCompiler.skill(key, fields, provenance, sourceMap);
+        } else if (key.kind().equals(DefinitionKinds.CURRENCY)) {
+            return SkillTomlCompiler.currency(key, fields, provenance, sourceMap);
         } else {
             throw new UnsupportedDefinitionSchemaException(
                     "Definition kind " + key.kind().id() + " is reserved but its typed compiler is not implemented yet"

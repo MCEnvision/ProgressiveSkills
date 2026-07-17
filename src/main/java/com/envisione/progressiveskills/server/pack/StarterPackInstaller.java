@@ -28,6 +28,8 @@ public final class StarterPackInstaller {
         }
         copyIfMissing(pack, "pack.toml");
         copyIfMissing(pack, "component_specs/engine_name.toml");
+        copyIfMissing(pack, "currencies/global_points.toml");
+        copyIfMissing(pack, "skills/physique.toml");
         return pack;
     }
 

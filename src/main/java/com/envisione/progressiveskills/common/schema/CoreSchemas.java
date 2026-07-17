@@ -5,6 +5,9 @@ import com.envisione.progressiveskills.common.diagnostic.DiagnosticCode;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.SchemaVersion;
 import com.envisione.progressiveskills.common.presentation.IconKind;
+import com.envisione.progressiveskills.common.skill.AttributeOperation;
+import com.envisione.progressiveskills.common.skill.CurveRounding;
+import com.envisione.progressiveskills.common.skill.CurveType;
 import com.envisione.progressiveskills.common.transaction.DeliveryContract;
 import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
@@ -37,6 +40,8 @@ public final class CoreSchemas {
         builder.register(packManifest());
         builder.register(definitionLayer());
         builder.register(definitionPatch());
+        builder.register(skillDefinition());
+        builder.register(currencyDefinition());
         builder.register(transactionPlan());
         builder.register(transitionAction());
         builder.register(entitlementContribution());
@@ -287,6 +292,133 @@ public final class CoreSchemas {
                                 "POSIX relative source identifier without a host path.", "skills/combat/physique.toml", 10),
                         internalField("start", SchemaValueType.OBJECT,
                                 "Inclusive one-based starting position.", "{ line = 4, column = 1 }", 20)
+                )
+        );
+    }
+
+    private static SchemaDescriptor skillDefinition() {
+        return schema(
+                "skill_definition",
+                SchemaAudience.AUTHORING,
+                "Skill definition",
+                "Fixed point XP progression with an exact curve, named currency awards, and source owned attributes.",
+                List.of(
+                        field("curve.base", SchemaValueType.DECIMAL, false,
+                                "Base value used by flat, linear, polynomial, and exponential curves.", "100",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.DECIMAL, 110).build(),
+                        field("curve.coefficient", SchemaValueType.DECIMAL, false,
+                                "Polynomial coefficient multiplied by the level offset power.", "15",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.DECIMAL, 130).build(),
+                        field("curve.custom_table", SchemaValueType.LIST, false,
+                                "One exact outgoing XP cost for every level below the hard cap.", "[100, 125, 150]",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.LIST, 160)
+                                .diff(DiffPolicy.ORDERED).build(),
+                        field("curve.factor", SchemaValueType.DECIMAL, false,
+                                "Positive exponential multiplier raised to the level offset.", "1.15",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.DECIMAL, 150).build(),
+                        field("curve.power", SchemaValueType.INTEGER, false,
+                                "Nonnegative bounded integer polynomial power.", "2",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.INTEGER, 140).build(),
+                        field("curve.rounding", SchemaValueType.ENUM, false,
+                                "One final rounding operation applied after the complete level cost expression.", "ceil",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.SELECT, 170)
+                                .allowedValues(Arrays.stream(CurveRounding.values())
+                                        .map(CurveRounding::serializedName).toArray(String[]::new))
+                                .defaultString("ceil").omitWhenDefault().build(),
+                        field("curve.step", SchemaValueType.DECIMAL, false,
+                                "Linear amount multiplied by the level offset.", "25",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.DECIMAL, 120).build(),
+                        field("curve.type", SchemaValueType.ENUM, true,
+                                "Exact Core XP curve family.", "linear",
+                                CoreDiagnostics.INVALID_SKILL_CURVE, EditorWidget.SELECT, 100)
+                                .allowedValues(Arrays.stream(CurveType.values())
+                                        .map(CurveType::serializedName).toArray(String[]::new))
+                                .build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized skill description.", "{ fallback = \"Raw physical conditioning.\" }",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized skill name used by feedback and presentation.", "{ fallback = \"Physique\" }",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.COMPONENT, 20).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether the skill accepts XP and projects grants.", "true",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.CHECKBOX, 50)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Skill icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:iron_chestplate\", fallback = \"minecraft:barrier\", alt = \"Iron chestplate\" }",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.ICON, 40).build(),
+                        field("level_currency_awards", SchemaValueType.LIST, false,
+                                "Named currency entitlements awarded only for newly crossed lifetime highest levels.",
+                                "[{ id = \"mypack:physique/points\", currency = \"progressiveskills:global_points\", amount_per_level = 1 }]",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.LIST, 200)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("levels", SchemaValueType.LIST, false,
+                                "Discrete source owned attribute effects activated at exact levels.",
+                                "[{ id = \"mypack:physique/level_1\", level = 1, effects = [] }]",
+                                CoreDiagnostics.INVALID_ATTRIBUTE_GRANT, EditorWidget.LIST, 220)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("max_level", SchemaValueType.INTEGER, true,
+                                "Inclusive hard skill level cap.", "10",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.INTEGER, 70).build(),
+                        field("min_level", SchemaValueType.INTEGER, false,
+                                "Initial level and curve offset origin.", "0",
+                                CoreDiagnostics.INVALID_SKILL, EditorWidget.INTEGER, 60)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("negative_xp_policy", SchemaValueType.ENUM, false,
+                                "Phase 7 negative XP behavior.", "deny",
+                                CoreDiagnostics.INVALID_XP_AWARD, EditorWidget.SELECT, 90)
+                                .allowedValues("deny").defaultString("deny").omitWhenDefault().build(),
+                        field("overflow", SchemaValueType.ENUM, false,
+                                "Destination for XP earned at the hard cap.", "bank",
+                                CoreDiagnostics.INVALID_XP_AWARD, EditorWidget.SELECT, 80)
+                                .allowedValues("bank").defaultString("bank").omitWhenDefault().build(),
+                        field("scaling", SchemaValueType.LIST, false,
+                                "Uniform per level source owned attribute grants over a bounded range.",
+                                "[{ id = \"mypack:physique/health\", type = \"attribute\", attribute = \"minecraft:generic.max_health\", operation = \"add_value\", per_level = 2.0 }]",
+                                CoreDiagnostics.INVALID_ATTRIBUTE_GRANT, EditorWidget.LIST, 230)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build(),
+                        field("xp_sources", SchemaValueType.LIST, false,
+                                "Stable custom XP routes compiled into authoritative fixed point awards.",
+                                "[{ id = \"mypack:physique/training\", action = \"custom\", key = \"mypack:training\", amount = 25 }]",
+                                CoreDiagnostics.INVALID_XP_AWARD, EditorWidget.LIST, 210)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault().build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor currencyDefinition() {
+        return schema(
+                "currency_definition",
+                SchemaAudience.AUTHORING,
+                "Named currency definition",
+                "Checked character scoped integer balance referenced by progression definitions.",
+                List.of(
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized currency description.", "{ fallback = \"Points from skill levels.\" }",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized currency name.", "{ fallback = \"Global Points\" }",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.COMPONENT, 20).build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Currency icon with fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:emerald\", fallback = \"minecraft:barrier\", alt = \"Emerald\" }",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.ICON, 40).build(),
+                        field("initial", SchemaValueType.INTEGER, false,
+                                "Balance installed when the currency is first reconciled.", "0",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.INTEGER, 70)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("maximum", SchemaValueType.INTEGER, false,
+                                "Inclusive checked upper balance bound.", "1000000000",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.INTEGER, 60).build(),
+                        field("minimum", SchemaValueType.INTEGER, false,
+                                "Inclusive checked lower balance bound.", "0",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.INTEGER, 50)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("scope", SchemaValueType.ENUM, false,
+                                "Phase 7 authority scope.", "character",
+                                CoreDiagnostics.INVALID_CURRENCY, EditorWidget.SELECT, 80)
+                                .allowedValues("character").defaultString("character").omitWhenDefault().build()
                 )
         );
     }

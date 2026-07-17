@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 6. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 7. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -105,6 +105,24 @@ Safe localized text descriptor stored in IR instead of a mutable vanilla Compone
 | `key` | `string` | — | — | Pack locale key; omission creates a literal safe component. | `skill.mypack.physique` | `PS-I18N-001` | `single_line` | `client_visible` | `replace` |
 | `placeholders` | `map` | — | `{}` | Stable placeholder names mapped to declared value types. | `{ level = "integer", skill = "component" }` | `PS-I18N-002` | `key_value` | `client_visible` | `merge_by_key` |
 | `style` | `object` | — | `{}` | Allowlisted, non-interpreting text style. | `{ color = "red", bold = true }` | `PS-SEC-001` | `object` | `client_visible` | `replace` |
+
+## Named currency definition
+
+- Schema ID: `progressiveskills:currency_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Checked character scoped integer balance referenced by progression definitions.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `description` | `component` | — | — | Localized currency description. | `{ fallback = "Points from skill levels." }` | `PS-CURRENCY-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized currency name. | `{ fallback = "Global Points" }` | `PS-CURRENCY-001` | `component` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Currency icon with fallback and alternative text. | `{ type = "item", value = "minecraft:emerald", fallback = "minecraft:barrier", alt = "Emerald" }` | `PS-CURRENCY-001` | `icon` | `client_visible` | `replace` |
+| `initial` | `integer` | — | `0` | Balance installed when the currency is first reconciled. | `0` | `PS-CURRENCY-001` | `integer` | `client_visible` | `replace` |
+| `maximum` | `integer` | — | — | Inclusive checked upper balance bound. | `1000000000` | `PS-CURRENCY-001` | `integer` | `client_visible` | `replace` |
+| `minimum` | `integer` | — | `0` | Inclusive checked lower balance bound. | `0` | `PS-CURRENCY-001` | `integer` | `client_visible` | `replace` |
+| `scope` | `enum` | `character` | `"character"` | Phase 7 authority scope. | `character` | `PS-CURRENCY-001` | `select` | `client_visible` | `replace` |
 
 ## Definition header
 
@@ -377,6 +395,37 @@ Atomically written, reread, and digest-verified recovery envelope for one attach
 | `player_id` (required) | `string` | — | — | UUID whose attachment is enclosed. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
 | `snapshot_version` (required) | `integer` | — | — | Snapshot envelope contract version. | `1` | `PS-DATA-006` | `object` | `server_only` | `replace` |
 
+## Skill definition
+
+- Schema ID: `progressiveskills:skill_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Fixed point XP progression with an exact curve, named currency awards, and source owned attributes.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `curve.base` | `decimal` | — | — | Base value used by flat, linear, polynomial, and exponential curves. | `100` | `PS-SKILL-002` | `decimal` | `client_visible` | `replace` |
+| `curve.coefficient` | `decimal` | — | — | Polynomial coefficient multiplied by the level offset power. | `15` | `PS-SKILL-002` | `decimal` | `client_visible` | `replace` |
+| `curve.custom_table` | `list` | — | — | One exact outgoing XP cost for every level below the hard cap. | `[100, 125, 150]` | `PS-SKILL-002` | `list` | `client_visible` | `ordered` |
+| `curve.factor` | `decimal` | — | — | Positive exponential multiplier raised to the level offset. | `1.15` | `PS-SKILL-002` | `decimal` | `client_visible` | `replace` |
+| `curve.power` | `integer` | — | — | Nonnegative bounded integer polynomial power. | `2` | `PS-SKILL-002` | `integer` | `client_visible` | `replace` |
+| `curve.rounding` | `enum` | `ceil \| floor \| nearest \| bankers` | `"ceil"` | One final rounding operation applied after the complete level cost expression. | `ceil` | `PS-SKILL-002` | `select` | `client_visible` | `replace` |
+| `curve.step` | `decimal` | — | — | Linear amount multiplied by the level offset. | `25` | `PS-SKILL-002` | `decimal` | `client_visible` | `replace` |
+| `curve.type` (required) | `enum` | `flat \| linear \| polynomial \| exponential \| custom_table` | — | Exact Core XP curve family. | `linear` | `PS-SKILL-002` | `select` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized skill description. | `{ fallback = "Raw physical conditioning." }` | `PS-SKILL-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized skill name used by feedback and presentation. | `{ fallback = "Physique" }` | `PS-SKILL-001` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether the skill accepts XP and projects grants. | `true` | `PS-SKILL-001` | `checkbox` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Skill icon with fallback and alternative text. | `{ type = "item", value = "minecraft:iron_chestplate", fallback = "minecraft:barrier", alt = "Iron chestplate" }` | `PS-SKILL-001` | `icon` | `client_visible` | `replace` |
+| `level_currency_awards` | `list` | — | `[]` | Named currency entitlements awarded only for newly crossed lifetime highest levels. | `[{ id = "mypack:physique/points", currency = "progressiveskills:global_points", amount_per_level = 1 }]` | `PS-CURRENCY-001` | `list` | `client_visible` | `merge_by_key` |
+| `levels` | `list` | — | `[]` | Discrete source owned attribute effects activated at exact levels. | `[{ id = "mypack:physique/level_1", level = 1, effects = [] }]` | `PS-SKILL-004` | `list` | `client_visible` | `merge_by_key` |
+| `max_level` (required) | `integer` | — | — | Inclusive hard skill level cap. | `10` | `PS-SKILL-001` | `integer` | `client_visible` | `replace` |
+| `min_level` | `integer` | — | `0` | Initial level and curve offset origin. | `0` | `PS-SKILL-001` | `integer` | `client_visible` | `replace` |
+| `negative_xp_policy` | `enum` | `deny` | `"deny"` | Phase 7 negative XP behavior. | `deny` | `PS-SKILL-003` | `select` | `client_visible` | `replace` |
+| `overflow` | `enum` | `bank` | `"bank"` | Destination for XP earned at the hard cap. | `bank` | `PS-SKILL-003` | `select` | `client_visible` | `replace` |
+| `scaling` | `list` | — | `[]` | Uniform per level source owned attribute grants over a bounded range. | `[{ id = "mypack:physique/health", type = "attribute", attribute = "minecraft:generic.max_health", operation = "add_value", per_level = 2.0 }]` | `PS-SKILL-004` | `list` | `client_visible` | `merge_by_key` |
+| `xp_sources` | `list` | — | `[]` | Stable custom XP routes compiled into authoritative fixed point awards. | `[{ id = "mypack:physique/training", action = "custom", key = "mypack:training", amount = 25 }]` | `PS-SKILL-003` | `list` | `client_visible` | `merge_by_key` |
+
 ## Source span
 
 - Schema ID: `progressiveskills:source_span`
@@ -533,6 +582,15 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `true`
 - Why it matters: Icons require a textual equivalent for narration and nonvisual use.
 - Suggested fix: Add a short, meaningful alt component.
+
+<a id="ps-currency-001"></a>
+
+### PS-CURRENCY-001 — Named currency definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Currency scope, initial value, and checked bounds must form one consistent contract.
+- Suggested fix: Use character scope and keep the initial value inside the declared minimum and maximum.
 
 <a id="ps-data-001"></a>
 
@@ -857,6 +915,51 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `false`
 - Why it matters: Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.
 - Suggested fix: Use the bounded ComponentSpec subset only.
+
+<a id="ps-skill-001"></a>
+
+### PS-SKILL-001 — Skill definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A skill must have bounded levels, presentation, overflow policy, and typed progression fields.
+- Suggested fix: Correct the skill file using the generated skill definition schema.
+
+<a id="ps-skill-002"></a>
+
+### PS-SKILL-002 — Skill XP curve is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Every rounded level cost must be positive, nondecreasing, deterministic, and fit checked long totals.
+- Suggested fix: Correct the curve type and values at the first reported invalid level.
+
+<a id="ps-skill-003"></a>
+
+### PS-SKILL-003 — Skill XP award is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Negative, overflowing, stale, or unknown XP awards cannot mutate authoritative progression.
+- Suggested fix: Use a positive fixed point amount and a current enabled skill or custom source.
+
+<a id="ps-skill-004"></a>
+
+### PS-SKILL-004 — Skill attribute grant is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Unknown attributes, operations, level ranges, or unsafe values cannot be projected atomically.
+- Suggested fix: Use a registered player attribute and a bounded supported operation.
+
+<a id="ps-skill-005"></a>
+
+### PS-SKILL-005 — Stored skill state does not match its XP coordinate
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Cached level, highest level, bank, and source ownership must derive exactly from fixed point state.
+- Suggested fix: Reconcile the player against the current definition generation before gameplay resumes.
 
 <a id="ps-toml-001"></a>
 

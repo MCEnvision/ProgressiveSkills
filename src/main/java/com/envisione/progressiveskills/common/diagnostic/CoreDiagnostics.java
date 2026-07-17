@@ -51,6 +51,12 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode NETWORK_STALE_REVISION = code("PS-NET-003");
     public static final DiagnosticCode NETWORK_RATE_LIMITED = code("PS-NET-004");
     public static final DiagnosticCode NETWORK_RESYNC_REQUIRED = code("PS-NET-005");
+    public static final DiagnosticCode INVALID_SKILL = code("PS-SKILL-001");
+    public static final DiagnosticCode INVALID_SKILL_CURVE = code("PS-SKILL-002");
+    public static final DiagnosticCode INVALID_XP_AWARD = code("PS-SKILL-003");
+    public static final DiagnosticCode INVALID_ATTRIBUTE_GRANT = code("PS-SKILL-004");
+    public static final DiagnosticCode SKILL_STATE_DRIFT = code("PS-SKILL-005");
+    public static final DiagnosticCode INVALID_CURRENCY = code("PS-CURRENCY-001");
 
     private CoreDiagnostics() {
     }
@@ -245,6 +251,30 @@ public final class CoreDiagnostics {
                         "Visible state resynchronization is required",
                         "A revision gap, out-of-order delta, unknown path, or digest mismatch broke continuity.",
                         "Allow the bounded full-state transfer to complete before making another mutation.", false))
+                .register(descriptor(INVALID_SKILL, DiagnosticSeverity.ERROR,
+                        "Skill definition is invalid",
+                        "A skill must have bounded levels, presentation, overflow policy, and typed progression fields.",
+                        "Correct the skill file using the generated skill definition schema.", false))
+                .register(descriptor(INVALID_SKILL_CURVE, DiagnosticSeverity.ERROR,
+                        "Skill XP curve is invalid",
+                        "Every rounded level cost must be positive, nondecreasing, deterministic, and fit checked long totals.",
+                        "Correct the curve type and values at the first reported invalid level.", false))
+                .register(descriptor(INVALID_XP_AWARD, DiagnosticSeverity.ERROR,
+                        "Skill XP award is invalid",
+                        "Negative, overflowing, stale, or unknown XP awards cannot mutate authoritative progression.",
+                        "Use a positive fixed point amount and a current enabled skill or custom source.", false))
+                .register(descriptor(INVALID_ATTRIBUTE_GRANT, DiagnosticSeverity.ERROR,
+                        "Skill attribute grant is invalid",
+                        "Unknown attributes, operations, level ranges, or unsafe values cannot be projected atomically.",
+                        "Use a registered player attribute and a bounded supported operation.", false))
+                .register(descriptor(SKILL_STATE_DRIFT, DiagnosticSeverity.ERROR,
+                        "Stored skill state does not match its XP coordinate",
+                        "Cached level, highest level, bank, and source ownership must derive exactly from fixed point state.",
+                        "Reconcile the player against the current definition generation before gameplay resumes.", false))
+                .register(descriptor(INVALID_CURRENCY, DiagnosticSeverity.ERROR,
+                        "Named currency definition is invalid",
+                        "Currency scope, initial value, and checked bounds must form one consistent contract.",
+                        "Use character scope and keep the initial value inside the declared minimum and maximum.", false))
                 .build();
     }
 

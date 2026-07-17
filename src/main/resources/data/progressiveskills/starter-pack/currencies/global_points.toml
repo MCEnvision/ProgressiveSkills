@@ -1,0 +1,11 @@
+schema_version = 2
+
+[currency]
+id = "progressiveskills:global_points"
+display = { key = "currency.progressiveskills.global_points", fallback = "Global Points" }
+description = { key = "currency.progressiveskills.global_points.desc", fallback = "Points earned from new highest skill levels." }
+icon = { type = "item", value = "minecraft:emerald", fallback = "minecraft:barrier", alt = "Emerald" }
+minimum = 0
+maximum = 1000000000
+initial = 0
+scope = "character"

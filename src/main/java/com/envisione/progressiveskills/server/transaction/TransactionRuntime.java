@@ -14,6 +14,7 @@ import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.audit.PersistenceMetadataSavedData;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.network.NetworkRuntime;
+import com.envisione.progressiveskills.server.skill.SkillRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
@@ -116,6 +117,7 @@ public final class TransactionRuntime {
             Context context = CONTEXT.get();
             if (context != null && context.server() == player.getServer()) {
                 context.persist(player);
+                PlayerPersistentProjector.clearKnownModifier(player);
                 context.service().unloadAccount(player.getUUID());
             }
         }
@@ -188,6 +190,7 @@ public final class TransactionRuntime {
         if (applyPendingOperations) {
             PendingOperationCoordinator.applyOnLogin(player, context, UUID.randomUUID());
         }
+        currentDefinition().ifPresent(definition -> SkillRuntime.reconcile(player, context, definition));
         context.service().forceReproject(player.getUUID(), context.projector());
         currentDefinition().ifPresent(definition -> context.persist(player, definition));
         NetworkRuntime.begin(player);

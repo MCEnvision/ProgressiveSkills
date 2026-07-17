@@ -576,6 +576,150 @@
       ]
     },
     {
+      "id": "progressiveskills:currency_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Named currency definition",
+      "description": "Checked character scoped integer balance referenced by progression definitions.",
+      "fields": [
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized currency description.",
+          "example": "{ fallback = \"Points from skill levels.\" }",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized currency description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized currency name.",
+          "example": "{ fallback = \"Global Points\" }",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized currency name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Currency icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:emerald\", fallback = \"minecraft:barrier\", alt = \"Emerald\" }",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Currency icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "initial",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Balance installed when the currency is first reconciled.",
+          "example": "0",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Balance installed when the currency is first reconciled."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "maximum",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Inclusive checked upper balance bound.",
+          "example": "1000000000",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 60,
+            "help": "Inclusive checked upper balance bound."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "minimum",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Inclusive checked lower balance bound.",
+          "example": "0",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 50,
+            "help": "Inclusive checked lower balance bound."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "scope",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["character"],
+          "default": "character",
+          "description": "Phase 7 authority scope.",
+          "example": "character",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 80,
+            "help": "Phase 7 authority scope."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:definition_header",
       "version": 2,
       "audience": "authoring",
@@ -2920,6 +3064,397 @@
       ]
     },
     {
+      "id": "progressiveskills:skill_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Skill definition",
+      "description": "Fixed point XP progression with an exact curve, named currency awards, and source owned attributes.",
+      "fields": [
+        {
+          "path": "curve.base",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Base value used by flat, linear, polynomial, and exponential curves.",
+          "example": "100",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 110,
+            "help": "Base value used by flat, linear, polynomial, and exponential curves."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.coefficient",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Polynomial coefficient multiplied by the level offset power.",
+          "example": "15",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 130,
+            "help": "Polynomial coefficient multiplied by the level offset power."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.custom_table",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "One exact outgoing XP cost for every level below the hard cap.",
+          "example": "[100, 125, 150]",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 160,
+            "help": "One exact outgoing XP cost for every level below the hard cap."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.factor",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive exponential multiplier raised to the level offset.",
+          "example": "1.15",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 150,
+            "help": "Positive exponential multiplier raised to the level offset."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.power",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonnegative bounded integer polynomial power.",
+          "example": "2",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 140,
+            "help": "Nonnegative bounded integer polynomial power."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.rounding",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["ceil", "floor", "nearest", "bankers"],
+          "default": "ceil",
+          "description": "One final rounding operation applied after the complete level cost expression.",
+          "example": "ceil",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 170,
+            "help": "One final rounding operation applied after the complete level cost expression."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "curve.step",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Linear amount multiplied by the level offset.",
+          "example": "25",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 120,
+            "help": "Linear amount multiplied by the level offset."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "curve.type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["flat", "linear", "polynomial", "exponential", "custom_table"],
+          "default": null,
+          "description": "Exact Core XP curve family.",
+          "example": "linear",
+          "diagnostic": "PS-SKILL-002",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 100,
+            "help": "Exact Core XP curve family."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized skill description.",
+          "example": "{ fallback = \"Raw physical conditioning.\" }",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized skill description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized skill name used by feedback and presentation.",
+          "example": "{ fallback = \"Physique\" }",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized skill name used by feedback and presentation."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether the skill accepts XP and projects grants.",
+          "example": "true",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 50,
+            "help": "Whether the skill accepts XP and projects grants."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Skill icon with fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:iron_chestplate\", fallback = \"minecraft:barrier\", alt = \"Iron chestplate\" }",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Skill icon with fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "level_currency_awards",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Named currency entitlements awarded only for newly crossed lifetime highest levels.",
+          "example": "[{ id = \"mypack:physique/points\", currency = \"progressiveskills:global_points\", amount_per_level = 1 }]",
+          "diagnostic": "PS-CURRENCY-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 200,
+            "help": "Named currency entitlements awarded only for newly crossed lifetime highest levels."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "levels",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Discrete source owned attribute effects activated at exact levels.",
+          "example": "[{ id = \"mypack:physique/level_1\", level = 1, effects = [] }]",
+          "diagnostic": "PS-SKILL-004",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 220,
+            "help": "Discrete source owned attribute effects activated at exact levels."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "max_level",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Inclusive hard skill level cap.",
+          "example": "10",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Inclusive hard skill level cap."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "min_level",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Initial level and curve offset origin.",
+          "example": "0",
+          "diagnostic": "PS-SKILL-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 60,
+            "help": "Initial level and curve offset origin."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "negative_xp_policy",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["deny"],
+          "default": "deny",
+          "description": "Phase 7 negative XP behavior.",
+          "example": "deny",
+          "diagnostic": "PS-SKILL-003",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 90,
+            "help": "Phase 7 negative XP behavior."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "overflow",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["bank"],
+          "default": "bank",
+          "description": "Destination for XP earned at the hard cap.",
+          "example": "bank",
+          "diagnostic": "PS-SKILL-003",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 80,
+            "help": "Destination for XP earned at the hard cap."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "scaling",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Uniform per level source owned attribute grants over a bounded range.",
+          "example": "[{ id = \"mypack:physique/health\", type = \"attribute\", attribute = \"minecraft:generic.max_health\", operation = \"add_value\", per_level = 2.0 }]",
+          "diagnostic": "PS-SKILL-004",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 230,
+            "help": "Uniform per level source owned attribute grants over a bounded range."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "xp_sources",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Stable custom XP routes compiled into authoritative fixed point awards.",
+          "example": "[{ id = \"mypack:physique/training\", action = \"custom\", key = \"mypack:training\", amount = 25 }]",
+          "diagnostic": "PS-SKILL-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 210,
+            "help": "Stable custom XP routes compiled into authoritative fixed point awards."
+          },
+          "projection": "client_visible",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:source_span",
       "version": 2,
       "audience": "internal",
@@ -4121,6 +4656,15 @@
       "suppressible": true
     },
     {
+      "code": "PS-CURRENCY-001",
+      "severity": "error",
+      "title": "Named currency definition is invalid",
+      "why": "Currency scope, initial value, and checked bounds must form one consistent contract.",
+      "fix": "Use character scope and keep the initial value inside the declared minimum and maximum.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-currency-001",
+      "suppressible": false
+    },
+    {
       "code": "PS-DATA-001",
       "severity": "error",
       "title": "Player progression data is quarantined",
@@ -4442,6 +4986,51 @@
       "why": "Commands, URLs, selectors, NBT, and other interpreted content cross trust boundaries.",
       "fix": "Use the bounded ComponentSpec subset only.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-sec-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SKILL-001",
+      "severity": "error",
+      "title": "Skill definition is invalid",
+      "why": "A skill must have bounded levels, presentation, overflow policy, and typed progression fields.",
+      "fix": "Correct the skill file using the generated skill definition schema.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-skill-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SKILL-002",
+      "severity": "error",
+      "title": "Skill XP curve is invalid",
+      "why": "Every rounded level cost must be positive, nondecreasing, deterministic, and fit checked long totals.",
+      "fix": "Correct the curve type and values at the first reported invalid level.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-skill-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SKILL-003",
+      "severity": "error",
+      "title": "Skill XP award is invalid",
+      "why": "Negative, overflowing, stale, or unknown XP awards cannot mutate authoritative progression.",
+      "fix": "Use a positive fixed point amount and a current enabled skill or custom source.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-skill-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SKILL-004",
+      "severity": "error",
+      "title": "Skill attribute grant is invalid",
+      "why": "Unknown attributes, operations, level ranges, or unsafe values cannot be projected atomically.",
+      "fix": "Use a registered player attribute and a bounded supported operation.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-skill-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-SKILL-005",
+      "severity": "error",
+      "title": "Stored skill state does not match its XP coordinate",
+      "why": "Cached level, highest level, bank, and source ownership must derive exactly from fixed point state.",
+      "fix": "Reconcile the player against the current definition generation before gameplay resumes.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-skill-005",
       "suppressible": false
     },
     {

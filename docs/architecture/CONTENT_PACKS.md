@@ -1,12 +1,12 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 implemented for the TOML adapter and currently compiled shared definition kinds.
+Status: Phase 3 staging implemented, with Phase 7 skill and currency compilers added to the TOML adapter.
 
 ## Runtime result
 
 ProgressiveSkills now discovers real content-pack directories, validates their manifests and dependencies, compiles supported TOML definitions into immutable canonical IR, and publishes a whole registry generation. A first launch seeds one dependency-free starter pack without overwriting later operator edits.
 
-The current typed compiler intentionally accepts only `component_specs/` and `icon_specs/`. All planned gameplay directories are discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until that feature's implementation phase supplies its concrete schema and compiler. Phase 3 therefore proves content infrastructure, not skill or XP gameplay.
+The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, and `currencies/`. Other planned gameplay directories remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
 
 ## Server roots
 
@@ -27,6 +27,8 @@ On the first server/world launch, ProgressiveSkills creates:
 config/progressiveskills/packs/progressiveskills-core/
   pack.toml
   component_specs/engine_name.toml
+  currencies/global_points.toml
+  skills/physique.toml
 ```
 
 Existing regular files are never overwritten. A symbolic or non-directory destination is rejected before any resource is copied.
@@ -88,7 +90,7 @@ key = "text.mypack.engine_name"
 fallback = "My Progression Engine"
 ```
 
-TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
+TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Phase 7 skill files also accept root `[curve]`, `[[level_currency_awards]]`, `[[xp_sources]]`, `[[levels]]`, and `[[scaling]]` companions. They compile into one normalized immutable skill definition rather than independent runtime paths. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
 
 ## Explicit layering
 
@@ -171,4 +173,4 @@ The implementation currently enforces, among the lower per-record bounds inherit
 
 ## Deferred boundaries
 
-Phase 3 does not implement gameplay schemas, player data, transactions, networking/projection, locale tables, datapack JSON, KubeJS/Java providers, Studio overlays, optional-integration branches/capabilities, `.pspack` import/export, resource-pack deployment, or live player reconciliation. Those remain assigned to their planned phases. Unknown content never receives placeholder runtime behavior.
+Only the Phase 7 skill and character-currency gameplay schemas are implemented. General rules, trees, requirements, classes, abilities, locale tables, datapack JSON, KubeJS/Java providers, Studio overlays, optional-integration branches/capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.

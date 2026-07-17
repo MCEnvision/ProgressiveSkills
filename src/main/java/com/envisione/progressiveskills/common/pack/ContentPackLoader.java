@@ -118,6 +118,19 @@ public final class ContentPackLoader {
         DefinitionResolution definitions = definitionResolver.resolve(definitionLayers, aliases, orderedPacks);
         problems.addAll(definitions.problems());
         addCrossKindIdWarnings(definitions, problems);
+        if (problems.stream().noneMatch(problem -> problem.severity() == DiagnosticSeverity.ERROR)) {
+            try {
+                com.envisione.progressiveskills.common.skill.SkillCatalog.from(definitions.canonicalIr());
+            } catch (IllegalArgumentException exception) {
+                definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
+                        problems.add(PackProblem.error(
+                                CoreDiagnostics.INVALID_TOML,
+                                "Invalid skill catalog: " + safeMessage(exception),
+                                definition.provenance()
+                        ))
+                );
+            }
+        }
         SourceBundle sourceBundle;
         try {
             sourceBundle = SourceBundle.of(bundleFiles);

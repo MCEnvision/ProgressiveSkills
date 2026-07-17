@@ -67,7 +67,7 @@ public final class DefinitionResolver {
         for (ParsedDefinitionLayer layer : orderedLayers) {
             try {
                 applyLayer(states, disabled, layer);
-            } catch (IllegalArgumentException | IllegalStateException exception) {
+            } catch (IllegalArgumentException | IllegalStateException | ArithmeticException exception) {
                 problems.add(PackProblem.error(
                         CoreDiagnostics.MERGE_CONFLICT,
                         exception.getMessage(),
@@ -94,7 +94,7 @@ public final class DefinitionResolver {
                         state.provenance,
                         entry.getKey()
                 ));
-            } catch (IllegalArgumentException exception) {
+            } catch (IllegalArgumentException | ArithmeticException exception) {
                 problems.add(PackProblem.error(
                         CoreDiagnostics.INVALID_TOML,
                         "Definition " + entry.getKey() + " is invalid: " + exception.getMessage(),
