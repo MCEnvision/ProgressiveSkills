@@ -9,7 +9,12 @@ stack_group = "progressiveskills:physique_block_training"
 stack_rule = "highest"
 credit = "actor"
 match = ["id:minecraft:stone"]
+requirements = [
+    { type = "skill_level", subject = "actor", missing = false, skill = "progressiveskills:physique", op = ">=", value = 0 },
+    { type = "currency", subject = "actor", missing = false, currency = "progressiveskills:global_points", op = ">=", value = 0 }
+]
 base = 8
+rounding = "floor"
 
 [[rule.multipliers]]
 id = "progressiveskills:physique_stone_training/context"

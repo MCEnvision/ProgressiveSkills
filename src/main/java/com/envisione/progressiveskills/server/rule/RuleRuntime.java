@@ -9,8 +9,12 @@ import com.envisione.progressiveskills.common.rule.RuleAntiExploitEngine;
 import com.envisione.progressiveskills.common.rule.RuleCatalog;
 import com.envisione.progressiveskills.common.rule.RuleMemoryKeys;
 import com.envisione.progressiveskills.common.rule.RuleStackResolver;
+import com.envisione.progressiveskills.common.requirement.CompiledRequirement;
+import com.envisione.progressiveskills.common.requirement.RequirementContext;
+import com.envisione.progressiveskills.common.requirement.RequirementEvaluation;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillCatalog;
+import com.envisione.progressiveskills.common.skill.SkillStateIds;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.skill.SkillRuntime;
@@ -227,6 +231,10 @@ public final class RuleRuntime {
                         0,
                         0,
                         0,
+                        "",
+                        0,
+                        "",
+                        0,
                         "player progression state is not reconciled",
                         ""
                 );
@@ -245,6 +253,10 @@ public final class RuleRuntime {
                     0,
                     0,
                     0,
+                    "",
+                    0,
+                    "",
+                    0,
                     dedupe == DedupeResult.DUPLICATE ? "duplicate event rejected" : "dedupe capacity exhausted",
                     ""
             );
@@ -256,8 +268,11 @@ public final class RuleRuntime {
                 () -> new IllegalStateException("Transaction runtime is unavailable")
         );
         var snapshot = context.service().snapshot(player.getUUID());
+        RequirementContext requirements = requirementContext(snapshot, state.skills());
         var eligible = new ArrayList<RuleStackResolver.Candidate>();
         String lastRejection = "no eligible route";
+        String requirementFailure = "";
+        int requirementsChecked = 0;
         for (BlockRuleTable.CompiledRule compiled : matched) {
             var rule = compiled.rule();
             if (!rule.antiExploit().allows(origin)) {
@@ -266,6 +281,13 @@ public final class RuleRuntime {
             }
             if (player instanceof FakePlayer && rule.antiExploit().fakePlayers() == FakePlayerPolicy.DENY) {
                 lastRejection = "fake player policy denied the route";
+                continue;
+            }
+            RequirementEvaluation requirement = compiled.requirements().evaluate(requirements);
+            requirementsChecked = Math.addExact(requirementsChecked, requirement.steps().size());
+            if (!requirement.passed()) {
+                requirementFailure = requirement.firstFailure().orElse("rule requirement failed");
+                lastRejection = requirementFailure;
                 continue;
             }
             Optional<String> rejection = RuleAntiExploitEngine.rejectionReason(
@@ -278,9 +300,16 @@ public final class RuleRuntime {
                 lastRejection = rejection.orElseThrow();
                 continue;
             }
-            eligible.add(new RuleStackResolver.Candidate(rule, compiled.multipliedBaseUnits()));
+            eligible.add(new RuleStackResolver.Candidate(rule, compiled.amountUnits()));
         }
         List<RuleStackResolver.Candidate> selected = RuleStackResolver.resolve(eligible);
+        long preAntiAmount = 0;
+        String rounding = "";
+        for (RuleStackResolver.Candidate candidate : selected) {
+            preAntiAmount = Math.addExact(preAntiAmount, candidate.amountUnits());
+            String candidateRounding = candidate.rule().rounding().serializedName();
+            rounding = rounding.isEmpty() || rounding.equals(candidateRounding) ? candidateRounding : "mixed";
+        }
         long awarded = 0;
         String transaction = "";
         int committed = 0;
@@ -323,12 +352,62 @@ public final class RuleRuntime {
                 matched.size(),
                 eligible.size(),
                 selected.size(),
+                requirementsChecked,
+                requirementFailure,
+                preAntiAmount,
+                rounding,
                 awarded,
                 lastRejection,
                 transaction
         );
         LAST_TRACE.put(player.getUUID(), trace);
         return new ProcessResult(committed, awarded, trace.outcome());
+    }
+
+    public static Optional<RulePreview> preview(ServerPlayer player, ResourceLocation ruleId) {
+        RuntimeState state = STATE.get();
+        if (state == null || state.server() != player.getServer()) {
+            return Optional.empty();
+        }
+        var rule = state.rules().rule(ruleId).orElse(null);
+        if (rule == null) {
+            return Optional.empty();
+        }
+        var context = TransactionRuntime.context(player.getServer()).orElse(null);
+        if (context == null) {
+            return Optional.empty();
+        }
+        var snapshot = context.service().snapshot(player.getUUID());
+        RequirementEvaluation requirement = CompiledRequirement.compile(rule.requirements()).evaluate(
+                requirementContext(snapshot, state.skills())
+        );
+        return Optional.of(new RulePreview(
+                rule.id(),
+                requirement.passed(),
+                requirement.steps().size(),
+                requirement.firstFailure().orElse(""),
+                rule.multipliedBaseUnits(),
+                rule.rounding().serializedName(),
+                CompiledRequirement.compile(rule.requirements()).dependencies().size()
+        ));
+    }
+
+    private static RequirementContext requirementContext(
+            com.envisione.progressiveskills.common.transaction.ProgressionSnapshot snapshot,
+            SkillCatalog skills
+    ) {
+        return dependency -> switch (dependency.kind()) {
+            case SKILL_LEVEL -> RequirementContext.Lookup.present(snapshot.balances().getOrDefault(
+                    SkillStateIds.level(dependency.id()),
+                    (long) skills.skill(dependency.id()).orElseThrow().curve().minLevel()
+            ));
+            case CURRENCY -> {
+                var currency = skills.currency(dependency.id()).orElseThrow();
+                yield RequirementContext.Lookup.present(snapshot.balances().getOrDefault(
+                        dependency.id(), currency.initial()
+                ));
+            }
+        };
     }
 
     private static DedupeResult claim(UUID playerId, long tick, long token) {
@@ -382,12 +461,34 @@ public final class RuleRuntime {
             int candidates,
             int eligible,
             int selected,
+            int requirementsChecked,
+            String requirementFailure,
+            long preAntiAmountUnits,
+            String rounding,
             long awardedUnits,
             String outcome,
             String transactionId
     ) {
         public String awarded() {
             return FixedPoint.format(awardedUnits);
+        }
+
+        public String preAntiAmount() {
+            return FixedPoint.format(preAntiAmountUnits);
+        }
+    }
+
+    public record RulePreview(
+            ResourceLocation ruleId,
+            boolean requirementsPassed,
+            int requirementsChecked,
+            String firstFailure,
+            long amountUnits,
+            String rounding,
+            int dependencyCount
+    ) {
+        public String amount() {
+            return FixedPoint.format(amountUnits);
         }
     }
 

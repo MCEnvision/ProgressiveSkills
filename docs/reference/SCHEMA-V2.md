@@ -271,6 +271,21 @@ Serverbound request identity and stale guards; clients never provide costs, XP, 
 | `session_id` (required) | `string` | — | — | Current connection session UUID. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `server_only` | `replace` |
 | `state_revision` (required) | `integer` | — | — | Client-observed authoritative state revision. | `3` | `PS-NET-003` | `object` | `server_only` | `replace` |
 
+## Numeric expression
+
+- Schema ID: `progressiveskills:numeric_expression`
+- Version: `2`
+- Audience: `internal`
+
+Exact fixed point program with bounded evaluation and one final rounding step.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `dependencies` (required) | `list` | — | — | Sorted typed dependency keys. | `[]` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+| `max_depth` (required) | `integer` | — | — | Hard expression depth ceiling. | `16` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+| `max_nodes` (required) | `integer` | — | — | Hard expression node ceiling. | `64` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+| `rounding` (required) | `string` | — | — | Final fixed point rounding policy. | `floor` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+
 ## Durable operation receipt
 
 - Schema ID: `progressiveskills:operation_receipt`
@@ -395,6 +410,20 @@ Atomically written, reread, and digest-verified recovery envelope for one attach
 | `player_id` (required) | `string` | — | — | UUID whose attachment is enclosed. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
 | `snapshot_version` (required) | `integer` | — | — | Snapshot envelope contract version. | `1` | `PS-DATA-006` | `object` | `server_only` | `replace` |
 
+## Requirement expression
+
+- Schema ID: `progressiveskills:requirement_expression`
+- Version: `2`
+- Audience: `internal`
+
+Bounded typed boolean program with deterministic dependencies and explanations.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `dependencies` (required) | `list` | — | — | Sorted typed dependency keys. | `["skill_level:mypack:mining"]` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+| `max_depth` (required) | `integer` | — | — | Hard expression depth ceiling. | `16` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+| `max_nodes` (required) | `integer` | — | — | Hard expression node ceiling. | `64` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
+
 ## Gameplay rule definition
 
 - Schema ID: `progressiveskills:rule_definition`
@@ -423,8 +452,17 @@ Compiled trigger route with literal fixed point output and bounded anti exploit 
 | `multipliers` | `list` | — | `[]` | Literal modifiers resolved by fixed stage and stable stack group. | `[{ id = "mypack:training/context", stage = "context", group = "mypack:training", mode = "add", value = 0.25 }]` | `PS-RULE-004` | `list` | `server_only` | `merge_by_key` |
 | `multipliers.mode` | `enum` | `add \| multiply \| highest \| lowest \| replace` | — | Stack resolution within one literal multiplier group. | `add` | `PS-RULE-004` | `select` | `server_only` | `replace` |
 | `multipliers.stage` | `enum` | `context \| equipment \| party_team \| rested_catch_up \| prestige_season \| global_difficulty` | — | Fixed multiplier pipeline stage. | `context` | `PS-RULE-004` | `select` | `server_only` | `replace` |
-| `outputs` (required) | `list` | — | — | Exactly one Phase 8 XP output using rule_amount. | `[{ id = "mypack:stone/xp", type = "xp", skill = "mypack:mining", amount_formula = "rule_amount" }]` | `PS-RULE-001` | `list` | `server_only` | `merge_by_key` |
+| `outputs` (required) | `list` | — | — | Exactly one Phase 9 XP output using rule_amount. | `[{ id = "mypack:stone/xp", type = "xp", skill = "mypack:mining", amount_formula = "rule_amount" }]` | `PS-RULE-001` | `list` | `server_only` | `merge_by_key` |
 | `priority` | `integer` | — | `0` | Higher priority wins first and exclusive route selection. | `100` | `PS-RULE-004` | `integer` | `server_only` | `replace` |
+| `requirements` | `list` | — | `[]` | Flat actor requirement list combined with logical all. | `[{ type = "skill_level", subject = "actor", missing = false, skill = "mypack:mining", op = ">=", value = 5 }]` | `PS-RULE-001` | `list` | `server_only` | `set` |
+| `requirements.currency` | `resource_location` | — | — | Currency target for a currency requirement. | `mypack:points` | `PS-RULE-001` | `resource_location` | `server_only` | `replace` |
+| `requirements.missing` | `boolean` | — | `false` | Result used only when the actor context is unavailable. | `false` | `PS-RULE-001` | `checkbox` | `server_only` | `replace` |
+| `requirements.op` | `enum` | `< \| <= \| == \| != \| >= \| >` | `">="` | Integer comparison operator. | `>=` | `PS-RULE-001` | `select` | `server_only` | `replace` |
+| `requirements.skill` | `resource_location` | — | — | Skill target for a skill level requirement. | `mypack:mining` | `PS-RULE-001` | `resource_location` | `server_only` | `replace` |
+| `requirements.subject` | `enum` | `actor` | `"actor"` | Phase 9 requirement subject. | `actor` | `PS-RULE-001` | `select` | `server_only` | `replace` |
+| `requirements.type` (required) | `enum` | `skill_level \| currency` | — | Direct requirement value kind. | `skill_level` | `PS-RULE-001` | `select` | `server_only` | `replace` |
+| `requirements.value` (required) | `integer` | — | — | Integer threshold compared with the selected actor value. | `5` | `PS-RULE-001` | `integer` | `server_only` | `replace` |
+| `rounding` | `enum` | `floor \| ceil \| nearest \| bankers` | `"floor"` | One final fixed point rounding policy after every literal multiplier group. | `floor` | `PS-RULE-001` | `select` | `server_only` | `replace` |
 | `stack_group` | `resource_location` | — | — | Stable group for overlapping matching rules. | `mypack:ore_mining` | `PS-RULE-004` | `resource_location` | `server_only` | `replace` |
 | `stack_rule` | `enum` | `sum \| highest \| first \| exclusive \| diminishing` | `"sum"` | Deterministic overlap policy for the stable route group. | `highest` | `PS-RULE-004` | `select` | `server_only` | `replace` |
 | `trigger` (required) | `resource_location` | — | — | Registered server side event route. | `progressiveskills:block_break` | `PS-RULE-002` | `resource_location` | `server_only` | `replace` |

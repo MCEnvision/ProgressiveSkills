@@ -1,12 +1,12 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 staging implemented, with Phase 8 skill, currency, and rule compilers added to the TOML adapter.
+Status: Phase 3 staging implemented, with Phase 9 skill, currency, rule, direct-requirement, and rounding support in the TOML adapter.
 
 ## Runtime result
 
 ProgressiveSkills now discovers real content-pack directories, validates their manifests and dependencies, compiles supported TOML definitions into immutable canonical IR, and publishes a whole registry generation. A first launch seeds one dependency-free starter pack without overwriting later operator edits.
 
-The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, `currencies/`, and `rules/`. Other planned gameplay directories remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
+The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, `currencies/`, and `rules/`. A rule may contain the bounded direct requirements described below. Other planned gameplay directories, including standalone `predicates/` and `requirements/`, remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
 
 ## Server roots
 
@@ -92,7 +92,32 @@ key = "text.mypack.engine_name"
 fallback = "My Progression Engine"
 ```
 
-TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Skill files accept root `[curve]`, `[[level_currency_awards]]`, `[[xp_sources]]`, `[[levels]]`, and `[[scaling]]` companions. Rule files accept nested `[rule.anti_exploit]`, `[[rule.multipliers]]`, and `[[rule.outputs]]` tables. Block rules can select any combination of `natural`, `creative_placed`, `survival_placed`, `automation_placed`, and `unknown` through `allowed_block_origins`; omission safely permits only natural and creative-placed blocks. Each source compiles into one normalized immutable definition rather than independent runtime paths. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
+TOML component and icon shapes normalize into the same immutable `ComponentSpec` and `IconSpec` records established in Phase 2. Skill files accept root `[curve]`, `[[level_currency_awards]]`, `[[xp_sources]]`, `[[levels]]`, and `[[scaling]]` companions. Rule files accept a rule-level `rounding` value plus nested `[rule.anti_exploit]`, `[[rule.requirements]]`, `[[rule.multipliers]]`, and `[[rule.outputs]]` tables. Block rules can select any combination of `natural`, `creative_placed`, `survival_placed`, `automation_placed`, and `unknown` through `allowed_block_origins`; omission safely permits only natural and creative-placed blocks. Each source compiles into one normalized immutable definition rather than independent runtime paths. Source spans and provenance are retained separately and excluded from semantic equality and content digests.
+
+Phase 9 Core requirements are intentionally direct and flat. Every `[[rule.requirements]]` object declares `type`, `subject`, symbolic `op`, and `value`, plus exactly one `skill` or `currency` target matching its type. The optional boolean `missing` result defaults to `false`. Core accepts only actor `skill_level` and actor named `currency` leaves, and every object in the list must pass. A currency requirement reads a balance but does not spend it.
+
+```toml
+[rule]
+rounding = "floor"
+
+[[rule.requirements]]
+type = "skill_level"
+subject = "actor"
+missing = false
+skill = "progressiveskills:physique"
+op = ">="
+value = 5
+
+[[rule.requirements]]
+type = "currency"
+subject = "actor"
+missing = false
+currency = "progressiveskills:global_points"
+op = ">="
+value = 2
+```
+
+These entries compile into the internal typed requirement AST and deterministic dependency index. Core does not accept nested `all`, `any`, or `not` authoring, named predicate references, standalone requirement definitions, or general formula strings. The internal composition model exists for later Core systems, while its reusable author-facing language remains gated until Creator. See [REQUIREMENTS_AND_EXPRESSIONS.md](REQUIREMENTS_AND_EXPRESSIONS.md).
 
 ## Explicit layering
 
@@ -175,4 +200,4 @@ The implementation currently enforces, among the lower per-record bounds inherit
 
 ## Deferred boundaries
 
-Only the Phase 7 skill and character-currency schemas plus the bounded Phase 8 XP rule schema are implemented. General predicates and formulas, trees, requirements, classes, abilities, locale tables, datapack JSON, external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.
+The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, and Phase 9 direct rule requirements and rounding are implemented. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, trees, classes, abilities, locale tables, datapack JSON, external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.

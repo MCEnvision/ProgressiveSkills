@@ -2,6 +2,7 @@ package com.envisione.progressiveskills.common.schema;
 
 import com.envisione.progressiveskills.common.diagnostic.CoreDiagnostics;
 import com.envisione.progressiveskills.common.diagnostic.DiagnosticCode;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.SchemaVersion;
 import com.envisione.progressiveskills.common.presentation.IconKind;
@@ -13,6 +14,7 @@ import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.rule.RuleMultiplierMode;
 import com.envisione.progressiveskills.common.rule.RuleMultiplierStage;
 import com.envisione.progressiveskills.common.rule.RuleStackRule;
+import com.envisione.progressiveskills.common.requirement.ComparisonOperator;
 import com.envisione.progressiveskills.common.transaction.DeliveryContract;
 import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
@@ -48,6 +50,8 @@ public final class CoreSchemas {
         builder.register(skillDefinition());
         builder.register(currencyDefinition());
         builder.register(ruleDefinition());
+        builder.register(requirementExpression());
+        builder.register(numericExpression());
         builder.register(transactionPlan());
         builder.register(transitionAction());
         builder.register(entitlementContribution());
@@ -523,7 +527,7 @@ public final class CoreSchemas {
                                         .map(RuleMultiplierStage::serializedName).toArray(String[]::new))
                                 .projection(ProjectionPolicy.SERVER_ONLY).build(),
                         field("outputs", SchemaValueType.LIST, true,
-                                "Exactly one Phase 8 XP output using rule_amount.",
+                                "Exactly one Phase 9 XP output using rule_amount.",
                                 "[{ id = \"mypack:stone/xp\", type = \"xp\", skill = \"mypack:mining\", amount_formula = \"rule_amount\" }]",
                                 CoreDiagnostics.INVALID_RULE, EditorWidget.LIST, 120)
                                 .diff(DiffPolicy.MERGE_BY_KEY).projection(ProjectionPolicy.SERVER_ONLY).build(),
@@ -531,6 +535,50 @@ public final class CoreSchemas {
                                 "Higher priority wins first and exclusive route selection.", "100",
                                 CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.INTEGER, 40)
                                 .defaultInteger(0).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements", SchemaValueType.LIST, false,
+                                "Flat actor requirement list combined with logical all.",
+                                "[{ type = \"skill_level\", subject = \"actor\", missing = false, skill = \"mypack:mining\", op = \">=\", value = 5 }]",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.LIST, 130)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault()
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.currency", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Currency target for a currency requirement.", "mypack:points",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.RESOURCE_LOCATION, 136)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.missing", SchemaValueType.BOOLEAN, false,
+                                "Result used only when the actor context is unavailable.", "false",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.CHECKBOX, 133)
+                                .defaultBoolean(false).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.op", SchemaValueType.ENUM, false,
+                                "Integer comparison operator.", ">=",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.SELECT, 134)
+                                .allowedValues(Arrays.stream(ComparisonOperator.values())
+                                        .map(ComparisonOperator::serializedName).toArray(String[]::new))
+                                .defaultString(">=").omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.skill", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Skill target for a skill level requirement.", "mypack:mining",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.RESOURCE_LOCATION, 135)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.subject", SchemaValueType.ENUM, false,
+                                "Phase 9 requirement subject.", "actor",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.SELECT, 132)
+                                .allowedValues("actor").defaultString("actor").omitWhenDefault()
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.type", SchemaValueType.ENUM, true,
+                                "Direct requirement value kind.", "skill_level",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.SELECT, 131)
+                                .allowedValues("skill_level", "currency")
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("requirements.value", SchemaValueType.INTEGER, true,
+                                "Integer threshold compared with the selected actor value.", "5",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.INTEGER, 137)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("rounding", SchemaValueType.ENUM, false,
+                                "One final fixed point rounding policy after every literal multiplier group.", "floor",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.SELECT, 115)
+                                .allowedValues(Arrays.stream(ExpressionRounding.values())
+                                        .map(ExpressionRounding::serializedName).toArray(String[]::new))
+                                .defaultString("floor").omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
                         field("stack_group", SchemaValueType.RESOURCE_LOCATION, false,
                                 "Stable group for overlapping matching rules.", "mypack:ore_mining",
                                 CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.RESOURCE_LOCATION, 50)
@@ -545,6 +593,42 @@ public final class CoreSchemas {
                                 "Registered server side event route.", "progressiveskills:block_break",
                                 CoreDiagnostics.UNKNOWN_RULE_TRIGGER, EditorWidget.RESOURCE_LOCATION, 30)
                                 .projection(ProjectionPolicy.SERVER_ONLY).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor requirementExpression() {
+        return schema(
+                "requirement_expression",
+                SchemaAudience.INTERNAL,
+                "Requirement expression",
+                "Bounded typed boolean program with deterministic dependencies and explanations.",
+                List.of(
+                        internalField("dependencies", SchemaValueType.LIST,
+                                "Sorted typed dependency keys.", "[\"skill_level:mypack:mining\"]", 30),
+                        internalField("max_depth", SchemaValueType.INTEGER,
+                                "Hard expression depth ceiling.", "16", 20),
+                        internalField("max_nodes", SchemaValueType.INTEGER,
+                                "Hard expression node ceiling.", "64", 10)
+                )
+        );
+    }
+
+    private static SchemaDescriptor numericExpression() {
+        return schema(
+                "numeric_expression",
+                SchemaAudience.INTERNAL,
+                "Numeric expression",
+                "Exact fixed point program with bounded evaluation and one final rounding step.",
+                List.of(
+                        internalField("dependencies", SchemaValueType.LIST,
+                                "Sorted typed dependency keys.", "[]", 30),
+                        internalField("max_depth", SchemaValueType.INTEGER,
+                                "Hard expression depth ceiling.", "16", 20),
+                        internalField("max_nodes", SchemaValueType.INTEGER,
+                                "Hard expression node ceiling.", "64", 10),
+                        internalField("rounding", SchemaValueType.STRING,
+                                "Final fixed point rounding policy.", "floor", 40)
                 )
         );
     }

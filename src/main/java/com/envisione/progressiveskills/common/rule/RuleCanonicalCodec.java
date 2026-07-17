@@ -2,10 +2,13 @@ package com.envisione.progressiveskills.common.rule;
 
 import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
 import com.envisione.progressiveskills.common.ir.CanonicalDefinition;
 import com.envisione.progressiveskills.common.ir.CanonicalValue;
 import com.envisione.progressiveskills.common.ir.DefinitionHeader;
 import com.envisione.progressiveskills.common.ir.SchemaVersion;
+import com.envisione.progressiveskills.common.requirement.ComparisonOperator;
+import com.envisione.progressiveskills.common.requirement.RequirementExpression;
 import com.envisione.progressiveskills.common.source.Provenance;
 import com.envisione.progressiveskills.common.source.SourceMap;
 import net.minecraft.resources.ResourceLocation;
@@ -53,7 +56,10 @@ public final class RuleCanonicalCodec {
         fields.put("matchers", list(rule.matchers().stream()
                 .map(matcher -> text(matcher.serialized())).toList()));
         fields.put("custom_name_allowed", bool(rule.customNameAllowed()));
+        fields.put("requirements", list(directRequirements(rule.requirements()).stream()
+                .map(RuleCanonicalCodec::requirement).toList()));
         fields.put("base_units", integer(rule.baseUnits()));
+        fields.put("rounding", text(rule.rounding().serializedName()));
         fields.put("multipliers", list(rule.multipliers().stream().map(multiplier -> object(Map.of(
                 "id", id(multiplier.id()),
                 "stage", text(multiplier.stage().serializedName()),
@@ -102,7 +108,7 @@ public final class RuleCanonicalCodec {
         Map<String, CanonicalValue> anti = object(fields, "anti_exploit");
         Map<String, CanonicalValue> output = object(fields, "output");
         if (!text(output, "type").equals("xp")) {
-            throw new IllegalArgumentException("Phase 8 rule output must be XP");
+            throw new IllegalArgumentException("Phase 9 rule output must be XP");
         }
         return new RuleDefinition(
                 canonical.header().key().id(),
@@ -114,7 +120,10 @@ public final class RuleCanonicalCodec {
                 text(fields, "credit"),
                 matchers,
                 customNameAllowed,
+                decodeRequirements(fields),
                 integer(fields, "base_units"),
+                fields.containsKey("rounding")
+                        ? ExpressionRounding.parse(text(fields, "rounding")) : ExpressionRounding.FLOOR,
                 multipliers,
                 new RuleAntiExploit(
                         FakePlayerPolicy.parse(text(anti, "fake_players")),
@@ -130,6 +139,77 @@ public final class RuleCanonicalCodec {
                 ),
                 new RuleDefinition.XpOutput(id(output, "id"), id(output, "skill"))
         );
+    }
+
+    private static CanonicalValue requirement(RequirementExpression expression) {
+        var fields = new LinkedHashMap<String, CanonicalValue>();
+        fields.put("subject", text("actor"));
+        if (expression instanceof RequirementExpression.SkillLevel skill) {
+            fields.put("type", text("skill_level"));
+            fields.put("skill", id(skill.skill()));
+            fields.put("op", text(skill.operator().serializedName()));
+            fields.put("value", integer(skill.value()));
+            fields.put("missing", bool(skill.missing()));
+        } else if (expression instanceof RequirementExpression.Currency currency) {
+            fields.put("type", text("currency"));
+            fields.put("currency", id(currency.currency()));
+            fields.put("op", text(currency.operator().serializedName()));
+            fields.put("value", integer(currency.value()));
+            fields.put("missing", bool(currency.missing()));
+        } else {
+            throw new IllegalArgumentException("Core rule canonical requirements must be direct leaves");
+        }
+        return object(fields);
+    }
+
+    private static List<RequirementExpression> directRequirements(RequirementExpression expression) {
+        if (!(expression instanceof RequirementExpression.All all)) {
+            throw new IllegalArgumentException("Core rule requirements must use one direct all expression");
+        }
+        var result = new ArrayList<RequirementExpression>(all.children());
+        if (result.stream().anyMatch(value -> !(value instanceof RequirementExpression.SkillLevel)
+                && !(value instanceof RequirementExpression.Currency))) {
+            throw new IllegalArgumentException("Core rule requirements must contain direct leaves");
+        }
+        result.sort(java.util.Comparator.comparing(RuleCanonicalCodec::requirementKey));
+        return List.copyOf(result);
+    }
+
+    private static RequirementExpression decodeRequirements(Map<String, CanonicalValue> parent) {
+        if (!parent.containsKey("requirements")) {
+            return RequirementExpression.always();
+        }
+        var result = new ArrayList<RequirementExpression>();
+        for (CanonicalValue value : list(parent, "requirements")) {
+            Map<String, CanonicalValue> fields = object(value);
+            if (!text(fields, "subject").equals("actor")) {
+                throw new IllegalArgumentException("Phase 9 rule requirements support only actor subject");
+            }
+            ComparisonOperator operator = ComparisonOperator.parse(text(fields, "op"));
+            boolean missing = bool(fields, "missing");
+            long expected = integer(fields, "value");
+            result.add(switch (text(fields, "type")) {
+                case "skill_level" -> new RequirementExpression.SkillLevel(
+                        id(fields, "skill"), operator, expected, missing
+                );
+                case "currency" -> new RequirementExpression.Currency(
+                        id(fields, "currency"), operator, expected, missing
+                );
+                default -> throw new IllegalArgumentException("Unknown canonical rule requirement type");
+            });
+        }
+        result.sort(java.util.Comparator.comparing(RuleCanonicalCodec::requirementKey));
+        return new RequirementExpression.All(result);
+    }
+
+    private static String requirementKey(RequirementExpression expression) {
+        if (expression instanceof RequirementExpression.SkillLevel skill) {
+            return "skill_level|" + skill.skill() + "|" + skill.operator().serializedName()
+                    + "|" + skill.value() + "|" + skill.missing();
+        }
+        RequirementExpression.Currency currency = (RequirementExpression.Currency) expression;
+        return "currency|" + currency.currency() + "|" + currency.operator().serializedName()
+                + "|" + currency.value() + "|" + currency.missing();
     }
 
     private static CanonicalValue.IntegerValue integer(long value) {

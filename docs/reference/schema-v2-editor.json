@@ -1698,6 +1698,93 @@
       ]
     },
     {
+      "id": "progressiveskills:numeric_expression",
+      "version": 2,
+      "audience": "internal",
+      "title": "Numeric expression",
+      "description": "Exact fixed point program with bounded evaluation and one final rounding step.",
+      "fields": [
+        {
+          "path": "dependencies",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Sorted typed dependency keys.",
+          "example": "[]",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Sorted typed dependency keys."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "max_depth",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Hard expression depth ceiling.",
+          "example": "16",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Hard expression depth ceiling."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "max_nodes",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Hard expression node ceiling.",
+          "example": "64",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Hard expression node ceiling."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "rounding",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Final fixed point rounding policy.",
+          "example": "floor",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Final fixed point rounding policy."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:operation_receipt",
       "version": 2,
       "audience": "internal",
@@ -3064,6 +3151,74 @@
       ]
     },
     {
+      "id": "progressiveskills:requirement_expression",
+      "version": 2,
+      "audience": "internal",
+      "title": "Requirement expression",
+      "description": "Bounded typed boolean program with deterministic dependencies and explanations.",
+      "fields": [
+        {
+          "path": "dependencies",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Sorted typed dependency keys.",
+          "example": "[\"skill_level:mypack:mining\"]",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Sorted typed dependency keys."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "max_depth",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Hard expression depth ceiling.",
+          "example": "16",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Hard expression depth ceiling."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "max_nodes",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Hard expression node ceiling.",
+          "example": "64",
+          "diagnostic": "PS-SCHEMA-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Hard expression node ceiling."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:rule_definition",
       "version": 2,
       "audience": "authoring",
@@ -3418,14 +3573,14 @@
           "required": true,
           "allowed_values": [],
           "default": null,
-          "description": "Exactly one Phase 8 XP output using rule_amount.",
+          "description": "Exactly one Phase 9 XP output using rule_amount.",
           "example": "[{ id = \"mypack:stone/xp\", type = \"xp\", skill = \"mypack:mining\", amount_formula = \"rule_amount\" }]",
           "diagnostic": "PS-RULE-001",
           "editor": {
             "widget": "list",
             "group": "core",
             "order": 120,
-            "help": "Exactly one Phase 8 XP output using rule_amount."
+            "help": "Exactly one Phase 9 XP output using rule_amount."
           },
           "projection": "server_only",
           "diff": "merge_by_key",
@@ -3445,6 +3600,177 @@
             "group": "core",
             "order": 40,
             "help": "Higher priority wins first and exclusive route selection."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "requirements",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Flat actor requirement list combined with logical all.",
+          "example": "[{ type = \"skill_level\", subject = \"actor\", missing = false, skill = \"mypack:mining\", op = \">=\", value = 5 }]",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 130,
+            "help": "Flat actor requirement list combined with logical all."
+          },
+          "projection": "server_only",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "requirements.currency",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Currency target for a currency requirement.",
+          "example": "mypack:points",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 136,
+            "help": "Currency target for a currency requirement."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "requirements.missing",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Result used only when the actor context is unavailable.",
+          "example": "false",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 133,
+            "help": "Result used only when the actor context is unavailable."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "requirements.op",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["<", "<=", "==", "!=", ">=", ">"],
+          "default": ">=",
+          "description": "Integer comparison operator.",
+          "example": ">=",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 134,
+            "help": "Integer comparison operator."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "requirements.skill",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Skill target for a skill level requirement.",
+          "example": "mypack:mining",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 135,
+            "help": "Skill target for a skill level requirement."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "requirements.subject",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["actor"],
+          "default": "actor",
+          "description": "Phase 9 requirement subject.",
+          "example": "actor",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 132,
+            "help": "Phase 9 requirement subject."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "requirements.type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["skill_level", "currency"],
+          "default": null,
+          "description": "Direct requirement value kind.",
+          "example": "skill_level",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 131,
+            "help": "Direct requirement value kind."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "requirements.value",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Integer threshold compared with the selected actor value.",
+          "example": "5",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 137,
+            "help": "Integer threshold compared with the selected actor value."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "rounding",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["floor", "ceil", "nearest", "bankers"],
+          "default": "floor",
+          "description": "One final fixed point rounding policy after every literal multiplier group.",
+          "example": "floor",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 115,
+            "help": "One final fixed point rounding policy after every literal multiplier group."
           },
           "projection": "server_only",
           "diff": "replace",

@@ -1,6 +1,6 @@
 # Rule Engine and Anti Exploit Foundation
 
-Status: Phase 8 original gameplay checkpoint and all refined automated gates passed. The focused block-origin client checkpoint is pending.
+Status: Phase 8 gameplay route verified. Phase 9 requirement and expression verification is tracked separately in [PHASE-9.md](../verification/PHASE-9.md).
 
 ## Runtime pipeline
 
@@ -13,6 +13,7 @@ uncancelled block break event
   -> event dedupe
   -> actor, block origin, and fake player policy
   -> cooldown and first time eligibility
+  -> direct requirement and exact amount evaluation
   -> stable rule stack resolution
   -> repeat decay and rate caps
   -> one atomic skill XP transaction with source memory
@@ -24,7 +25,7 @@ The NeoForge provider currently binds only `progressiveskills:block_break`. The 
 
 The trigger, matcher, and provider registries are frozen after construction and reject duplicate identities. Phase 8 registers the block subject and the canonical `id`, `tag`, `mod`, and `translation_key` block matchers. `custom_name` remains opt-in and is not supported by this binding. `school` exists in matcher metadata but is rejected for a block subject.
 
-Every rule has one stable resource ID, one registered trigger, actor credit, a bounded matcher and multiplier list, one stack group and policy, and exactly one XP output referencing an existing skill. Phase 8 amounts are positive fixed-point literals; general predicates and formulas belong to Phase 9.
+Every rule has one stable resource ID, one registered trigger, actor credit, bounded lists of matchers, direct requirements, and multipliers, one stack group and policy, and exactly one XP output referencing an existing skill. Phase 9 keeps positive fixed-point literals as the Core authoring surface while compiling them through the internal exact numeric evaluator. General formula authoring remains gated until Creator.
 
 Positive matchers in one rule use OR semantics. A matching negated entry excludes the rule. Exact IDs, namespaces, translation keys, and tag keys are compiled at publication time. The event path returns immediately when no route is enabled or no index can match.
 
@@ -40,6 +41,16 @@ Base amounts and multiplier values retain the same six-decimal fixed-point repre
 6. global difficulty
 
 Groups support `add`, `multiply`, `highest`, `lowest`, and priority-based `replace`. Intermediate products remain exact integer ratios and divide only once at the final rule amount. Overlapping candidate rules resolve by stable priority and rule ID through `sum`, `highest`, `first`, `exclusive`, or `diminishing` stack policies.
+
+## Requirements and amount evaluation
+
+Phase 9 inserts requirement evaluation after matcher, origin, fake-player, and anti-exploit eligibility checks and before stack selection. Core rule TOML accepts only a flat AND list of direct actor `skill_level` and named `currency` requirements. A requirement is a gate, not a debit. Missing values and evaluator failures follow the leaf's validated policy and fail closed by default.
+
+The runtime model is richer than the Core authoring surface: immutable typed `all`, `any`, and `not` nodes compose typed leaves internally. Every tree carries a deterministic, sorted dependency index, so runtime snapshots fetch only the skill levels and currency balances the route can read. Node count, depth, aggregate fanout, dependencies, evaluator work, and retained trace entries are limited by implementation constants before and during evaluation.
+
+Rule arithmetic uses an internal bounded numeric AST with exact fixed-point values and checked intermediates. The complete amount expression receives one final rule-level `rounding` operation; individual arithmetic nodes do not round independently. Division by zero, overflow, domain errors, and budget exhaustion deny the candidate without a transaction.
+
+Preview and live execution share the same evaluator. Preview reads an immutable snapshot and cannot spend currency, update source memory, or award XP. The live explanation retains bounded requirement outcomes, dependency values where disclosure permits, operation use, rounding policy, and rounded final amount. See [REQUIREMENTS_AND_EXPRESSIONS.md](REQUIREMENTS_AND_EXPRESSIONS.md) for the complete Phase 9 boundary.
 
 ## Source memory and atomicity
 
@@ -132,18 +143,20 @@ A zero cap means unlimited. A zero repeat window requires both repeat multiplier
 | Command | Result |
 |---|---|
 | `/ps rule status` | Reports total and enabled compiled rules plus tracked block count, ledger reliability, and any fail-closed issue. |
-| `/ps explain xp last` | Shows the caller's most recent matched block route, block origin, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
+| `/ps explain xp last` | Shows the caller's most recent matched block route, block origin, bounded requirement result, rounding result, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
 
-The Phase 8 explanation is intentionally bounded. Predicate traces, individual multiplier details, and rounding remainders will expand with the Phase 9 evaluator.
+The explanation is intentionally bounded. Core shows direct requirement and final-rounding evidence; reusable predicate traces and general formula source remain unavailable until their Creator authoring surface exists.
 
 ## Troubleshooting
 
 - Run `/ps validate` first. Unknown triggers, subject-incompatible matchers, missing skills, conflicting stack policies, and unbounded anti exploit values reject the candidate generation with the definition path and reason.
 - Run `/ps explain xp last` after a matched block. A zero award can be a denied block origin, an active cooldown, an already claimed first-time route, repeat decay to zero, an exhausted cap, a duplicate token, or fake-player denial.
+- A failed direct requirement names its safe type and comparison in the explanation. If the value is unavailable, confirm the skill or currency ID exists in the same staged generation and that the subject is `actor`.
+- A rounding or evaluator-budget failure is not recoverable at event time. Run `/ps validate`, reduce the expression or requirement structure, and publish a corrected generation.
 - Run `/ps rule status` when origin behavior is unexpected. `Reliable false` means untracked positions resolve to unknown until the ledger is repaired or intentionally reset while the server is stopped.
 - A disabled or nonmatching block does not replace the previous explanation because it never enters the matched hot path. Compare XP and `/ps rule status` when testing a disabled route.
 - Tag routes require the server's current tag registry. A normal server start or data reload provides vanilla and datapack tag membership.
 
 ## Phase boundary
 
-Phase 8 establishes extensible registries, one tested binding, and bounded persistent provenance for player placements and vanilla piston movement. It does not implement general formulas or predicates, target/assist/team credit, adapters for arbitrary modded movers, combat/crafting/movement providers, fractional carry, full performance soak evidence, or the complete Creator rule surface. Those features remain assigned to their planned phases and must not be inferred from the block training route.
+Phase 9 adds the typed internal requirement tree, deterministic dependency index, exact numeric AST, one final rounding policy, and shared preview and explanation hooks to the Phase 8 route. Core authoring intentionally exposes only flat actor skill-level and named-currency gates plus literal bounded amounts. It does not expose nested or reusable predicates, named requirement definitions, general formula text, target/assist/team credit, arbitrary modded mover adapters, combat/crafting/movement providers, fractional carry, full reference-hardware soak evidence, or the complete Creator surface.

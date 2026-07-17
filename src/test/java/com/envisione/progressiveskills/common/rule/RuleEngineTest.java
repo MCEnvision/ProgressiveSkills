@@ -1,6 +1,15 @@
 package com.envisione.progressiveskills.common.rule;
 
 import com.envisione.progressiveskills.common.skill.FixedPoint;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
+import com.envisione.progressiveskills.common.id.DefinitionKey;
+import com.envisione.progressiveskills.common.id.DefinitionKinds;
+import com.envisione.progressiveskills.common.ir.CanonicalDefinition;
+import com.envisione.progressiveskills.common.ir.CanonicalValue;
+import com.envisione.progressiveskills.common.requirement.ComparisonOperator;
+import com.envisione.progressiveskills.common.requirement.RequirementExpression;
+import com.envisione.progressiveskills.common.source.Provenance;
+import com.envisione.progressiveskills.common.source.SourceMap;
 import com.envisione.progressiveskills.common.transaction.ActionExecution;
 import com.envisione.progressiveskills.common.transaction.BalanceMutation;
 import com.envisione.progressiveskills.common.transaction.CascadePlan;
@@ -17,6 +26,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -114,6 +124,53 @@ class RuleEngineTest {
                 List.of(multiplier("test:tiny", "test:tiny", RuleMultiplierStage.CONTEXT,
                         RuleMultiplierMode.MULTIPLY, "0.000001", 0))
         ));
+    }
+
+    @Test
+    void explicitRuleRoundingAppliesOnceAfterAllMultiplierGroups() {
+        var multipliers = List.of(multiplier(
+                "test:half", "test:rounding", RuleMultiplierStage.CONTEXT,
+                RuleMultiplierMode.MULTIPLY, "1.5", 0
+        ));
+        assertEquals(1, RuleMultiplierEngine.apply(1, multipliers, ExpressionRounding.FLOOR));
+        assertEquals(2, RuleMultiplierEngine.apply(1, multipliers, ExpressionRounding.CEIL));
+        assertEquals(2, RuleMultiplierEngine.apply(1, multipliers, ExpressionRounding.NEAREST));
+        assertEquals(2, RuleMultiplierEngine.apply(1, multipliers, ExpressionRounding.BANKERS));
+    }
+
+    @Test
+    void canonicalRequirementsIgnoreAndOrderAndPhase8DataReceivesSafeDefaults() {
+        RuleDefinition base = rule("test:canonical", RuleStackRule.SUM, 0, RuleAntiExploit.defaults());
+        var skill = new RequirementExpression.SkillLevel(
+                id("test:skill"), ComparisonOperator.GREATER_THAN_OR_EQUAL, 2, false
+        );
+        var currency = new RequirementExpression.Currency(
+                id("test:points"), ComparisonOperator.GREATER_THAN_OR_EQUAL, 1, false
+        );
+        RuleDefinition first = withRequirements(base, List.of(skill, currency), ExpressionRounding.CEIL);
+        RuleDefinition second = withRequirements(base, List.of(currency, skill), ExpressionRounding.CEIL);
+        DefinitionKey key = new DefinitionKey(DefinitionKinds.RULE, base.id());
+        Provenance provenance = new Provenance(id("test:pack"), "rules/canonical.toml", "toml");
+        CanonicalDefinition firstCanonical = RuleCanonicalCodec.encode(
+                key, first, provenance, SourceMap.empty()
+        );
+        CanonicalDefinition secondCanonical = RuleCanonicalCodec.encode(
+                key, second, provenance, SourceMap.empty()
+        );
+        assertEquals(firstCanonical.semanticProjection(), secondCanonical.semanticProjection());
+
+        var oldFields = new LinkedHashMap<>(firstCanonical.fields().fields());
+        oldFields.remove("requirements");
+        oldFields.remove("rounding");
+        var oldCanonical = new CanonicalDefinition(
+                firstCanonical.header(),
+                new CanonicalValue.ObjectValue(oldFields),
+                firstCanonical.provenance(),
+                firstCanonical.sourceMap()
+        );
+        RuleDefinition decoded = RuleCanonicalCodec.decode(oldCanonical);
+        assertEquals(ExpressionRounding.FLOOR, decoded.rounding());
+        assertTrue(((RequirementExpression.All) decoded.requirements()).children().isEmpty());
     }
 
     @Test
@@ -331,11 +388,37 @@ class RuleEngineTest {
                 "actor",
                 List.of(new RuleMatcherSpec("id", "minecraft:stone", false)),
                 false,
+                RequirementExpression.always(),
                 FixedPoint.parse("10"),
+                ExpressionRounding.FLOOR,
                 List.of(),
                 policy,
                 new RuleDefinition.XpOutput(id("test:output/" + id.substring(id.indexOf(':') + 1)),
                         id("progressiveskills:physique"))
+        );
+    }
+
+    private static RuleDefinition withRequirements(
+            RuleDefinition rule,
+            List<RequirementExpression> requirements,
+            ExpressionRounding rounding
+    ) {
+        return new RuleDefinition(
+                rule.id(),
+                rule.enabled(),
+                rule.trigger(),
+                rule.priority(),
+                rule.stackGroup(),
+                rule.stackRule(),
+                rule.credit(),
+                rule.matchers(),
+                rule.customNameAllowed(),
+                new RequirementExpression.All(requirements),
+                rule.baseUnits(),
+                rounding,
+                rule.multipliers(),
+                rule.antiExploit(),
+                rule.output()
         );
     }
 

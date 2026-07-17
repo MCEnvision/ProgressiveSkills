@@ -2,7 +2,10 @@ package com.envisione.progressiveskills.common.pack;
 
 import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.id.StableId;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
 import com.envisione.progressiveskills.common.ir.CanonicalDefinition;
+import com.envisione.progressiveskills.common.requirement.ComparisonOperator;
+import com.envisione.progressiveskills.common.requirement.RequirementExpression;
 import com.envisione.progressiveskills.common.rule.FakePlayerPolicy;
 import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.rule.RuleAntiExploit;
@@ -28,7 +31,7 @@ import java.util.Set;
 final class RuleTomlCompiler {
     private static final Set<String> RULE_FIELDS = Set.of(
             "enabled", "trigger", "priority", "stack_group", "stack_rule", "credit", "match",
-            "allow_custom_name", "base", "multipliers", "anti_exploit", "outputs"
+            "allow_custom_name", "requirements", "base", "rounding", "multipliers", "anti_exploit", "outputs"
     );
     private static final Set<String> MULTIPLIER_FIELDS = Set.of(
             "id", "stage", "group", "mode", "value", "priority"
@@ -39,6 +42,9 @@ final class RuleTomlCompiler {
             "allowed_block_origins"
     );
     private static final Set<String> OUTPUT_FIELDS = Set.of("id", "type", "skill", "amount_formula");
+    private static final Set<String> REQUIREMENT_FIELDS = Set.of(
+            "type", "subject", "missing", "skill", "currency", "op", "value"
+    );
 
     private RuleTomlCompiler() {
     }
@@ -56,16 +62,16 @@ final class RuleTomlCompiler {
                 .toList();
         List<Map<String, Object>> outputs = objectList(fields, "outputs");
         if (outputs.size() != 1) {
-            throw new IllegalArgumentException("Phase 8 rules require exactly one XP output");
+            throw new IllegalArgumentException("Phase 9 rules require exactly one XP output");
         }
         Map<String, Object> output = outputs.getFirst();
         TomlValues.rejectUnknown(output, OUTPUT_FIELDS, "rule output");
         if (!TomlValues.string(output, "type").equals("xp")) {
-            throw new IllegalArgumentException("Phase 8 rule outputs support only XP");
+            throw new IllegalArgumentException("Phase 9 rule outputs support only XP");
         }
         String amountFormula = TomlValues.optionalString(output, "amount_formula").orElse("rule_amount");
         if (!amountFormula.equals("rule_amount")) {
-            throw new IllegalArgumentException("Phase 8 XP output amount must use rule_amount");
+            throw new IllegalArgumentException("Phase 9 XP output amount must use rule_amount");
         }
         RuleDefinition rule = new RuleDefinition(
                 key.id(),
@@ -77,7 +83,9 @@ final class RuleTomlCompiler {
                 TomlValues.optionalString(fields, "credit").orElse("actor"),
                 matchers,
                 customNameAllowed,
+                new RequirementExpression.All(requirements(fields)),
                 positiveFixed(fields, "base"),
+                ExpressionRounding.parse(TomlValues.optionalString(fields, "rounding").orElse("floor")),
                 multipliers(fields),
                 antiExploit(fields),
                 new RuleDefinition.XpOutput(
@@ -86,6 +94,65 @@ final class RuleTomlCompiler {
                 )
         );
         return RuleCanonicalCodec.encode(key, rule, provenance, sourceMap);
+    }
+
+    private static List<RequirementExpression> requirements(Map<String, Object> fields) {
+        var result = new ArrayList<RequirementExpression>();
+        for (Map<String, Object> requirement : objectList(fields, "requirements")) {
+            TomlValues.rejectUnknown(requirement, REQUIREMENT_FIELDS, "rule requirement");
+            String subject = TomlValues.optionalString(requirement, "subject").orElse("actor");
+            if (!subject.equals("actor")) {
+                throw new IllegalArgumentException("Phase 9 rule requirements support only actor subject");
+            }
+            ComparisonOperator operator = ComparisonOperator.parse(
+                    TomlValues.optionalString(requirement, "op").orElse(">=")
+            );
+            boolean missing = TomlValues.optionalBoolean(requirement, "missing", false);
+            long value = requiredLong(requirement, "value");
+            RequirementExpression expression = switch (TomlValues.string(requirement, "type")) {
+                case "skill_level" -> {
+                    requireOnlyTarget(requirement, "skill", "currency");
+                    yield new RequirementExpression.SkillLevel(
+                            StableId.parse(TomlValues.string(requirement, "skill")),
+                            operator,
+                            value,
+                            missing
+                    );
+                }
+                case "currency" -> {
+                    requireOnlyTarget(requirement, "currency", "skill");
+                    yield new RequirementExpression.Currency(
+                            StableId.parse(TomlValues.string(requirement, "currency")),
+                            operator,
+                            value,
+                            missing
+                    );
+                }
+                default -> throw new IllegalArgumentException("Unknown Phase 9 rule requirement type");
+            };
+            result.add(expression);
+        }
+        result.sort(java.util.Comparator.comparing(RuleTomlCompiler::requirementKey));
+        return List.copyOf(result);
+    }
+
+    private static void requireOnlyTarget(Map<String, Object> requirement, String required, String forbidden) {
+        if (!requirement.containsKey(required)) {
+            throw new IllegalArgumentException("Rule requirement requires " + required);
+        }
+        if (requirement.containsKey(forbidden)) {
+            throw new IllegalArgumentException("Rule requirement field " + forbidden + " is not valid for this type");
+        }
+    }
+
+    private static String requirementKey(RequirementExpression expression) {
+        if (expression instanceof RequirementExpression.SkillLevel skill) {
+            return "skill_level|" + skill.skill() + "|" + skill.operator().serializedName()
+                    + "|" + skill.value() + "|" + skill.missing();
+        }
+        RequirementExpression.Currency currency = (RequirementExpression.Currency) expression;
+        return "currency|" + currency.currency() + "|" + currency.operator().serializedName()
+                + "|" + currency.value() + "|" + currency.missing();
     }
 
     private static List<RuleMultiplier> multipliers(Map<String, Object> fields) {
@@ -163,6 +230,13 @@ final class RuleTomlCompiler {
             throw new IllegalArgumentException(key + " must be an integer");
         }
         return number.longValue();
+    }
+
+    private static long requiredLong(Map<String, Object> values, String key) {
+        if (!values.containsKey(key)) {
+            throw new IllegalArgumentException(key + " is required");
+        }
+        return longInteger(values, key, 0);
     }
 
     private static List<Map<String, Object>> objectList(Map<String, Object> values, String key) {

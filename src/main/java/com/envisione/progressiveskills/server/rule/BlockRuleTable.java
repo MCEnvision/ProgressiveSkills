@@ -4,6 +4,7 @@ import com.envisione.progressiveskills.common.rule.RuleCatalog;
 import com.envisione.progressiveskills.common.rule.RuleDefinition;
 import com.envisione.progressiveskills.common.rule.RuleMatcherSpec;
 import com.envisione.progressiveskills.common.rule.RuleTriggerRegistry;
+import com.envisione.progressiveskills.common.requirement.CompiledRequirement;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -61,6 +62,7 @@ public final class BlockRuleTable {
                     index++,
                     rule,
                     rule.multipliedBaseUnits(),
+                    CompiledRequirement.compile(rule.requirements()),
                     rule.matchers().stream().map(CompiledMatcher::compile).toList()
             );
             boolean indexed = false;
@@ -190,7 +192,8 @@ public final class BlockRuleTable {
     public record CompiledRule(
             int index,
             RuleDefinition rule,
-            long multipliedBaseUnits,
+            long amountUnits,
+            CompiledRequirement requirements,
             List<CompiledMatcher> matchers
     ) {
     }

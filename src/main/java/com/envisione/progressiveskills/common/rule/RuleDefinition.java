@@ -1,6 +1,9 @@
 package com.envisione.progressiveskills.common.rule;
 
 import com.envisione.progressiveskills.common.id.StableId;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
+import com.envisione.progressiveskills.common.requirement.CompiledRequirement;
+import com.envisione.progressiveskills.common.requirement.RequirementExpression;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashSet;
@@ -17,7 +20,9 @@ public record RuleDefinition(
         String credit,
         List<RuleMatcherSpec> matchers,
         boolean customNameAllowed,
+        RequirementExpression requirements,
         long baseUnits,
+        ExpressionRounding rounding,
         List<RuleMultiplier> multipliers,
         RuleAntiExploit antiExploit,
         XpOutput output
@@ -32,9 +37,11 @@ public record RuleDefinition(
         Objects.requireNonNull(stackRule, "stackRule");
         credit = Objects.requireNonNull(credit, "credit");
         if (!credit.equals("actor")) {
-            throw new IllegalArgumentException("Phase 8 rules require actor credit");
+            throw new IllegalArgumentException("Phase 9 rules require actor credit");
         }
         matchers = List.copyOf(Objects.requireNonNull(matchers, "matchers"));
+        Objects.requireNonNull(requirements, "requirements");
+        Objects.requireNonNull(rounding, "rounding");
         multipliers = List.copyOf(Objects.requireNonNull(multipliers, "multipliers"));
         Objects.requireNonNull(antiExploit, "antiExploit");
         Objects.requireNonNull(output, "output");
@@ -47,11 +54,12 @@ public record RuleDefinition(
         if (baseUnits <= 0) {
             throw new IllegalArgumentException("Rule base amount must be positive");
         }
-        RuleMultiplierEngine.apply(baseUnits, multipliers);
+        CompiledRequirement.compile(requirements);
+        RuleMultiplierEngine.apply(baseUnits, multipliers, rounding);
     }
 
     public long multipliedBaseUnits() {
-        return RuleMultiplierEngine.apply(baseUnits, multipliers);
+        return RuleMultiplierEngine.apply(baseUnits, multipliers, rounding);
     }
 
     public record XpOutput(ResourceLocation id, ResourceLocation skill) {

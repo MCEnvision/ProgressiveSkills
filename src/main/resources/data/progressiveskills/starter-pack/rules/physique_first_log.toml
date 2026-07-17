@@ -10,6 +10,7 @@ stack_rule = "first"
 credit = "actor"
 match = ["tag:minecraft:logs"]
 base = 20
+rounding = "floor"
 
 [rule.anti_exploit]
 fake_players = "deny"

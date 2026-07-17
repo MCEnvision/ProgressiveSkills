@@ -1,9 +1,11 @@
 package com.envisione.progressiveskills.common.rule;
 
+import com.envisione.progressiveskills.common.expression.CompiledNumericExpression;
+import com.envisione.progressiveskills.common.expression.ExpressionRounding;
+import com.envisione.progressiveskills.common.expression.NumericExpression;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import net.minecraft.resources.ResourceLocation;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -15,11 +17,19 @@ public final class RuleMultiplierEngine {
     }
 
     public static long apply(long baseUnits, List<RuleMultiplier> multipliers) {
+        return apply(baseUnits, multipliers, ExpressionRounding.FLOOR);
+    }
+
+    public static long apply(
+            long baseUnits,
+            List<RuleMultiplier> multipliers,
+            ExpressionRounding rounding
+    ) {
         if (baseUnits <= 0) {
             throw new IllegalArgumentException("Rule base amount must be positive");
         }
-        BigInteger numerator = BigInteger.valueOf(baseUnits);
-        BigInteger denominator = BigInteger.ONE;
+        var factors = new ArrayList<NumericExpression>();
+        factors.add(new NumericExpression.Constant(baseUnits));
         var byStage = new TreeMap<RuleMultiplierStage, Map<ResourceLocation, List<RuleMultiplier>>>();
         for (RuleMultiplier multiplier : multipliers) {
             byStage.computeIfAbsent(multiplier.stage(), ignored -> new TreeMap<>(ResourceLocation::compareNamespaced))
@@ -33,12 +43,13 @@ public final class RuleMultiplierEngine {
                     if (factor <= 0) {
                         throw new IllegalArgumentException("Resolved rule multiplier must be positive");
                     }
-                    numerator = numerator.multiply(BigInteger.valueOf(factor));
-                    denominator = denominator.multiply(BigInteger.valueOf(FixedPoint.SCALE));
+                    factors.add(new NumericExpression.Constant(factor));
                 }
             }
         }
-        long result = numerator.divide(denominator).longValueExact();
+        long result = CompiledNumericExpression.compile(
+                new NumericExpression.Product(factors), rounding
+        ).constantValue().orElseThrow();
         if (result <= 0) {
             throw new IllegalArgumentException("Rule multipliers reduced the award to zero");
         }
@@ -67,7 +78,12 @@ public final class RuleMultiplierEngine {
         if (amountUnits < 0 || factorUnits < 0) {
             throw new IllegalArgumentException("Rule scaling values must not be negative");
         }
-        BigInteger product = BigInteger.valueOf(amountUnits).multiply(BigInteger.valueOf(factorUnits));
-        return product.divide(BigInteger.valueOf(FixedPoint.SCALE)).longValueExact();
+        return CompiledNumericExpression.compile(
+                new NumericExpression.Multiply(
+                        new NumericExpression.Constant(amountUnits),
+                        new NumericExpression.Constant(factorUnits)
+                ),
+                ExpressionRounding.FLOOR
+        ).constantValue().orElseThrow();
     }
 }

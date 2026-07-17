@@ -226,7 +226,26 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps rule status", playerSource) == 1,
-                    "The compiled Phase 8 rule table must be inspectable"
+                    "The compiled Phase 9 rule table must be inspectable"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute(
+                            "ps rule preview progressiveskills:physique_stone_training", playerSource
+                    ) == 1,
+                    "The direct Phase 9 requirements and rounded amount must be previewable"
+            );
+            var rulePreview = RuleRuntime.preview(
+                    player,
+                    ResourceLocation.fromNamespaceAndPath(
+                            "progressiveskills", "physique_stone_training"
+                    )
+            ).orElseThrow();
+            helper.assertTrue(
+                    rulePreview.requirementsPassed() && rulePreview.requirementsChecked() == 2
+                            && rulePreview.dependencyCount() == 2
+                            && rulePreview.amountUnits() == FixedPoint.parse("10")
+                            && rulePreview.rounding().equals("floor"),
+                    "The structured rule preview must match the hot path inputs. Preview " + rulePreview
             );
             var fakeResult = RuleRuntime.processBlockBreak(
                     FakePlayerFactory.getMinecraft(helper.getLevel()),
@@ -270,6 +289,13 @@ public final class ProgressiveSkillsGameTests {
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps explain xp last", playerSource) == 1,
                     "The last committed rule trace must be explainable"
+            );
+            var awardedTrace = RuleRuntime.lastTrace(player.getUUID()).orElseThrow();
+            helper.assertTrue(
+                    awardedTrace.requirementsChecked() == 2
+                            && awardedTrace.preAntiAmountUnits() == FixedPoint.parse("10")
+                            && awardedTrace.rounding().equals("floor"),
+                    "The committed trace must retain requirements and pre anti exploit rounding evidence"
             );
             long eventTick = helper.getLevel().getGameTime();
             var duplicate = RuleRuntime.processBlockBreak(

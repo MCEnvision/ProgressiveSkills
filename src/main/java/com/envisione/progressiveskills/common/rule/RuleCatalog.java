@@ -2,6 +2,10 @@ package com.envisione.progressiveskills.common.rule;
 
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.ir.CanonicalIr;
+import com.envisione.progressiveskills.common.requirement.CompiledRequirement;
+import com.envisione.progressiveskills.common.requirement.RequirementDependency;
+import com.envisione.progressiveskills.common.requirement.RequirementDependencyIndex;
+import com.envisione.progressiveskills.common.requirement.RequirementExpression;
 import com.envisione.progressiveskills.common.skill.SkillCatalog;
 import net.minecraft.resources.ResourceLocation;
 
@@ -14,10 +18,16 @@ import java.util.TreeMap;
 
 public final class RuleCatalog {
     public static final int MAX_RULES = 10_000;
+    public static final int MAX_REQUIREMENT_EDGES = 320_000;
     private final Map<ResourceLocation, RuleDefinition> rules;
+    private final RequirementDependencyIndex<ResourceLocation> requirementIndex;
 
-    private RuleCatalog(Map<ResourceLocation, RuleDefinition> rules) {
+    private RuleCatalog(
+            Map<ResourceLocation, RuleDefinition> rules,
+            RequirementDependencyIndex<ResourceLocation> requirementIndex
+    ) {
         this.rules = Collections.unmodifiableMap(new LinkedHashMap<>(rules));
+        this.requirementIndex = Objects.requireNonNull(requirementIndex, "requirementIndex");
     }
 
     public static RuleCatalog from(CanonicalIr ir, SkillCatalog skills) {
@@ -44,6 +54,18 @@ public final class RuleCatalog {
                 throw new IllegalArgumentException("Rule " + rule.id()
                         + " references missing skill " + rule.output().skill());
             }
+            for (RequirementDependency dependency : CompiledRequirement.compile(rule.requirements()).dependencies()) {
+                if (dependency.kind() == RequirementDependency.Kind.SKILL_LEVEL
+                        && skills.skill(dependency.id()).isEmpty()) {
+                    throw new IllegalArgumentException("Rule " + rule.id()
+                            + " requirement references missing skill " + dependency.id());
+                }
+                if (dependency.kind() == RequirementDependency.Kind.CURRENCY
+                        && skills.currency(dependency.id()).isEmpty()) {
+                    throw new IllegalArgumentException("Rule " + rule.id()
+                            + " requirement references missing currency " + dependency.id());
+                }
+            }
             if (rules.putIfAbsent(rule.id(), rule) != null) {
                 throw new IllegalArgumentException("Duplicate rule id " + rule.id());
             }
@@ -59,7 +81,13 @@ public final class RuleCatalog {
                         + " uses conflicting policies");
             }
         }
-        return new RuleCatalog(rules);
+        var requirements = new LinkedHashMap<ResourceLocation, RequirementExpression>();
+        rules.forEach((id, rule) -> requirements.put(id, rule.requirements()));
+        return new RuleCatalog(rules, RequirementDependencyIndex.compile(
+                requirements,
+                ResourceLocation::compareNamespaced,
+                MAX_REQUIREMENT_EDGES
+        ));
     }
 
     public Map<ResourceLocation, RuleDefinition> rules() {
@@ -68,5 +96,9 @@ public final class RuleCatalog {
 
     public Optional<RuleDefinition> rule(ResourceLocation id) {
         return Optional.ofNullable(rules.get(id));
+    }
+
+    public RequirementDependencyIndex<ResourceLocation> requirementIndex() {
+        return requirementIndex;
     }
 }

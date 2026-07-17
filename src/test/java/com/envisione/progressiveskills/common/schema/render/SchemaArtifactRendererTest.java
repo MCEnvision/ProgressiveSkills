@@ -50,7 +50,7 @@ class SchemaArtifactRendererTest {
             assertEquals(expected.id().toString(), actual.get("id").getAsString());
             assertEquals(expected.sourceDirectory(), actual.get("source_directory").getAsString());
         }
-        assertEquals(28, root.getAsJsonArray("schemas").size());
+        assertEquals(30, root.getAsJsonArray("schemas").size());
         assertTrue(first.contains("\"projection\": \"server_only\""));
 
         var schemas = root.getAsJsonArray("schemas");

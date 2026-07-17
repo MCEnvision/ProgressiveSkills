@@ -351,9 +351,15 @@ def verifyPropertyTestResults = tasks.register('verifyPropertyTestResults', Veri
             ),
             layout.buildDirectory.file(
                     'test-results/test/TEST-com.envisione.progressiveskills.common.pack.PackDeterminismPropertyTest.xml'
+            ),
+            layout.buildDirectory.file(
+                    'test-results/test/TEST-com.envisione.progressiveskills.common.expression.NumericExpressionPropertyTest.xml'
+            ),
+            layout.buildDirectory.file(
+                    'test-results/test/TEST-com.envisione.progressiveskills.common.requirement.RequirementPropertyTest.xml'
             )
     )
-    minimumTries = 1000
+    minimumTries = 2500
 }
 tasks.named('check').configure {
     dependsOn(verifyPropertyTestResults)
@@ -362,6 +368,11 @@ tasks.named('check').configure {
 def gameTestLog = layout.projectDirectory.file('run/gameTestServer/logs/latest.log')
 def cleanGameTestLog = tasks.register('cleanGameTestLog', Delete) {
     delete(gameTestLog)
+}
+def cleanGameTestStarterPack = tasks.register('cleanGameTestStarterPack', Delete) {
+    delete(layout.projectDirectory.dir(
+            'run/gameTestServer/config/progressiveskills/packs/progressiveskills-core'
+    ))
 }
 def prepareGameTestServerProperties = tasks.register('prepareGameTestServerProperties', WriteTextFile) {
     outputFile = layout.projectDirectory.file('run/gameTestServer/server.properties')
@@ -376,7 +387,7 @@ def verifyGameTestLogClean = tasks.register('verifyGameTestLogClean', VerifyText
     forbiddenPattern = '(?i)/(?:error|fatal)\\]|exception|crash report'
 }
 tasks.named('runGameTestServer').configure {
-    dependsOn(cleanGameTestLog, prepareGameTestServerProperties)
+    dependsOn(cleanGameTestLog, cleanGameTestStarterPack, prepareGameTestServerProperties)
     finalizedBy(verifyGameTestResults, verifyGameTestLogClean)
 }
 verifyGameTestResults.configure {
