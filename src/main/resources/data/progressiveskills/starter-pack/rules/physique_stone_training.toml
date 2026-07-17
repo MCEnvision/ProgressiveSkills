@@ -1,0 +1,37 @@
+schema_version = 2
+
+[rule]
+id = "progressiveskills:physique_stone_training"
+enabled = true
+trigger = "progressiveskills:block_break"
+priority = 100
+stack_group = "progressiveskills:physique_block_training"
+stack_rule = "highest"
+credit = "actor"
+match = ["id:minecraft:stone"]
+base = 8
+
+[[rule.multipliers]]
+id = "progressiveskills:physique_stone_training/context"
+stage = "context"
+group = "progressiveskills:training_bonus"
+mode = "add"
+value = 0.25
+priority = 0
+
+[rule.anti_exploit]
+fake_players = "deny"
+first_time = false
+cooldown_ticks = 10
+per_tick_cap = 10
+per_minute_cap = 40
+per_day_cap = 400
+repeat_window_ticks = 100
+repeat_decay = 0.5
+minimum_multiplier = 0.25
+
+[[rule.outputs]]
+id = "progressiveskills:physique_stone_training/xp"
+type = "xp"
+skill = "progressiveskills:physique"
+amount_formula = "rule_amount"

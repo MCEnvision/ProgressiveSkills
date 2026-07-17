@@ -3064,6 +3064,435 @@
       ]
     },
     {
+      "id": "progressiveskills:rule_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Gameplay rule definition",
+      "description": "Compiled trigger route with literal fixed point output and bounded anti exploit memory.",
+      "fields": [
+        {
+          "path": "allow_custom_name",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Explicit opt in for normalized player controlled custom name matching.",
+          "example": "false",
+          "diagnostic": "PS-RULE-003",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 80,
+            "help": "Explicit opt in for normalized player controlled custom name matching."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "anti_exploit.cooldown_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Minimum world ticks between committed awards from this source.",
+          "example": "10",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 210,
+            "help": "Minimum world ticks between committed awards from this source."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "anti_exploit.fake_players",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["deny", "allow"],
+          "default": "deny",
+          "description": "Whether automation identities may receive this route.",
+          "example": "deny",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 190,
+            "help": "Whether automation identities may receive this route."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "anti_exploit.first_time",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Persist one receipt like source marker and reject later awards.",
+          "example": "false",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 200,
+            "help": "Persist one receipt like source marker and reject later awards."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "anti_exploit.minimum_multiplier",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Floor for repeated source decay.",
+          "example": "0.25",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 270,
+            "help": "Floor for repeated source decay."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "anti_exploit.per_day_cap",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Maximum fixed point XP from this source per Minecraft day bucket.",
+          "example": "400",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 240,
+            "help": "Maximum fixed point XP from this source per Minecraft day bucket."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "anti_exploit.per_minute_cap",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Maximum fixed point XP from this source per 1200 tick bucket.",
+          "example": "40",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 230,
+            "help": "Maximum fixed point XP from this source per 1200 tick bucket."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "anti_exploit.per_tick_cap",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Maximum fixed point XP from this source in one world tick.",
+          "example": "10",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 220,
+            "help": "Maximum fixed point XP from this source in one world tick."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "anti_exploit.repeat_decay",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Multiplier applied for each repeated source event inside the repeat window.",
+          "example": "0.5",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 260,
+            "help": "Multiplier applied for each repeated source event inside the repeat window."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "anti_exploit.repeat_window_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Bounded source repetition window in world ticks.",
+          "example": "100",
+          "diagnostic": "PS-RULE-005",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 250,
+            "help": "Bounded source repetition window in world ticks."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "base",
+          "type": "decimal",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive literal fixed point amount before multiplier stacks and caps.",
+          "example": "8",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 100,
+            "help": "Positive literal fixed point amount before multiplier stacks and caps."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "credit",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["actor"],
+          "default": "actor",
+          "description": "Phase 8 credit subject.",
+          "example": "actor",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 60,
+            "help": "Phase 8 credit subject."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether this rule is present in its compiled trigger table.",
+          "example": "true",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 20,
+            "help": "Whether this rule is present in its compiled trigger table."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "match",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "OR matched subjects with bare ids, prefixes, and optional leading negation filters.",
+          "example": "[\"id:minecraft:stone\", \"tag:minecraft:logs\"]",
+          "diagnostic": "PS-RULE-003",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 70,
+            "help": "OR matched subjects with bare ids, prefixes, and optional leading negation filters."
+          },
+          "projection": "server_only",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "multipliers",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Literal modifiers resolved by fixed stage and stable stack group.",
+          "example": "[{ id = \"mypack:training/context\", stage = \"context\", group = \"mypack:training\", mode = \"add\", value = 0.25 }]",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 110,
+            "help": "Literal modifiers resolved by fixed stage and stable stack group."
+          },
+          "projection": "server_only",
+          "diff": "merge_by_key",
+          "omit_when_default": true
+        },
+        {
+          "path": "multipliers.mode",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["add", "multiply", "highest", "lowest", "replace"],
+          "default": null,
+          "description": "Stack resolution within one literal multiplier group.",
+          "example": "add",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 112,
+            "help": "Stack resolution within one literal multiplier group."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "multipliers.stage",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["context", "equipment", "party_team", "rested_catch_up", "prestige_season", "global_difficulty"],
+          "default": null,
+          "description": "Fixed multiplier pipeline stage.",
+          "example": "context",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 111,
+            "help": "Fixed multiplier pipeline stage."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "outputs",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exactly one Phase 8 XP output using rule_amount.",
+          "example": "[{ id = \"mypack:stone/xp\", type = \"xp\", skill = \"mypack:mining\", amount_formula = \"rule_amount\" }]",
+          "diagnostic": "PS-RULE-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 120,
+            "help": "Exactly one Phase 8 XP output using rule_amount."
+          },
+          "projection": "server_only",
+          "diff": "merge_by_key",
+          "omit_when_default": false
+        },
+        {
+          "path": "priority",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Higher priority wins first and exclusive route selection.",
+          "example": "100",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 40,
+            "help": "Higher priority wins first and exclusive route selection."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "stack_group",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable group for overlapping matching rules.",
+          "example": "mypack:ore_mining",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 50,
+            "help": "Stable group for overlapping matching rules."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "stack_rule",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["sum", "highest", "first", "exclusive", "diminishing"],
+          "default": "sum",
+          "description": "Deterministic overlap policy for the stable route group.",
+          "example": "highest",
+          "diagnostic": "PS-RULE-004",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 55,
+            "help": "Deterministic overlap policy for the stable route group."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "trigger",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Registered server side event route.",
+          "example": "progressiveskills:block_break",
+          "diagnostic": "PS-RULE-002",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Registered server side event route."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:skill_definition",
       "version": 2,
       "audience": "authoring",
@@ -4915,6 +5344,60 @@
       "fix": "Restore a valid pack source or a complete world backup and validate again.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-reload-003",
       "suppressible": false
+    },
+    {
+      "code": "PS-RULE-001",
+      "severity": "error",
+      "title": "Rule definition is invalid",
+      "why": "A gameplay route must compile to one bounded deterministic transaction path.",
+      "fix": "Correct the rule using the generated rule definition schema.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-001",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RULE-002",
+      "severity": "error",
+      "title": "Rule trigger has no provider",
+      "why": "A rule cannot run without one registered server side trigger provider.",
+      "fix": "Use a trigger supported by the installed provider registry.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RULE-003",
+      "severity": "error",
+      "title": "Rule matcher is invalid",
+      "why": "Unknown prefixes or subject incompatible matchers cannot compile into a safe route table.",
+      "fix": "Use a documented prefix supported by the selected trigger subject.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RULE-004",
+      "severity": "error",
+      "title": "Rule stack group is invalid",
+      "why": "Rules and literal multipliers in one group require one deterministic stack policy.",
+      "fix": "Use one stack policy per stable group and unique multiplier ids.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-004",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RULE-005",
+      "severity": "error",
+      "title": "Rule anti exploit policy is invalid",
+      "why": "Cooldowns, rate caps, fake player policy, and repeat decay must stay bounded.",
+      "fix": "Correct the anti exploit windows, caps, and fixed point multipliers.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-RULE-006",
+      "severity": "warning",
+      "title": "Rule event was rejected",
+      "why": "Dedupe, eligibility, cooldown, first time memory, fake player policy, or a rate cap denied the event.",
+      "fix": "Inspect the bounded last XP explanation before changing the rule.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-rule-006",
+      "suppressible": true
     },
     {
       "code": "PS-SCHEMA-001",

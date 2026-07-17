@@ -1,6 +1,6 @@
 # Skill XP and Linear Attribute Progression
 
-Status: Phase 7 accepted after automated verification and the real client gameplay checkpoint.
+Status: Phase 7 accepted. Phase 8 now routes the first ordinary block events into the same award transaction.
 
 ## Authoritative state
 
@@ -81,4 +81,4 @@ Committed awards show an action-bar XP summary. Level changes send one bounded c
 
 ## Phase boundary
 
-Phase 7 intentionally does not implement ordinary mining, combat, movement, crafting, or other event bindings. It also does not implement first-time/cooldown rule memory, general predicates/formulas, negative XP/delevel, dynamic caps, advanced overflow destinations, tree spending, or general transition rewards. Those remain assigned to later phases. The custom route and manual command prove the complete skill transaction without preempting the Phase 8 rule engine.
+Phase 8 adds one ordinary block-break provider with first-time, cooldown, repeat, and fixed rate-cap memory. Its rule XP and memory deltas use the same atomic award transaction described above. General predicates/formulas, block provenance, combat, movement, crafting, negative XP/delevel, advanced overflow destinations, tree spending, and general transition rewards remain assigned to later phases. See [RULE_ENGINE.md](RULE_ENGINE.md).

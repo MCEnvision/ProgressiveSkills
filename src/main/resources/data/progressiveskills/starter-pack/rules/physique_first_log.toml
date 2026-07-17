@@ -1,0 +1,29 @@
+schema_version = 2
+
+[rule]
+id = "progressiveskills:physique_first_log"
+enabled = true
+trigger = "progressiveskills:block_break"
+priority = 90
+stack_group = "progressiveskills:physique_first_log"
+stack_rule = "first"
+credit = "actor"
+match = ["tag:minecraft:logs"]
+base = 20
+
+[rule.anti_exploit]
+fake_players = "deny"
+first_time = true
+cooldown_ticks = 0
+per_tick_cap = 20
+per_minute_cap = 20
+per_day_cap = 20
+repeat_window_ticks = 0
+repeat_decay = 1.0
+minimum_multiplier = 1.0
+
+[[rule.outputs]]
+id = "progressiveskills:physique_first_log/xp"
+type = "xp"
+skill = "progressiveskills:physique"
+amount_formula = "rule_amount"

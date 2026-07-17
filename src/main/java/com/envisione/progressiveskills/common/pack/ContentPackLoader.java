@@ -120,12 +120,17 @@ public final class ContentPackLoader {
         addCrossKindIdWarnings(definitions, problems);
         if (problems.stream().noneMatch(problem -> problem.severity() == DiagnosticSeverity.ERROR)) {
             try {
-                com.envisione.progressiveskills.common.skill.SkillCatalog.from(definitions.canonicalIr());
-            } catch (IllegalArgumentException exception) {
+                var skills = com.envisione.progressiveskills.common.skill.SkillCatalog.from(
+                        definitions.canonicalIr()
+                );
+                com.envisione.progressiveskills.common.rule.RuleCatalog.from(
+                        definitions.canonicalIr(), skills
+                );
+            } catch (IllegalArgumentException | ArithmeticException exception) {
                 definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
                         problems.add(PackProblem.error(
                                 CoreDiagnostics.INVALID_TOML,
-                                "Invalid skill catalog: " + safeMessage(exception),
+                                "Invalid gameplay catalog: " + safeMessage(exception),
                                 definition.provenance()
                         ))
                 );

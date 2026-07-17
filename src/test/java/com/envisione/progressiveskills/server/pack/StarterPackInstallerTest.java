@@ -26,6 +26,10 @@ class StarterPackInstallerTest {
                 .contains("progressiveskills:global_points"));
         assertTrue(Files.readString(pack.resolve("skills/physique.toml"))
                 .contains("progressiveskills:physique"));
+        assertTrue(Files.readString(pack.resolve("rules/physique_stone_training.toml"))
+                .contains("progressiveskills:block_break"));
+        assertTrue(Files.readString(pack.resolve("rules/physique_first_log.toml"))
+                .contains("first_time = true"));
 
         Files.writeString(manifest, "operator-owned");
         StarterPackInstaller.install(root);
@@ -71,5 +75,12 @@ class StarterPackInstallerTest {
         assertTrue(catalog.currency(net.minecraft.resources.ResourceLocation.parse(
                 "progressiveskills:global_points"
         )).isPresent());
+        var rules = com.envisione.progressiveskills.common.rule.RuleCatalog.from(
+                result.snapshot().orElseThrow().canonicalIr(), catalog
+        );
+        assertEquals(2, rules.rules().size());
+        var routes = com.envisione.progressiveskills.server.rule.BlockRuleTable.compile(rules);
+        assertEquals(1, routes.match(net.minecraft.world.level.block.Blocks.STONE.defaultBlockState()).size());
+        assertTrue(routes.match(net.minecraft.world.level.block.Blocks.DIRT.defaultBlockState()).isEmpty());
     }
 }

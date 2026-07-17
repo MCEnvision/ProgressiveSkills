@@ -8,6 +8,10 @@ import com.envisione.progressiveskills.common.presentation.IconKind;
 import com.envisione.progressiveskills.common.skill.AttributeOperation;
 import com.envisione.progressiveskills.common.skill.CurveRounding;
 import com.envisione.progressiveskills.common.skill.CurveType;
+import com.envisione.progressiveskills.common.rule.FakePlayerPolicy;
+import com.envisione.progressiveskills.common.rule.RuleMultiplierMode;
+import com.envisione.progressiveskills.common.rule.RuleMultiplierStage;
+import com.envisione.progressiveskills.common.rule.RuleStackRule;
 import com.envisione.progressiveskills.common.transaction.DeliveryContract;
 import com.envisione.progressiveskills.common.transaction.EntitlementResolver;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
@@ -42,6 +46,7 @@ public final class CoreSchemas {
         builder.register(definitionPatch());
         builder.register(skillDefinition());
         builder.register(currencyDefinition());
+        builder.register(ruleDefinition());
         builder.register(transactionPlan());
         builder.register(transitionAction());
         builder.register(entitlementContribution());
@@ -419,6 +424,119 @@ public final class CoreSchemas {
                                 "Phase 7 authority scope.", "character",
                                 CoreDiagnostics.INVALID_CURRENCY, EditorWidget.SELECT, 80)
                                 .allowedValues("character").defaultString("character").omitWhenDefault().build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor ruleDefinition() {
+        return schema(
+                "rule_definition",
+                SchemaAudience.AUTHORING,
+                "Gameplay rule definition",
+                "Compiled trigger route with literal fixed point output and bounded anti exploit memory.",
+                List.of(
+                        field("allow_custom_name", SchemaValueType.BOOLEAN, false,
+                                "Explicit opt in for normalized player controlled custom name matching.", "false",
+                                CoreDiagnostics.INVALID_RULE_MATCHER, EditorWidget.CHECKBOX, 80)
+                                .defaultBoolean(false).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.cooldown_ticks", SchemaValueType.INTEGER, false,
+                                "Minimum world ticks between committed awards from this source.", "10",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.INTEGER, 210)
+                                .defaultInteger(0).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.fake_players", SchemaValueType.ENUM, false,
+                                "Whether automation identities may receive this route.", "deny",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.SELECT, 190)
+                                .allowedValues(Arrays.stream(FakePlayerPolicy.values())
+                                        .map(FakePlayerPolicy::serializedName).toArray(String[]::new))
+                                .defaultString("deny").omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.first_time", SchemaValueType.BOOLEAN, false,
+                                "Persist one receipt like source marker and reject later awards.", "false",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.CHECKBOX, 200)
+                                .defaultBoolean(false).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.minimum_multiplier", SchemaValueType.DECIMAL, false,
+                                "Floor for repeated source decay.", "0.25",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.DECIMAL, 270)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.per_day_cap", SchemaValueType.DECIMAL, false,
+                                "Maximum fixed point XP from this source per Minecraft day bucket.", "400",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.DECIMAL, 240)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.per_minute_cap", SchemaValueType.DECIMAL, false,
+                                "Maximum fixed point XP from this source per 1200 tick bucket.", "40",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.DECIMAL, 230)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.per_tick_cap", SchemaValueType.DECIMAL, false,
+                                "Maximum fixed point XP from this source in one world tick.", "10",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.DECIMAL, 220)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.repeat_decay", SchemaValueType.DECIMAL, false,
+                                "Multiplier applied for each repeated source event inside the repeat window.", "0.5",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.DECIMAL, 260)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("anti_exploit.repeat_window_ticks", SchemaValueType.INTEGER, false,
+                                "Bounded source repetition window in world ticks.", "100",
+                                CoreDiagnostics.INVALID_RULE_ANTI_EXPLOIT, EditorWidget.INTEGER, 250)
+                                .defaultInteger(0).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("base", SchemaValueType.DECIMAL, true,
+                                "Positive literal fixed point amount before multiplier stacks and caps.", "8",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.DECIMAL, 100)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("credit", SchemaValueType.ENUM, false,
+                                "Phase 8 credit subject.", "actor",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.SELECT, 60)
+                                .allowedValues("actor").defaultString("actor").omitWhenDefault()
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether this rule is present in its compiled trigger table.", "true",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.CHECKBOX, 20)
+                                .defaultBoolean(true).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("match", SchemaValueType.LIST, false,
+                                "OR matched subjects with bare ids, prefixes, and optional leading negation filters.",
+                                "[\"id:minecraft:stone\", \"tag:minecraft:logs\"]",
+                                CoreDiagnostics.INVALID_RULE_MATCHER, EditorWidget.LIST, 70)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault()
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("multipliers", SchemaValueType.LIST, false,
+                                "Literal modifiers resolved by fixed stage and stable stack group.",
+                                "[{ id = \"mypack:training/context\", stage = \"context\", group = \"mypack:training\", mode = \"add\", value = 0.25 }]",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.LIST, 110)
+                                .defaultEmptyList().diff(DiffPolicy.MERGE_BY_KEY).omitWhenDefault()
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("multipliers.mode", SchemaValueType.ENUM, false,
+                                "Stack resolution within one literal multiplier group.", "add",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.SELECT, 112)
+                                .allowedValues(Arrays.stream(RuleMultiplierMode.values())
+                                        .map(RuleMultiplierMode::serializedName).toArray(String[]::new))
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("multipliers.stage", SchemaValueType.ENUM, false,
+                                "Fixed multiplier pipeline stage.", "context",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.SELECT, 111)
+                                .allowedValues(Arrays.stream(RuleMultiplierStage.values())
+                                        .map(RuleMultiplierStage::serializedName).toArray(String[]::new))
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("outputs", SchemaValueType.LIST, true,
+                                "Exactly one Phase 8 XP output using rule_amount.",
+                                "[{ id = \"mypack:stone/xp\", type = \"xp\", skill = \"mypack:mining\", amount_formula = \"rule_amount\" }]",
+                                CoreDiagnostics.INVALID_RULE, EditorWidget.LIST, 120)
+                                .diff(DiffPolicy.MERGE_BY_KEY).projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("priority", SchemaValueType.INTEGER, false,
+                                "Higher priority wins first and exclusive route selection.", "100",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.INTEGER, 40)
+                                .defaultInteger(0).omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("stack_group", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Stable group for overlapping matching rules.", "mypack:ore_mining",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.RESOURCE_LOCATION, 50)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("stack_rule", SchemaValueType.ENUM, false,
+                                "Deterministic overlap policy for the stable route group.", "highest",
+                                CoreDiagnostics.INVALID_RULE_STACK, EditorWidget.SELECT, 55)
+                                .allowedValues(Arrays.stream(RuleStackRule.values())
+                                        .map(RuleStackRule::serializedName).toArray(String[]::new))
+                                .defaultString("sum").omitWhenDefault().projection(ProjectionPolicy.SERVER_ONLY).build(),
+                        field("trigger", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Registered server side event route.", "progressiveskills:block_break",
+                                CoreDiagnostics.UNKNOWN_RULE_TRIGGER, EditorWidget.RESOURCE_LOCATION, 30)
+                                .projection(ProjectionPolicy.SERVER_ONLY).build()
                 )
         );
     }

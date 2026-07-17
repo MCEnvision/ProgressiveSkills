@@ -57,6 +57,12 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode INVALID_ATTRIBUTE_GRANT = code("PS-SKILL-004");
     public static final DiagnosticCode SKILL_STATE_DRIFT = code("PS-SKILL-005");
     public static final DiagnosticCode INVALID_CURRENCY = code("PS-CURRENCY-001");
+    public static final DiagnosticCode INVALID_RULE = code("PS-RULE-001");
+    public static final DiagnosticCode UNKNOWN_RULE_TRIGGER = code("PS-RULE-002");
+    public static final DiagnosticCode INVALID_RULE_MATCHER = code("PS-RULE-003");
+    public static final DiagnosticCode INVALID_RULE_STACK = code("PS-RULE-004");
+    public static final DiagnosticCode INVALID_RULE_ANTI_EXPLOIT = code("PS-RULE-005");
+    public static final DiagnosticCode RULE_EVENT_REJECTED = code("PS-RULE-006");
 
     private CoreDiagnostics() {
     }
@@ -275,6 +281,30 @@ public final class CoreDiagnostics {
                         "Named currency definition is invalid",
                         "Currency scope, initial value, and checked bounds must form one consistent contract.",
                         "Use character scope and keep the initial value inside the declared minimum and maximum.", false))
+                .register(descriptor(INVALID_RULE, DiagnosticSeverity.ERROR,
+                        "Rule definition is invalid",
+                        "A gameplay route must compile to one bounded deterministic transaction path.",
+                        "Correct the rule using the generated rule definition schema.", false))
+                .register(descriptor(UNKNOWN_RULE_TRIGGER, DiagnosticSeverity.ERROR,
+                        "Rule trigger has no provider",
+                        "A rule cannot run without one registered server side trigger provider.",
+                        "Use a trigger supported by the installed provider registry.", false))
+                .register(descriptor(INVALID_RULE_MATCHER, DiagnosticSeverity.ERROR,
+                        "Rule matcher is invalid",
+                        "Unknown prefixes or subject incompatible matchers cannot compile into a safe route table.",
+                        "Use a documented prefix supported by the selected trigger subject.", false))
+                .register(descriptor(INVALID_RULE_STACK, DiagnosticSeverity.ERROR,
+                        "Rule stack group is invalid",
+                        "Rules and literal multipliers in one group require one deterministic stack policy.",
+                        "Use one stack policy per stable group and unique multiplier ids.", false))
+                .register(descriptor(INVALID_RULE_ANTI_EXPLOIT, DiagnosticSeverity.ERROR,
+                        "Rule anti exploit policy is invalid",
+                        "Cooldowns, rate caps, fake player policy, and repeat decay must stay bounded.",
+                        "Correct the anti exploit windows, caps, and fixed point multipliers.", false))
+                .register(descriptor(RULE_EVENT_REJECTED, DiagnosticSeverity.WARNING,
+                        "Rule event was rejected",
+                        "Dedupe, eligibility, cooldown, first time memory, fake player policy, or a rate cap denied the event.",
+                        "Inspect the bounded last XP explanation before changing the rule.", true))
                 .build();
     }
 

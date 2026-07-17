@@ -1,10 +1,12 @@
 package com.envisione.progressiveskills.server.skill;
 
+import com.envisione.progressiveskills.common.rule.RuleMemoryKeys;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillAwardPlan;
 import com.envisione.progressiveskills.common.skill.SkillCatalog;
 import com.envisione.progressiveskills.common.skill.SkillDefinition;
 import com.envisione.progressiveskills.common.skill.SkillProgression;
+import com.envisione.progressiveskills.common.transaction.BalanceMutation;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
 import com.envisione.progressiveskills.common.transaction.ProgressionCause;
@@ -17,6 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,6 +68,30 @@ public final class SkillRuntime {
         );
     }
 
+    public static AwardResult awardRule(
+            ServerPlayer target,
+            SkillDefinition skill,
+            long amountUnits,
+            ResourceLocation ruleId,
+            String idempotency,
+            List<BalanceMutation> memoryMutations
+    ) {
+        if (memoryMutations.stream().anyMatch(mutation -> !RuleMemoryKeys.isInternal(mutation.balanceId()))) {
+            throw new IllegalArgumentException("Rule awards accept only internal source memory mutations");
+        }
+        return award(
+                target.getUUID(),
+                target,
+                skill,
+                amountUnits,
+                ruleId,
+                idempotency,
+                ProgressionCause.GAMEPLAY,
+                "Award rule skill XP",
+                memoryMutations
+        );
+    }
+
     private static AwardResult award(
             UUID actor,
             ServerPlayer target,
@@ -74,6 +101,30 @@ public final class SkillRuntime {
             String idempotency,
             ProgressionCause cause,
             String reason
+    ) {
+        return award(
+                actor,
+                target,
+                skill,
+                amountUnits,
+                origin,
+                idempotency,
+                cause,
+                reason,
+                List.of()
+        );
+    }
+
+    private static AwardResult award(
+            UUID actor,
+            ServerPlayer target,
+            SkillDefinition skill,
+            long amountUnits,
+            ResourceLocation origin,
+            String idempotency,
+            ProgressionCause cause,
+            String reason,
+            List<BalanceMutation> memoryMutations
     ) {
         Objects.requireNonNull(actor, "actor");
         Objects.requireNonNull(target, "target");
@@ -93,7 +144,8 @@ public final class SkillRuntime {
                 new IdempotencyKey(idempotency),
                 origin,
                 cause,
-                reason
+                reason,
+                memoryMutations
         );
         TransactionResult result = context.executeAndPersist(target, plan.cascade(), definition);
         if (result.status().committed() && !result.replayed()) {

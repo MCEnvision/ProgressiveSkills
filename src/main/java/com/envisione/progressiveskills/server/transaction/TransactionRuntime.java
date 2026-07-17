@@ -15,6 +15,7 @@ import com.envisione.progressiveskills.server.audit.PersistenceMetadataSavedData
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
 import com.envisione.progressiveskills.server.network.NetworkRuntime;
 import com.envisione.progressiveskills.server.skill.SkillRuntime;
+import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
@@ -152,6 +153,7 @@ public final class TransactionRuntime {
         if (context == null || context.server() != server) {
             return;
         }
+        RuleRuntime.pause();
         server.getPlayerList().getPlayers().forEach(player -> {
             try {
                 loadAndReproject(player, false);
@@ -161,6 +163,7 @@ public final class TransactionRuntime {
                         + "their network session was invalidated", player.getUUID(), exception);
             }
         });
+        RuleRuntime.reload(server);
     }
 
     private static void loadAndReproject(ServerPlayer player, boolean applyPendingOperations) {

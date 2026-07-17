@@ -31,6 +31,8 @@ public final class TypedDefinitionCompiler {
             return SkillTomlCompiler.skill(key, fields, provenance, sourceMap);
         } else if (key.kind().equals(DefinitionKinds.CURRENCY)) {
             return SkillTomlCompiler.currency(key, fields, provenance, sourceMap);
+        } else if (key.kind().equals(DefinitionKinds.RULE)) {
+            return RuleTomlCompiler.rule(key, fields, provenance, sourceMap);
         } else {
             throw new UnsupportedDefinitionSchemaException(
                     "Definition kind " + key.kind().id() + " is reserved but its typed compiler is not implemented yet"

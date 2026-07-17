@@ -18,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,6 +44,36 @@ public final class SkillProgression {
             ProgressionCause cause,
             String reason
     ) {
+        return award(
+                actor,
+                target,
+                skill,
+                amountUnits,
+                catalog,
+                snapshot,
+                definition,
+                idempotencyKey,
+                origin,
+                cause,
+                reason,
+                List.of()
+        );
+    }
+
+    public static SkillAwardPlan award(
+            UUID actor,
+            UUID target,
+            SkillDefinition skill,
+            long amountUnits,
+            SkillCatalog catalog,
+            ProgressionSnapshot snapshot,
+            DefinitionRevision definition,
+            IdempotencyKey idempotencyKey,
+            ResourceLocation origin,
+            ProgressionCause cause,
+            String reason,
+            List<BalanceMutation> additionalBalances
+    ) {
         Objects.requireNonNull(actor, "actor");
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(skill, "skill");
@@ -52,6 +83,7 @@ public final class SkillProgression {
         Objects.requireNonNull(idempotencyKey, "idempotencyKey");
         Objects.requireNonNull(origin, "origin");
         Objects.requireNonNull(cause, "cause");
+        additionalBalances = List.copyOf(Objects.requireNonNull(additionalBalances, "additionalBalances"));
         if (!skill.enabled()) {
             throw new IllegalArgumentException("Skill is disabled " + skill.id());
         }
@@ -96,6 +128,7 @@ public final class SkillProgression {
                     currency.minimum(), currency.maximum());
             currencyAwarded = Math.addExact(currencyAwarded, entry.getValue());
         }
+        balances.addAll(additionalBalances);
 
         var entitlements = entitlementChanges(skill, newLevel, snapshot);
         var step = new TransactionStep(origin, balances, entitlements, java.util.List.of());

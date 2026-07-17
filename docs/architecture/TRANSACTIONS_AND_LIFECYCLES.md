@@ -1,6 +1,6 @@
 # Transactions and Output Lifecycles
 
-Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, and synchronized by the Phase 6 bounded protocol.
+Status: Phase 4 transaction core implemented, backed by the Phase 5 versioned player attachment, synchronized by the Phase 6 bounded protocol, and used by the Phase 7 and Phase 8 XP paths.
 
 ## Scope and boundary
 
@@ -19,7 +19,7 @@ Phase 4 implements the mutation and lifecycle machinery required before skills, 
 
 `common.transaction` contains only side-neutral plans, identities, immutable results, and the bounded coordinator. Minecraft attributes, inventory delivery, player lookup, events, and commands remain under `server.transaction` and `server.command`.
 
-Phase 4 itself does not provide gameplay schemas or skill/XP behavior. Phase 5 persists the complete bounded account state, restores it before projection, distinguishes death/non-death copies, and queues offline work for login rather than editing unloaded player files. Phase 6 sends the owning client a redacted visible snapshot/delta only after that authority commits; durable ledgers remain server-only. Phase 7 now compiles skill awards into this same transaction and ownership pipeline. See [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md), [NETWORKING.md](NETWORKING.md), and [SKILL_XP.md](SKILL_XP.md).
+Phase 4 itself does not provide gameplay schemas or skill/XP behavior. Phase 5 persists the complete bounded account state, restores it before projection, distinguishes death/non-death copies, and queues offline work for login rather than editing unloaded player files. Phase 6 sends the owning client a redacted visible snapshot/delta only after that authority commits; durable ledgers remain server-only. Phase 7 compiles skill awards into this same transaction and ownership pipeline. Phase 8 appends internal rule-memory mutations to the award plan so XP, cooldown, first-time, repeat, and rate-cap state either commit together or do not change. See [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md), [NETWORKING.md](NETWORKING.md), [SKILL_XP.md](SKILL_XP.md), and [RULE_ENGINE.md](RULE_ENGINE.md).
 
 ## Transaction pipeline
 

@@ -10,6 +10,7 @@ import com.envisione.progressiveskills.server.offline.PendingOperationSavedData;
 import com.envisione.progressiveskills.server.offline.PendingProgressionOperation;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.envisione.progressiveskills.server.transaction.PlayerPersistentProjector;
+import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -22,7 +23,10 @@ import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -213,6 +217,105 @@ public final class ProgressiveSkillsGameTests {
                     Math.abs(player.getAttributeValue(Attributes.JUMP_STRENGTH)
                             - initialJumpStrength * 1.15D) < 0.000001D,
                     "Physique jump grants must survive exact state restoration"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps rule status", playerSource) == 1,
+                    "The compiled Phase 8 rule table must be inspectable"
+            );
+            var fakeResult = RuleRuntime.processBlockBreak(
+                    FakePlayerFactory.getMinecraft(helper.getLevel()),
+                    Blocks.STONE.defaultBlockState(),
+                    helper.absolutePos(new BlockPos(0, 1, 1)),
+                    helper.getLevel().dimension().location(),
+                    helper.getLevel().getGameTime()
+            );
+            helper.assertTrue(
+                    fakeResult.awardedUnits() == 0 && fakeResult.outcome().contains("fake player"),
+                    "The default fake player policy must deny the matched route"
+            );
+            long beforeRuleXp = context.service().snapshot(player.getUUID()).balances().get(
+                    SkillStateIds.activeXp(physiqueId)
+            );
+            BlockPos stone = helper.absolutePos(new BlockPos(1, 1, 1));
+            helper.getLevel().setBlockAndUpdate(stone, Blocks.STONE.defaultBlockState());
+            player.teleportTo(stone.getX() + 0.5D, stone.getY() + 1.0D, stone.getZ() + 0.5D);
+            helper.assertTrue(player.gameMode.destroyBlock(stone),
+                    "The real server block break binding must accept stone");
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("10"),
+                    "The compiled stone rule must award its multiplied ten XP"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().execute("ps explain xp last", playerSource) == 1,
+                    "The last committed rule trace must be explainable"
+            );
+            long eventTick = helper.getLevel().getGameTime();
+            var duplicate = RuleRuntime.processBlockBreak(
+                    player,
+                    Blocks.STONE.defaultBlockState(),
+                    stone,
+                    helper.getLevel().dimension().location(),
+                    eventTick
+            );
+            helper.assertTrue(
+                    duplicate.awardedUnits() == 0 && duplicate.outcome().contains("duplicate"),
+                    "The same block event token must be rejected without another award"
+            );
+            BlockPos secondStone = helper.absolutePos(new BlockPos(2, 1, 1));
+            helper.getLevel().setBlockAndUpdate(secondStone, Blocks.STONE.defaultBlockState());
+            helper.assertTrue(player.gameMode.destroyBlock(secondStone),
+                    "A distinct stone block must be broken successfully"
+            );
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("10"),
+                    "The stone cooldown must reject a distinct immediate event"
+            );
+            BlockPos firstLog = helper.absolutePos(new BlockPos(3, 1, 1));
+            helper.getLevel().setBlockAndUpdate(firstLog, Blocks.OAK_LOG.defaultBlockState());
+            helper.assertTrue(player.gameMode.destroyBlock(firstLog),
+                    "The first time tag matched log rule must bind to a real break event");
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("30"),
+                    "The first log must award exactly twenty XP"
+            );
+            BlockPos secondLog = helper.absolutePos(new BlockPos(4, 1, 1));
+            helper.getLevel().setBlockAndUpdate(secondLog, Blocks.OAK_LOG.defaultBlockState());
+            helper.assertTrue(player.gameMode.destroyBlock(secondLog),
+                    "The second log must still be physically breakable");
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("30"),
+                    "Persistent first time memory must reject the second log award"
+            );
+            RuleRuntime.pause();
+            var paused = RuleRuntime.processBlockBreak(
+                    player,
+                    Blocks.STONE.defaultBlockState(),
+                    helper.absolutePos(new BlockPos(5, 1, 1)),
+                    helper.getLevel().dimension().location(),
+                    helper.getLevel().getGameTime()
+            );
+            helper.assertTrue(
+                    paused.awardedUnits() == 0 && paused.outcome().contains("no active"),
+                    "The publication barrier must pause every gameplay route"
+            );
+            RuleRuntime.reload(server);
+            BlockPos thirdLog = helper.absolutePos(new BlockPos(6, 1, 1));
+            helper.getLevel().setBlockAndUpdate(thirdLog, Blocks.OAK_LOG.defaultBlockState());
+            helper.assertTrue(player.gameMode.destroyBlock(thirdLog),
+                    "The rebuilt tag route must remain physically callable");
+            helper.assertTrue(
+                    context.service().snapshot(player.getUUID()).balances().get(
+                            SkillStateIds.activeXp(physiqueId)
+                    ) == beforeRuleXp + FixedPoint.parse("30"),
+                    "A route table rebuild must retain first time source memory"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,

@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 7. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 8. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -394,6 +394,39 @@ Atomically written, reread, and digest-verified recovery envelope for one attach
 | `player_data_digest` (required) | `string` | — | — | SHA-256 digest verified after the atomic write. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-DATA-006` | `object` | `server_only` | `replace` |
 | `player_id` (required) | `string` | — | — | UUID whose attachment is enclosed. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
 | `snapshot_version` (required) | `integer` | — | — | Snapshot envelope contract version. | `1` | `PS-DATA-006` | `object` | `server_only` | `replace` |
+
+## Gameplay rule definition
+
+- Schema ID: `progressiveskills:rule_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Compiled trigger route with literal fixed point output and bounded anti exploit memory.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `allow_custom_name` | `boolean` | — | `false` | Explicit opt in for normalized player controlled custom name matching. | `false` | `PS-RULE-003` | `checkbox` | `server_only` | `replace` |
+| `anti_exploit.cooldown_ticks` | `integer` | — | `0` | Minimum world ticks between committed awards from this source. | `10` | `PS-RULE-005` | `integer` | `server_only` | `replace` |
+| `anti_exploit.fake_players` | `enum` | `deny \| allow` | `"deny"` | Whether automation identities may receive this route. | `deny` | `PS-RULE-005` | `select` | `server_only` | `replace` |
+| `anti_exploit.first_time` | `boolean` | — | `false` | Persist one receipt like source marker and reject later awards. | `false` | `PS-RULE-005` | `checkbox` | `server_only` | `replace` |
+| `anti_exploit.minimum_multiplier` | `decimal` | — | — | Floor for repeated source decay. | `0.25` | `PS-RULE-005` | `decimal` | `server_only` | `replace` |
+| `anti_exploit.per_day_cap` | `decimal` | — | — | Maximum fixed point XP from this source per Minecraft day bucket. | `400` | `PS-RULE-005` | `decimal` | `server_only` | `replace` |
+| `anti_exploit.per_minute_cap` | `decimal` | — | — | Maximum fixed point XP from this source per 1200 tick bucket. | `40` | `PS-RULE-005` | `decimal` | `server_only` | `replace` |
+| `anti_exploit.per_tick_cap` | `decimal` | — | — | Maximum fixed point XP from this source in one world tick. | `10` | `PS-RULE-005` | `decimal` | `server_only` | `replace` |
+| `anti_exploit.repeat_decay` | `decimal` | — | — | Multiplier applied for each repeated source event inside the repeat window. | `0.5` | `PS-RULE-005` | `decimal` | `server_only` | `replace` |
+| `anti_exploit.repeat_window_ticks` | `integer` | — | `0` | Bounded source repetition window in world ticks. | `100` | `PS-RULE-005` | `integer` | `server_only` | `replace` |
+| `base` (required) | `decimal` | — | — | Positive literal fixed point amount before multiplier stacks and caps. | `8` | `PS-RULE-001` | `decimal` | `server_only` | `replace` |
+| `credit` | `enum` | `actor` | `"actor"` | Phase 8 credit subject. | `actor` | `PS-RULE-001` | `select` | `server_only` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether this rule is present in its compiled trigger table. | `true` | `PS-RULE-001` | `checkbox` | `server_only` | `replace` |
+| `match` | `list` | — | `[]` | OR matched subjects with bare ids, prefixes, and optional leading negation filters. | `["id:minecraft:stone", "tag:minecraft:logs"]` | `PS-RULE-003` | `list` | `server_only` | `set` |
+| `multipliers` | `list` | — | `[]` | Literal modifiers resolved by fixed stage and stable stack group. | `[{ id = "mypack:training/context", stage = "context", group = "mypack:training", mode = "add", value = 0.25 }]` | `PS-RULE-004` | `list` | `server_only` | `merge_by_key` |
+| `multipliers.mode` | `enum` | `add \| multiply \| highest \| lowest \| replace` | — | Stack resolution within one literal multiplier group. | `add` | `PS-RULE-004` | `select` | `server_only` | `replace` |
+| `multipliers.stage` | `enum` | `context \| equipment \| party_team \| rested_catch_up \| prestige_season \| global_difficulty` | — | Fixed multiplier pipeline stage. | `context` | `PS-RULE-004` | `select` | `server_only` | `replace` |
+| `outputs` (required) | `list` | — | — | Exactly one Phase 8 XP output using rule_amount. | `[{ id = "mypack:stone/xp", type = "xp", skill = "mypack:mining", amount_formula = "rule_amount" }]` | `PS-RULE-001` | `list` | `server_only` | `merge_by_key` |
+| `priority` | `integer` | — | `0` | Higher priority wins first and exclusive route selection. | `100` | `PS-RULE-004` | `integer` | `server_only` | `replace` |
+| `stack_group` | `resource_location` | — | — | Stable group for overlapping matching rules. | `mypack:ore_mining` | `PS-RULE-004` | `resource_location` | `server_only` | `replace` |
+| `stack_rule` | `enum` | `sum \| highest \| first \| exclusive \| diminishing` | `"sum"` | Deterministic overlap policy for the stable route group. | `highest` | `PS-RULE-004` | `select` | `server_only` | `replace` |
+| `trigger` (required) | `resource_location` | — | — | Registered server side event route. | `progressiveskills:block_break` | `PS-RULE-002` | `resource_location` | `server_only` | `replace` |
 
 ## Skill definition
 
@@ -843,6 +876,60 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `false`
 - Why it matters: Neither current content nor a verified recovery bundle could produce a safe live snapshot.
 - Suggested fix: Restore a valid pack source or a complete world backup and validate again.
+
+<a id="ps-rule-001"></a>
+
+### PS-RULE-001 — Rule definition is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A gameplay route must compile to one bounded deterministic transaction path.
+- Suggested fix: Correct the rule using the generated rule definition schema.
+
+<a id="ps-rule-002"></a>
+
+### PS-RULE-002 — Rule trigger has no provider
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A rule cannot run without one registered server side trigger provider.
+- Suggested fix: Use a trigger supported by the installed provider registry.
+
+<a id="ps-rule-003"></a>
+
+### PS-RULE-003 — Rule matcher is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Unknown prefixes or subject incompatible matchers cannot compile into a safe route table.
+- Suggested fix: Use a documented prefix supported by the selected trigger subject.
+
+<a id="ps-rule-004"></a>
+
+### PS-RULE-004 — Rule stack group is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Rules and literal multipliers in one group require one deterministic stack policy.
+- Suggested fix: Use one stack policy per stable group and unique multiplier ids.
+
+<a id="ps-rule-005"></a>
+
+### PS-RULE-005 — Rule anti exploit policy is invalid
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Cooldowns, rate caps, fake player policy, and repeat decay must stay bounded.
+- Suggested fix: Correct the anti exploit windows, caps, and fixed point multipliers.
+
+<a id="ps-rule-006"></a>
+
+### PS-RULE-006 — Rule event was rejected
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Dedupe, eligibility, cooldown, first time memory, fake player policy, or a rate cap denied the event.
+- Suggested fix: Inspect the bounded last XP explanation before changing the rule.
 
 <a id="ps-schema-001"></a>
 

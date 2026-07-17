@@ -9,11 +9,12 @@ import com.envisione.progressiveskills.common.network.PsNetworking;
 import com.envisione.progressiveskills.common.network.NetworkPayloads;
 import com.envisione.progressiveskills.common.network.ServerNetworkSessions;
 import com.envisione.progressiveskills.common.network.VisiblePlayerState;
+import com.envisione.progressiveskills.common.rule.RuleMemoryKeys;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -144,8 +145,7 @@ public final class NetworkRuntime {
         var data = player.getData(PsDataAttachments.PLAYER_DATA);
         var dataView = data.view();
         var state = transactionContext.orElseThrow().service().snapshot(player.getUUID());
-        Map<String, Long> balances = new LinkedHashMap<>();
-        state.balances().forEach((key, value) -> balances.put(key.toString(), value));
+        Map<String, Long> balances = visibleBalances(state.balances());
         Map<String, Long> effective = new LinkedHashMap<>();
         state.projectedValues().forEach((key, value) -> effective.put(key.toString(), value));
         var visible = new VisiblePlayerState(
@@ -162,6 +162,18 @@ public final class NetworkRuntime {
                 !data.active()
         );
         return new Projection(definition, live.generation(), presentationDigest, definitions, visible);
+    }
+
+    static Map<String, Long> visibleBalances(
+            Map<net.minecraft.resources.ResourceLocation, Long> authoritative
+    ) {
+        Map<String, Long> balances = new LinkedHashMap<>();
+        authoritative.forEach((key, value) -> {
+            if (!RuleMemoryKeys.isInternal(key)) {
+                balances.put(key.toString(), value);
+            }
+        });
+        return balances;
     }
 
     private static void sendAll(ServerPlayer player, List<CustomPacketPayload> payloads) {
