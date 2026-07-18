@@ -10,6 +10,7 @@ import com.envisione.progressiveskills.common.transaction.TransactionResult;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.hardening.DecisionTraceRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -60,6 +61,7 @@ public final class TreeRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "tree purchase", nodeId, transaction, context);
         return new PurchaseResult(preview, transaction);
     }
 
@@ -95,6 +97,7 @@ public final class TreeRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "tree refund", nodeId, transaction, context);
         return new RefundResult(preview, transaction);
     }
 
@@ -127,6 +130,7 @@ public final class TreeRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "tree respec", treeId, transaction, context);
         return new RefundResult(preview, transaction);
     }
 
@@ -186,6 +190,19 @@ public final class TreeRuntime {
         if (!data.active()) {
             throw new IllegalStateException("Player progression data is quarantined");
         }
+    }
+
+    private static void trace(
+            ServerPlayer player,
+            String operation,
+            ResourceLocation subject,
+            TransactionResult result,
+            Context context
+    ) {
+        DecisionTraceRuntime.record(
+                player.getUUID(), "lock", operation + ". " + subject,
+                result.status().committed(), result.message(),
+                context.transactions().service().snapshot(player.getUUID()).stateRevision());
     }
 
     public record PurchaseResult(

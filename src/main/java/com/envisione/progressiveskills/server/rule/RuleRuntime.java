@@ -34,7 +34,6 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.PistonEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import java.util.ArrayList;
@@ -60,12 +59,6 @@ public final class RuleRuntime {
     private static final Map<PistonKey, PistonPlan> PENDING_PISTONS = new HashMap<>();
 
     private RuleRuntime() {
-    }
-
-    @SubscribeEvent
-    static void onServerStarted(ServerStartedEvent event) {
-        PENDING_PISTONS.clear();
-        reload(event.getServer());
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

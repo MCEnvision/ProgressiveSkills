@@ -6,17 +6,24 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 
 /** Registers the closed ProgressiveSkills protocol and owns shared connection state. */
 public final class PsNetworking {
     private static final ClientNetworkState CLIENT = ClientNetworkState.systemClock();
     private static final ServerNetworkSessions SERVER = ServerNetworkSessions.systemClock();
+    private static final AtomicReference<NetworkPayloads.StudioFileResult> STUDIO_FILE_RESULT =
+            new AtomicReference<>();
     private static volatile Supplier<String> clientConnectionIdentity = () -> "";
     private static volatile ServerNetworkSessions.IntentExecutor serverIntentExecutor =
             ServerNetworkSessions.IntentExecutor.REJECT_TREE_INTENTS;
@@ -24,6 +31,13 @@ public final class PsNetworking {
             ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS;
     private static volatile ServerNetworkSessions.AbilityIntentExecutor serverAbilityIntentExecutor =
             ServerNetworkSessions.AbilityIntentExecutor.REJECT_ABILITY_INTENTS;
+    private static volatile ServerNetworkSessions.CarrierIntentExecutor serverCarrierIntentExecutor =
+            ServerNetworkSessions.CarrierIntentExecutor.REJECT_CARRIER_INTENTS;
+    private static volatile StudioFileExecutor serverStudioFileExecutor = StudioFileExecutor.REJECT;
+    private static volatile LongConsumer clientIntentSentListener = ignored -> {
+    };
+    private static volatile Consumer<NetworkPayloads.IntentResult> clientIntentResultListener = ignored -> {
+    };
 
     private PsNetworking() {
     }
@@ -45,6 +59,12 @@ public final class PsNetworking {
                         NetworkPayloads.TreeRefundPreview.STREAM_CODEC, PsNetworking::receiveTreeRefundPreview)
                 .playToClient(NetworkPayloads.ClassChangePreview.TYPE,
                         NetworkPayloads.ClassChangePreview.STREAM_CODEC, PsNetworking::receiveClassChangePreview)
+                .playToClient(NetworkPayloads.CarrierMigrationPreview.TYPE,
+                        NetworkPayloads.CarrierMigrationPreview.STREAM_CODEC,
+                        PsNetworking::receiveCarrierMigrationPreview)
+                .playToClient(NetworkPayloads.StudioFileResult.TYPE,
+                        NetworkPayloads.StudioFileResult.STREAM_CODEC,
+                        PsNetworking::receiveStudioFileResult)
                 .playToServer(NetworkPayloads.ClientHello.TYPE,
                         NetworkPayloads.ClientHello.STREAM_CODEC, PsNetworking::receiveClientHello)
                 .playToServer(NetworkPayloads.TransferAck.TYPE,
@@ -53,6 +73,8 @@ public final class PsNetworking {
                         NetworkPayloads.StateAck.STREAM_CODEC, PsNetworking::receiveStateAck)
                 .playToServer(NetworkPayloads.ResyncRequest.TYPE,
                         NetworkPayloads.ResyncRequest.STREAM_CODEC, PsNetworking::receiveResyncRequest)
+                .playToServer(NetworkPayloads.StudioFilePut.TYPE,
+                        NetworkPayloads.StudioFilePut.STREAM_CODEC, PsNetworking::receiveStudioFilePut)
                 .playToServer(NetworkPayloads.Intent.TYPE,
                         NetworkPayloads.Intent.STREAM_CODEC, PsNetworking::receiveIntent);
     }
@@ -92,10 +114,17 @@ public final class PsNetworking {
 
     public static void clientDisconnect() {
         CLIENT.disconnect();
+        STUDIO_FILE_RESULT.set(null);
     }
 
     public static void clearClientDefinitionCache() {
         CLIENT.clearDefinitionCache();
+    }
+
+    public static boolean requestClientResync(String reason) {
+        Optional<NetworkPayloads.ResyncRequest> request = CLIENT.prepareResync(reason);
+        request.ifPresent(PacketDistributor::sendToServer);
+        return request.isPresent();
     }
 
     public static void configureServerIntentExecutor(ServerNetworkSessions.IntentExecutor executor) {
@@ -114,12 +143,30 @@ public final class PsNetworking {
         serverAbilityIntentExecutor = Objects.requireNonNull(executor, "executor");
     }
 
+    public static void configureServerCarrierIntentExecutor(
+            ServerNetworkSessions.CarrierIntentExecutor executor
+    ) {
+        serverCarrierIntentExecutor = Objects.requireNonNull(executor, "executor");
+    }
+
+    public static void configureServerStudioFileExecutor(StudioFileExecutor executor) {
+        serverStudioFileExecutor = Objects.requireNonNull(executor, "executor");
+    }
+
+    public static void configureClientIntentLifecycle(
+            LongConsumer sentListener,
+            Consumer<NetworkPayloads.IntentResult> resultListener
+    ) {
+        clientIntentSentListener = Objects.requireNonNull(sentListener, "sentListener");
+        clientIntentResultListener = Objects.requireNonNull(resultListener, "resultListener");
+    }
+
     public static boolean sendTreeIntent(
             NetworkPayloads.IntentType intentType,
             TreeIntentPayload payload
     ) {
         Optional<NetworkPayloads.Intent> intent = CLIENT.prepareIntent(intentType, payload);
-        intent.ifPresent(PacketDistributor::sendToServer);
+        intent.ifPresent(PsNetworking::sendClientIntent);
         return intent.isPresent();
     }
 
@@ -147,7 +194,7 @@ public final class PsNetworking {
             ClassIntentPayload payload
     ) {
         Optional<NetworkPayloads.Intent> intent = CLIENT.prepareClassIntent(intentType, payload);
-        intent.ifPresent(PacketDistributor::sendToServer);
+        intent.ifPresent(PsNetworking::sendClientIntent);
         return intent.isPresent();
     }
 
@@ -193,7 +240,7 @@ public final class PsNetworking {
             AbilityIntentPayload payload
     ) {
         Optional<NetworkPayloads.Intent> intent = CLIENT.prepareAbilityIntent(intentType, payload);
-        intent.ifPresent(PacketDistributor::sendToServer);
+        intent.ifPresent(PsNetworking::sendClientIntent);
         return intent.isPresent();
     }
 
@@ -225,6 +272,61 @@ public final class PsNetworking {
         return sendAbilityIntent(
                 NetworkPayloads.IntentType.ABILITY_ACTIVATE,
                 AbilityIntentPayload.activate(slot));
+    }
+
+    public static boolean sendCarrierIntent(
+            NetworkPayloads.IntentType intentType,
+            CarrierIntentPayload payload
+    ) {
+        Optional<NetworkPayloads.Intent> intent = CLIENT.prepareCarrierIntent(intentType, payload);
+        intent.ifPresent(PsNetworking::sendClientIntent);
+        return intent.isPresent();
+    }
+
+    public static boolean sendClaimTake(UUID claimId) {
+        return sendCarrierIntent(
+                NetworkPayloads.IntentType.CLAIM_TAKE, CarrierIntentPayload.takeClaim(claimId));
+    }
+
+    public static boolean sendClaimTakeAll() {
+        return sendCarrierIntent(
+                NetworkPayloads.IntentType.CLAIM_TAKE_ALL, CarrierIntentPayload.takeAllClaims());
+    }
+
+    public static boolean sendCarrierInspect() {
+        return sendCarrierIntent(
+                NetworkPayloads.IntentType.CARRIER_INSPECT, CarrierIntentPayload.inspect());
+    }
+
+    public static boolean sendCarrierMigratePreview() {
+        return sendCarrierIntent(
+                NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW,
+                CarrierIntentPayload.migratePreview());
+    }
+
+    public static boolean sendCarrierMigrateConfirm(String previewDigest) {
+        return sendCarrierIntent(
+                NetworkPayloads.IntentType.CARRIER_MIGRATE_CONFIRM,
+                CarrierIntentPayload.migrateConfirm(previewDigest));
+    }
+
+    public static void sendStudioFilePut(
+            ResourceLocation draftId,
+            long revision,
+            String path,
+            String contents
+    ) {
+        PacketDistributor.sendToServer(new NetworkPayloads.StudioFilePut(
+                draftId, revision, path, contents));
+    }
+
+    public static Optional<NetworkPayloads.StudioFileResult> consumeStudioFileResult() {
+        return Optional.ofNullable(STUDIO_FILE_RESULT.getAndSet(null));
+    }
+
+    private static void sendClientIntent(NetworkPayloads.Intent intent) {
+        clientIntentSentListener.accept(intent.requestId());
+        PacketDistributor.sendToServer(intent);
     }
 
     /** Installs a client resolver for the selected world destination. */
@@ -263,7 +365,10 @@ public final class PsNetworking {
     }
 
     private static void receiveIntentResult(NetworkPayloads.IntentResult payload, IPayloadContext context) {
-        clientHandle(context, () -> CLIENT.receiveIntentResult(payload));
+        clientHandle(context, () -> {
+            CLIENT.receiveIntentResult(payload);
+            clientIntentResultListener.accept(payload);
+        });
     }
 
     private static void receiveTreeRefundPreview(
@@ -278,6 +383,20 @@ public final class PsNetworking {
             IPayloadContext context
     ) {
         clientHandle(context, () -> CLIENT.receiveClassChangePreview(payload));
+    }
+
+    private static void receiveCarrierMigrationPreview(
+            NetworkPayloads.CarrierMigrationPreview payload,
+            IPayloadContext context
+    ) {
+        clientHandle(context, () -> CLIENT.receiveCarrierMigrationPreview(payload));
+    }
+
+    private static void receiveStudioFileResult(
+            NetworkPayloads.StudioFileResult payload,
+            IPayloadContext context
+    ) {
+        clientHandle(context, () -> STUDIO_FILE_RESULT.set(payload));
     }
 
     private static void receiveClientHello(NetworkPayloads.ClientHello payload, IPayloadContext context) {
@@ -303,11 +422,33 @@ public final class PsNetworking {
         });
     }
 
+    private static void receiveStudioFilePut(NetworkPayloads.StudioFilePut payload, IPayloadContext context) {
+        serverHandle(context, () -> {
+            if (!(context.player() instanceof ServerPlayer player)) {
+                throw new IllegalArgumentException("Studio requests require a server player");
+            }
+            if (!player.hasPermissions(4)) {
+                context.reply(new NetworkPayloads.StudioFileResult(
+                        payload.draftId(), false, payload.revision(),
+                        "Studio requires operator permission."));
+                return;
+            }
+            try {
+                context.reply(serverStudioFileExecutor.execute(
+                        player.getServer(), player.getUUID(), payload));
+            } catch (Exception exception) {
+                context.reply(new NetworkPayloads.StudioFileResult(
+                        payload.draftId(), false, payload.revision(), safeMessage(exception)));
+            }
+        });
+    }
+
     private static void receiveIntent(NetworkPayloads.Intent payload, IPayloadContext context) {
         serverHandle(context, () -> replyAll(context,
                 SERVER.handleIntent(
                         context.player().getUUID(), payload,
-                        serverIntentExecutor, serverClassIntentExecutor, serverAbilityIntentExecutor)));
+                        serverIntentExecutor, serverClassIntentExecutor, serverAbilityIntentExecutor,
+                        serverCarrierIntentExecutor)));
     }
 
     private static void replyAll(IPayloadContext context, List<CustomPacketPayload> payloads) {
@@ -340,11 +481,23 @@ public final class PsNetworking {
                         "ProgressiveSkills synchronization was rejected after a bounded retry; reconnect safely.")));
     }
 
-    private static String safeMessage(RuntimeException exception) {
+    private static String safeMessage(Throwable exception) {
         String message = exception.getMessage();
         if (message == null || message.isBlank()) {
             return exception.getClass().getSimpleName();
         }
         return message.substring(0, Math.min(message.length(), NetworkLimits.MAX_RESYNC_REASON_BYTES));
+    }
+
+    @FunctionalInterface
+    public interface StudioFileExecutor {
+        StudioFileExecutor REJECT = (server, actor, payload) -> new NetworkPayloads.StudioFileResult(
+                payload.draftId(), false, payload.revision(), "Studio runtime is unavailable.");
+
+        NetworkPayloads.StudioFileResult execute(
+                MinecraftServer server,
+                UUID actor,
+                NetworkPayloads.StudioFilePut payload
+        ) throws Exception;
     }
 }

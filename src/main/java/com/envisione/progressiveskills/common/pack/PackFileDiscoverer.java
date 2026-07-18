@@ -46,11 +46,12 @@ public final class PackFileDiscoverer {
                     if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
                         continue;
                     }
+                    String name = path.getFileName().toString();
                     if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)
-                            || !path.getFileName().toString().endsWith(".toml")) {
-                        throw new IllegalArgumentException("Definition sources must be lowercase .toml files: " + path);
+                            || !(name.endsWith(".toml") || name.endsWith(".json"))) {
+                        throw new IllegalArgumentException("Definition sources must be lowercase TOML or JSON files: " + path);
                     }
-                    files.add(new DefinitionFile(kind, path.toAbsolutePath().normalize()));
+                    files.add(new DefinitionFile(kind, path.toAbsolutePath().normalize(), name.endsWith(".json")));
                     if (files.size() > MAX_FILES_PER_PACK) {
                         throw new IllegalArgumentException("Pack definition files exceed " + MAX_FILES_PER_PACK);
                     }
@@ -60,7 +61,7 @@ public final class PackFileDiscoverer {
         return List.copyOf(files);
     }
 
-    public record DefinitionFile(DefinitionKind kind, Path path) {
+    public record DefinitionFile(DefinitionKind kind, Path path, boolean json) {
         public DefinitionFile {
             java.util.Objects.requireNonNull(kind, "kind");
             java.util.Objects.requireNonNull(path, "path");

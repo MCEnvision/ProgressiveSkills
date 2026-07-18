@@ -1,5 +1,18 @@
 {
+  "item.progressiveskills.artifact": "Progression Artifact",
+  "item.progressiveskills.charm": "Progression Charm",
+  "item.progressiveskills.consumable": "Progression Consumable",
+  "item.progressiveskills.token": "Progression Token",
+  "item.progressiveskills.tome": "Progression Tome",
+  "item.progressiveskills.physique_level_token": "Physique Level Token",
+  "item.progressiveskills.physique_level_token.desc": "Grants one Physique level.",
+  "item.progressiveskills.physique_respec_token": "Physique Respec Token",
+  "item.progressiveskills.physique_respec_token.desc": "Refunds the Physique Training tree.",
+  "item.progressiveskills.tome_of_physique": "Tome of Physique",
+  "item.progressiveskills.tome_of_physique.desc": "Grants 500 Physique XP.",
   "key.categories.progressiveskills": "Progressive Skills",
+  "key.progressiveskills.open_progress": "Open Progression",
+  "key.progressiveskills.command_palette": "Command Palette",
   "key.progressiveskills.open_tree": "Open Skill Trees",
   "key.progressiveskills.ability_wheel": "Ability Wheel",
   "key.progressiveskills.previous_ability": "Previous Ability",
@@ -34,4 +47,9 @@
   "screen.progressiveskills.tree.preview_unavailable": "Request a valid refund preview before confirming.",
   "screen.progressiveskills.tree.confirm_review": "Affected nodes in cascade order %s. Refund balances %s",
   "screen.progressiveskills.tree.latest_result": "Latest request %s. %s"
+  ,"screen.progressiveskills.progression.title": "Progressive Skills"
+  ,"screen.progressiveskills.palette.title": "Command Palette"
+  ,"screen.progressiveskills.palette.search": "Search actions"
+  ,"screen.progressiveskills.ability_wheel.title": "Ability Wheel"
+  ,"screen.progressiveskills.ability_wheel.hint": "Choose a ready ability"
 }

@@ -1,0 +1,24 @@
+schema_version = 2
+
+[item]
+id = "progressiveskills:physique_respec_token"
+display = { key = "item.progressiveskills.physique_respec_token", fallback = "Physique Respec Token" }
+description = { key = "item.progressiveskills.physique_respec_token.desc", fallback = "Refunds the Physique Training tree." }
+icon = { type = "item", value = "minecraft:recovery_compass", fallback = "minecraft:barrier", alt = "Recovery compass" }
+enabled = true
+carrier = "progressiveskills:token"
+behavior_version = 1
+migration_policy = "keep_pinned"
+bind = "on_use"
+delivery_policy = "pending_claim"
+rarity = "rare"
+glint = true
+stack_size = 16
+charges = 1
+cooldown_ticks = 0
+
+[[use_actions]]
+id = "progressiveskills:physique_respec_token/respec_tree"
+type = "tree_respec"
+tree = "progressiveskills:physique_training"
+consume = 1

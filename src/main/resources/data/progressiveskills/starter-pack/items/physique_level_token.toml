@@ -1,0 +1,25 @@
+schema_version = 2
+
+[item]
+id = "progressiveskills:physique_level_token"
+display = { key = "item.progressiveskills.physique_level_token", fallback = "Physique Level Token" }
+description = { key = "item.progressiveskills.physique_level_token.desc", fallback = "Grants one Physique level." }
+icon = { type = "item", value = "minecraft:experience_bottle", fallback = "minecraft:barrier", alt = "Experience bottle" }
+enabled = true
+carrier = "progressiveskills:token"
+behavior_version = 1
+migration_policy = "keep_pinned"
+bind = "on_use"
+delivery_policy = "pending_claim"
+rarity = "uncommon"
+glint = true
+stack_size = 16
+charges = 1
+cooldown_ticks = 0
+
+[[use_actions]]
+id = "progressiveskills:physique_level_token/grant_level"
+type = "level"
+skill = "progressiveskills:physique"
+amount = 1
+consume = 1

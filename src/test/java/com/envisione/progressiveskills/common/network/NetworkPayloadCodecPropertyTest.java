@@ -20,6 +20,7 @@ class NetworkPayloadCodecPropertyTest {
             NetworkPayloads.TransferAck.STREAM_CODEC,
             NetworkPayloads.StateAck.STREAM_CODEC,
             NetworkPayloads.ResyncRequest.STREAM_CODEC,
+            NetworkPayloads.StudioFilePut.STREAM_CODEC,
             NetworkPayloads.Intent.STREAM_CODEC
     );
 

@@ -2,7 +2,7 @@
 
 > Generated from `CoreSchemas`; edit the registry metadata, then regenerate this file.
 
-Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 12. Gameplay definition schemas arrive with their implementation phases.
+Schema v2 includes the shared immutable IR, authoring schemas, and internal runtime contracts implemented through Phase 19. Gameplay definition schemas arrive with their implementation phases.
 
 ## Definition-kind catalog
 
@@ -13,8 +13,12 @@ Schema v2 includes the shared immutable IR, authoring schemas, and internal runt
 | `progressiveskills:category` | `categories` |
 | `progressiveskills:challenge` | `challenges` |
 | `progressiveskills:class` | `classes` |
+| `progressiveskills:class_rank` | `class_ranks` |
 | `progressiveskills:class_slot` | `class_slots` |
+| `progressiveskills:combo_mastery` | `combo_mastery` |
+| `progressiveskills:compatibility_profile` | `compatibility_profiles` |
 | `progressiveskills:component_spec` | `component_specs` |
+| `progressiveskills:context_effect` | `context_effects` |
 | `progressiveskills:conversion` | `conversions` |
 | `progressiveskills:cost_bundle` | `cost_bundles` |
 | `progressiveskills:currency` | `currencies` |
@@ -25,20 +29,28 @@ Schema v2 includes the shared immutable IR, authoring schemas, and internal runt
 | `progressiveskills:item` | `items` |
 | `progressiveskills:item_stack_spec` | `item_stack_specs` |
 | `progressiveskills:layout` | `layouts` |
+| `progressiveskills:loadout` | `loadouts` |
+| `progressiveskills:milestone_choice` | `milestone_choices` |
 | `progressiveskills:notification_profile` | `notification_profiles` |
 | `progressiveskills:predicate` | `predicates` |
 | `progressiveskills:prestige` | `prestige` |
+| `progressiveskills:primitive` | `primitives` |
 | `progressiveskills:profile` | `profiles` |
+| `progressiveskills:reactive_proc` | `reactive_procs` |
 | `progressiveskills:requirement` | `requirements` |
 | `progressiveskills:resource` | `resources` |
 | `progressiveskills:rule` | `rules` |
 | `progressiveskills:season` | `seasons` |
+| `progressiveskills:simulation` | `simulations` |
 | `progressiveskills:skill` | `skills` |
+| `progressiveskills:stance` | `stances` |
 | `progressiveskills:station` | `stations` |
 | `progressiveskills:targeting_profile` | `targeting_profiles` |
 | `progressiveskills:template` | `templates` |
 | `progressiveskills:theme` | `themes` |
+| `progressiveskills:training_contract` | `training_contracts` |
 | `progressiveskills:tree` | `trees` |
+| `progressiveskills:tree_rank` | `tree_ranks` |
 | `progressiveskills:variable` | `variables` |
 
 ## Ability native action
@@ -196,6 +208,111 @@ Immutable typed semantic fields paired with source maps and provenance.
 | `header` (required) | `object` | — | — | Schema version, typed stable key, and safe presentation. | `{ schema_version = 2, id = "mypack:physique" }` | `PS-SCHEMA-005` | `object` | `server_only` | `replace` |
 | `provenance` (required) | `object` | — | — | Adapter and source metadata excluded from semantic projection. | `{ adapter = "toml" }` | `PS-SCHEMA-004` | `object` | `server_only` | `replace` |
 | `source_map` (required) | `map` | — | — | Field path to source-span mapping excluded from semantic projection. | `{ max_level = { source = "skills/physique.toml" } }` | `PS-SCHEMA-004` | `key_value` | `server_only` | `merge_by_key` |
+
+## Carrier behavior archive
+
+- Schema ID: `progressiveskills:carrier_behavior_archive`
+- Version: `2`
+- Audience: `internal`
+
+World scoped checksummed immutable behavior payloads retained without age eviction.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `checksum` (required) | `string` | — | — | SHA 256 checksum of one canonical payload. | `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc` | `PS-CARRIER-002` | `object` | `server_only` | `replace` |
+| `data_version` (required) | `integer` | — | — | Archive persistence contract version. | `1` | `PS-CARRIER-002` | `object` | `server_only` | `replace` |
+| `digest` (required) | `string` | — | — | Semantic behavior digest used as the archive key. | `dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd` | `PS-CARRIER-002` | `object` | `server_only` | `replace` |
+| `payload` (required) | `string` | — | — | Bounded canonical binary behavior payload. | `base64` | `PS-CARRIER-005` | `object` | `server_only` | `replace` |
+
+## Carrier item definition
+
+- Schema ID: `progressiveskills:carrier_definition`
+- Version: `2`
+- Audience: `authoring`
+
+Configured stack behavior for one of the five startup registered carrier items.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `behavior_version` | `integer` | — | `1` | Positive behavior revision pinned into issued stacks. | `1` | `PS-CARRIER-001` | `integer` | `client_visible` | `replace` |
+| `bind` | `enum` | `none \| on_pickup \| on_use \| on_craft` | `"none"` | Owner binding point enforced by the server. | `on_use` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
+| `carrier` (required) | `enum` | `tome \| token \| charm \| consumable \| artifact` | — | Fixed registry carrier item selected for this configured stack. | `tome` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
+| `charges` | `integer` | — | `1` | Initial bounded charge count. | `1` | `PS-CARRIER-001` | `integer` | `client_visible` | `replace` |
+| `cooldown_ticks` | `integer` | — | `0` | Server game ticks between successful uses. | `20` | `PS-CARRIER-001` | `integer` | `client_visible` | `replace` |
+| `delivery_policy` | `enum` | `refuse_transaction \| pending_claim \| drop_if_safe` | `"pending_claim"` | Native inventory overflow behavior. | `pending_claim` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
+| `description` | `component` | — | — | Localized cosmetic description. | `{ fallback = "Grants skill XP." }` | `PS-CARRIER-001` | `component` | `client_visible` | `replace` |
+| `display` (required) | `component` | — | — | Localized cosmetic stack name. | `{ fallback = "Tome of Might" }` | `PS-CARRIER-001` | `component` | `client_visible` | `replace` |
+| `enabled` | `boolean` | — | `true` | Whether new stacks may be issued from this definition. | `true` | `PS-CARRIER-001` | `checkbox` | `client_visible` | `replace` |
+| `glint` | `boolean` | — | `false` | Cosmetic enchantment glint override. | `true` | `PS-CARRIER-001` | `checkbox` | `client_visible` | `replace` |
+| `icon` (required) | `icon` | — | — | Carrier icon with vanilla safe fallback and alternative text. | `{ type = "item", value = "minecraft:enchanted_book", fallback = "minecraft:barrier", alt = "Book" }` | `PS-CARRIER-001` | `icon` | `client_visible` | `replace` |
+| `migration_policy` | `enum` | `keep_pinned \| migrate \| warn \| invalidate` | `"keep_pinned"` | Changed digest policy. Unsafe live acceptance is not authorable in Core. | `keep_pinned` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
+| `rarity` | `enum` | `common \| uncommon \| rare \| epic` | `"common"` | Cosmetic vanilla rarity. | `rare` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
+| `search_aliases` | `list` | — | `[]` | Bounded alternate carrier search terms. | `["XP book"]` | `PS-CARRIER-001` | `list` | `client_visible` | `set` |
+| `stack_size` | `integer` | — | `64` | Visible maximum stack size from one through sixty four. | `16` | `PS-CARRIER-001` | `integer` | `client_visible` | `replace` |
+| `use_actions` (required) | `list` | — | — | Authored order of one through sixteen pinned Core actions. | `[{ id = "mypack:tome/grant", type = "xp", skill = "mypack:physique", amount = 500, consume = 1 }]` | `PS-CARRIER-001` | `list` | `client_visible` | `ordered` |
+
+## Carrier component identity
+
+- Schema ID: `progressiveskills:carrier_identity`
+- Version: `2`
+- Audience: `internal`
+
+Persistent network synchronized definition identity and pinned behavior digest without economic actions.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `behavior_digest` (required) | `string` | — | — | Lowercase SHA 256 of the archived canonical behavior. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `definition_id` (required) | `resource_location` | — | — | Stable configured item definition identity. | `mypack:tome_of_might` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+
+## Carrier and claim intent payload
+
+- Schema ID: `progressiveskills:carrier_intent`
+- Version: `2`
+- Audience: `internal`
+
+Closed selection only payload for inspection, claim delivery, and explicit held stack migration.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `claim_id` | `string` | — | — | Viewer owned claim UUID required only by take one. | `00000000-0000-0000-0000-000000000130` | `PS-CARRIER-004` | `object` | `server_only` | `replace` |
+| `preview_digest` | `string` | — | — | Exact server produced held migration preview digest required only by confirmation. | `eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` | `PS-CARRIER-007` | `object` | `server_only` | `replace` |
+
+## Carrier component state
+
+- Schema ID: `progressiveskills:carrier_stack_state`
+- Version: `2`
+- Audience: `internal`
+
+Bounded issuance, charge, binding, and migration state carried by one stack.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `behavior_version` (required) | `integer` | — | — | Pinned positive behavior revision. | `1` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `bound_owner` | `string` | — | — | Owner UUID when binding is active. | `00000000-0000-0000-0000-000000000013` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `charges` (required) | `integer` | — | — | Nonnegative remaining charges no greater than archived initial charges. | `1` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `creation_pack_digest` (required) | `string` | — | — | Live pack digest present when the stack was issued. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `data_version` (required) | `integer` | — | — | Persistent component contract version. | `1` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `instance_id` (required) | `string` | — | — | World issued UUID checked by the exact use ledger. | `00000000-0000-0000-0000-000000000013` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `migration_marker` | `string` | — | — | Bounded marker describing one explicit reviewed migration. | `v1_to_v2` | `PS-CARRIER-007` | `object` | `server_only` | `replace` |
+| `use_counter` (required) | `integer` | — | — | Monotonic issuance counter checked before every economic use. | `0` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+
+## Carrier use action
+
+- Schema ID: `progressiveskills:carrier_use_action`
+- Version: `2`
+- Audience: `authoring`
+
+One ordered Core XP, level, currency, or tree respec action stored in pinned behavior.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `amount` | `decimal` | — | — | Positive fixed point XP, positive level count, or positive currency amount. | `500` | `PS-CARRIER-001` | `decimal` | `client_visible` | `replace` |
+| `consume` | `integer` | — | `1` | Charges consumed by this action from zero through sixty four. | `1` | `PS-CARRIER-001` | `integer` | `client_visible` | `replace` |
+| `currency` | `resource_location` | — | — | Existing named currency required by a currency action. | `progressiveskills:global_points` | `PS-CARRIER-001` | `resource_location` | `client_visible` | `replace` |
+| `id` (required) | `resource_location` | — | — | Globally unique stable action identity. | `mypack:tome/grant_xp` | `PS-CARRIER-001` | `resource_location` | `client_visible` | `replace` |
+| `skill` | `resource_location` | — | — | Existing enabled skill required by XP and level actions. | `mypack:physique` | `PS-CARRIER-001` | `resource_location` | `client_visible` | `replace` |
+| `tree` | `resource_location` | — | — | Existing enabled tree required by a respec action. | `mypack:physique_training` | `PS-CARRIER-001` | `resource_location` | `client_visible` | `replace` |
+| `type` (required) | `enum` | `xp \| level \| currency \| tree_respec` | — | Closed Core carrier action family. | `xp` | `PS-CARRIER-001` | `select` | `client_visible` | `replace` |
 
 ## Class respec or swap preview payload
 
@@ -491,10 +608,10 @@ Connection-scoped protocol, feature, server identity, and semantic/presentation 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Monotonic server gameplay-definition generation. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `127` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `features` (required) | `integer` | — | — | Required bounded protocol feature bitset. | `511` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `presentation_digest` (required) | `string` | — | — | SHA-256 of the exact sanitized definition projection bytes. | `bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb` | `PS-NET-002` | `object` | `client_visible` | `replace` |
 | `presentation_revision` (required) | `integer` | — | — | Monotonic presentation generation negotiated independently. | `7` | `PS-NET-003` | `object` | `client_visible` | `replace` |
-| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `4` | `PS-NET-001` | `object` | `client_visible` | `replace` |
+| `protocol_version` (required) | `integer` | — | — | ProgressiveSkills application protocol version. | `7` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | SHA-256 of the authoritative gameplay definition snapshot. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `client_visible` | `replace` |
 | `server_identity` (required) | `string` | — | — | Persistent world/server UUID that scopes the local definition cache. | `00000000-0000-0000-0000-000000000601` | `PS-NET-001` | `object` | `client_visible` | `replace` |
 | `session_id` (required) | `string` | — | — | Ephemeral connection session UUID required on every later payload. | `00000000-0000-0000-0000-000000000602` | `PS-NET-003` | `object` | `client_visible` | `replace` |
@@ -510,7 +627,7 @@ Serverbound request identity and stale guards; clients never provide costs, XP, 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
 | `definition_generation` (required) | `integer` | — | — | Client-observed gameplay definition generation. | `7` | `PS-NET-003` | `object` | `server_only` | `replace` |
-| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm \| class_select \| class_respec_preview \| class_respec_confirm \| class_swap_preview \| class_swap_confirm \| ability_assign \| ability_unassign \| ability_select \| ability_toggle \| ability_activate` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
+| `intent_type` (required) | `enum` | `noop_test \| tree_buy \| tree_refund_preview \| tree_refund_confirm \| class_select \| class_respec_preview \| class_respec_confirm \| class_swap_preview \| class_swap_confirm \| ability_assign \| ability_unassign \| ability_select \| ability_toggle \| ability_activate \| claim_take \| claim_take_all \| carrier_inspect \| carrier_migrate_preview \| carrier_migrate_confirm` | — | Closed server-registered intent family. | `tree_buy` | `PS-NET-001` | `object` | `server_only` | `replace` |
 | `payload` (required) | `string` | — | — | Small type-specific bounded selection payload; never effect amounts or commands. | `""` | `PS-NET-002` | `object` | `server_only` | `replace` |
 | `request_id` (required) | `integer` | — | — | Monotonic request id covered by the bounded replay/result window. | `12` | `PS-NET-004` | `object` | `server_only` | `replace` |
 | `semantic_digest` (required) | `string` | — | — | Client-observed gameplay SHA-256. | `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` | `PS-NET-003` | `object` | `server_only` | `replace` |
@@ -607,6 +724,25 @@ Immutable purchase identity, definition lineage, exact paid balances, and persis
 | `persistent_sources` (required) | `list` | — | — | Up to thirty two source owned persistent grants installed by the purchase. | `["progressiveskills:tree[mypack:mining]/mypack:mining/root/toughness"]` | `PS-TREE-005` | `object` | `server_only` | `replace` |
 | `purchase_transaction_id` (required) | `string` | — | — | Transaction UUID that originally committed the exact payment. | `00000000-0000-0000-0000-000000000710` | `PS-TREE-005` | `object` | `server_only` | `replace` |
 
+## Pending carrier claim
+
+- Schema ID: `progressiveskills:pending_carrier_claim`
+- Version: `2`
+- Audience: `internal`
+
+Durable materialized inventory overflow delivery with pinned behavior and stable origin identity.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `behavior` (required) | `object` | — | — | Full bounded canonical behavior snapshot verified against the identity digest. | `{ behavior_version = 1 }` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
+| `claim_id` (required) | `string` | — | — | Stable claim UUID. | `00000000-0000-0000-0000-000000000130` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
+| `created_at` (required) | `integer` | — | — | Authoritative creation epoch milliseconds. | `1784203200000` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
+| `identity` (required) | `object` | — | — | Definition id and behavior digest. | `{ definition_id = "mypack:tome" }` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `kind` (required) | `enum` | `tome \| token \| charm \| consumable \| artifact` | — | Fixed physical carrier kind. | `tome` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+| `origin_delivery_id` (required) | `string` | — | — | Stable acquisition or transaction delivery UUID. | `00000000-0000-0000-0000-000000000131` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
+| `reason` (required) | `string` | — | — | Bounded safe claim creation reason. | `Inventory was full` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
+| `state` (required) | `object` | — | — | Materialized issuance, charge, binding, and migration state. | `{ charges = 1 }` | `PS-CARRIER-003` | `object` | `server_only` | `replace` |
+
 ## Pending offline progression operation
 
 - Schema ID: `progressiveskills:pending_progression_operation`
@@ -643,13 +779,15 @@ Bounded durable progression state with transaction truth, migration evidence, an
 
 | Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
 |---|---|---|---|---|---|---|---|---|---|
-| `data_version` (required) | `integer` | — | — | Persisted attachment contract version. | `2` | `PS-DATA-003` | `object` | `server_only` | `replace` |
+| `carrier_use_counters` (required) | `list` | — | — | Exact non evicting issuance counters used to reject copied or replayed carrier state. | `[]` | `PS-CARRIER-004` | `object` | `server_only` | `replace` |
+| `data_version` (required) | `integer` | — | — | Persisted attachment contract version. | `4` | `PS-DATA-003` | `object` | `server_only` | `replace` |
 | `death_marker` | `object` | — | — | Two-step death-copy operation marker and completion receipt. | `{ transaction_id = "00000000-0000-0000-0000-000000000004" }` | `PS-DATA-001` | `object` | `server_only` | `replace` |
 | `definition_states` (required) | `list` | — | — | Bounded typed states keyed by stable definition identity and lineage. | `[]` | `PS-DATA-004` | `object` | `server_only` | `replace` |
 | `extensions` | `map` | — | — | Unknown bounded fields retained for forward-compatible round trips. | `{}` | `PS-DATA-002` | `object` | `server_only` | `replace` |
 | `migration_shadow` | `object` | — | — | Bounded pre-migration raw evidence retained through the first successful save. | `{ source_version = 1 }` | `PS-DATA-003` | `object` | `server_only` | `replace` |
 | `operation_receipts` (required) | `list` | — | — | Exact same-attachment receipts for death and offline operation completion. | `[]` | `PS-DATA-005` | `object` | `server_only` | `replace` |
 | `orphans` (required) | `list` | — | — | Persisted definition state awaiting a compatible definition or explicit replacement. | `[]` | `PS-DATA-004` | `object` | `server_only` | `replace` |
+| `pending_carrier_claims` (required) | `list` | — | — | Bounded durable materialized inventory overflow deliveries. | `[]` | `PS-CARRIER-006` | `object` | `server_only` | `replace` |
 | `player_id` (required) | `string` | — | — | UUID that must match the attachment owner. | `00000000-0000-0000-0000-000000000001` | `PS-DATA-007` | `object` | `server_only` | `replace` |
 | `quarantine` | `object` | — | — | Fail-closed reason, digest, and bounded raw evidence. | `{ reason = "future data version" }` | `PS-DATA-001` | `object` | `server_only` | `replace` |
 | `state_definition` | `object` | — | — | Definition generation and digest associated with the persisted account. | `{ generation = 7 }` | `PS-TX-003` | `object` | `server_only` | `replace` |
@@ -1009,6 +1147,23 @@ Owner visible toggle, charge, and cooldown status without raw source ownership o
 | `maximum_charges` (required) | `integer` | — | — | Definition bounded maximum charges from one through sixteen. | `2` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 | `toggled_on` (required) | `boolean` | — | — | Current effective toggle state. Passive and active abilities report false. | `false` | `PS-NET-005` | `object` | `client_visible` | `replace` |
 
+## Visible carrier or claim summary
+
+- Schema ID: `progressiveskills:visible_carrier_summary`
+- Version: `2`
+- Audience: `internal`
+
+Owner visible identity and status without archived actions, amounts, receipts, or server internals.
+
+| Key | Type | Allowed values | Default | Description | Example | Diagnostic | Editor | Projection | Diff |
+|---|---|---|---|---|---|---|---|---|---|
+| `behavior_version` (required) | `integer` | — | — | Pinned visible behavior revision. | `1` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `claim_id` | `string` | — | — | Owner visible claim UUID for a pending summary. | `00000000-0000-0000-0000-000000000130` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `definition_id` (required) | `resource_location` | — | — | Stable configured carrier definition identity. | `mypack:tome_of_might` | `PS-CARRIER-001` | `object` | `client_visible` | `replace` |
+| `kind` (required) | `enum` | `tome \| token \| charm \| consumable \| artifact` | — | Fixed physical carrier kind. | `tome` | `PS-CARRIER-001` | `object` | `client_visible` | `replace` |
+| `remaining_charges` (required) | `integer` | — | — | Visible nonnegative remaining charges. | `1` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+| `status` (required) | `string` | — | — | Explicit noncolor held or pending claim status. | `ready` | `PS-NET-005` | `object` | `client_visible` | `replace` |
+
 ## Visible selected class state
 
 - Schema ID: `progressiveskills:visible_class_selection`
@@ -1114,6 +1269,69 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Suppressible: `true`
 - Why it matters: Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.
 - Suggested fix: Synchronize state and review the current ability status before retrying.
+
+<a id="ps-carrier-001"></a>
+
+### PS-CARRIER-001 — Carrier definition is invalid
+
+- Default severity: `error`
+- Suppressible: `true`
+- Why it matters: A carrier requires one fixed registry kind and bounded pinned behavior with valid Core actions.
+- Suggested fix: Correct the item definition using the generated carrier schemas.
+
+<a id="ps-carrier-002"></a>
+
+### PS-CARRIER-002 — Carrier behavior is unavailable
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: An unknown, missing, corrupt, or quarantined archived snapshot cannot authorize economic use.
+- Suggested fix: Verify the behavior archive and restore the complete world data before retrying.
+
+<a id="ps-carrier-003"></a>
+
+### PS-CARRIER-003 — Carrier component state was rejected
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: The physical kind, digest, version, charges, owner, issuance identity, or counter did not agree with server authority.
+- Suggested fix: Inspect the held stack and replace or explicitly migrate invalid carrier data.
+
+<a id="ps-carrier-004"></a>
+
+### PS-CARRIER-004 — Carrier use was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Creative mode, cooldown, binding, charge, replay, capacity, or a referenced progression action blocked use.
+- Suggested fix: Inspect the held stack and current action blockers before submitting a fresh use.
+
+<a id="ps-carrier-005"></a>
+
+### PS-CARRIER-005 — Carrier behavior archive is full
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: Publishing or issuing behavior without an exact retained snapshot would make old stacks unsafe.
+- Suggested fix: Review archive status and perform only an explicit proven reference migration or capacity change.
+
+<a id="ps-carrier-006"></a>
+
+### PS-CARRIER-006 — Pending carrier claim storage is full
+
+- Default severity: `error`
+- Suppressible: `false`
+- Why it matters: A value bearing delivery cannot complete without durable materialized claim capacity.
+- Suggested fix: Deliver existing claims or increase the bounded capacity before retrying acquisition.
+
+<a id="ps-carrier-007"></a>
+
+### PS-CARRIER-007 — Carrier migration was denied
+
+- Default severity: `warning`
+- Suppressible: `true`
+- Why it matters: Migration requires a current reviewed policy, matching owner, archived source, and exact preview digest.
+- Suggested fix: Request a fresh held item migration preview and confirm that exact digest.
 
 <a id="ps-class-001"></a>
 

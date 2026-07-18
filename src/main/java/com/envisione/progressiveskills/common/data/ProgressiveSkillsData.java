@@ -1,6 +1,11 @@
 package com.envisione.progressiveskills.common.data;
 
 import com.envisione.progressiveskills.common.id.AliasMap;
+import com.envisione.progressiveskills.common.carrier.PendingCarrierClaim;
+import com.envisione.progressiveskills.common.carrier.PendingClaimBatchResult;
+import com.envisione.progressiveskills.common.carrier.PendingClaimDelivery;
+import com.envisione.progressiveskills.common.carrier.PendingClaimTakeStatus;
+import com.envisione.progressiveskills.common.carrier.CarrierUseReservationStatus;
 import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.PersistedTransactionState;
@@ -17,10 +22,12 @@ import java.util.UUID;
 
 /** Mutable server-thread-confined authority stored in the versioned player data attachment. */
 public final class ProgressiveSkillsData {
-    public static final int CURRENT_DATA_VERSION = 3;
+    public static final int CURRENT_DATA_VERSION = 4;
     public static final int MAX_DEFINITION_STATES = 4_096;
     public static final int MAX_ORPHANS = 4_096;
     public static final int MAX_OPERATION_RECEIPTS = 512;
+    public static final int MAX_PENDING_CARRIER_CLAIMS = 256;
+    public static final int MAX_CARRIER_USE_COUNTERS = 4_096;
 
     private final UUID playerId;
     private long storageRevision;
@@ -30,6 +37,9 @@ public final class ProgressiveSkillsData {
     private final Map<DefinitionKey, StoredDefinitionState> definitionStates;
     private final Map<DefinitionKey, OrphanRecord> orphans;
     private final Map<UUID, OperationReceipt> operationReceipts;
+    private final Map<UUID, PendingCarrierClaim> pendingCarrierClaims;
+    private final Map<UUID, Long> carrierUseCounters;
+    private final Map<UUID, Long> reservedCarrierUses = new TreeMap<>();
     private Optional<DeathMarker> deathMarker;
     private Optional<MigrationShadow> migrationShadow;
     private Optional<QuarantineRecord> quarantine;
@@ -45,6 +55,8 @@ public final class ProgressiveSkillsData {
         definitionStates = new TreeMap<>(view.definitionStates());
         orphans = new TreeMap<>(view.orphans());
         operationReceipts = new TreeMap<>(view.operationReceipts());
+        pendingCarrierClaims = new TreeMap<>(view.pendingCarrierClaims());
+        carrierUseCounters = new TreeMap<>(view.carrierUseCounters());
         deathMarker = view.deathMarker();
         migrationShadow = view.migrationShadow();
         quarantine = view.quarantine();
@@ -58,6 +70,8 @@ public final class ProgressiveSkillsData {
                 PlayerDataStatus.ACTIVE,
                 PersistedTransactionState.empty(),
                 Optional.empty(),
+                Map.of(),
+                Map.of(),
                 Map.of(),
                 Map.of(),
                 Map.of(),
@@ -75,6 +89,8 @@ public final class ProgressiveSkillsData {
                 PlayerDataStatus.QUARANTINED,
                 PersistedTransactionState.empty(),
                 Optional.empty(),
+                Map.of(),
+                Map.of(),
                 Map.of(),
                 Map.of(),
                 Map.of(),
@@ -254,6 +270,196 @@ public final class ProgressiveSkillsData {
         }
     }
 
+    public synchronized Optional<String> pendingClaimRejection(PendingCarrierClaim claim) {
+        return pendingClaimsRejection(java.util.List.of(claim));
+    }
+
+    public synchronized Optional<String> pendingClaimsRejection(
+            java.util.List<PendingCarrierClaim> claims
+    ) {
+        requireActive();
+        claims = java.util.List.copyOf(Objects.requireNonNull(claims, "claims"));
+        var candidateIds = new java.util.HashSet<UUID>();
+        var candidateOrigins = new java.util.HashSet<UUID>();
+        var existingOrigins = new java.util.HashMap<UUID, PendingCarrierClaim>();
+        pendingCarrierClaims.values().forEach(value ->
+                existingOrigins.put(value.originDeliveryId(), value));
+        int additions = 0;
+        for (PendingCarrierClaim claim : claims) {
+            Objects.requireNonNull(claim, "claim");
+            if (!candidateIds.add(claim.claimId()) || !candidateOrigins.add(claim.originDeliveryId())) {
+                return Optional.of("Pending claim batch contains duplicate identities");
+            }
+            PendingCarrierClaim existing = pendingCarrierClaims.get(claim.claimId());
+            if (existing != null && !existing.equals(claim)) {
+                return Optional.of("Pending claim identity collision");
+            }
+            PendingCarrierClaim origin = existingOrigins.get(claim.originDeliveryId());
+            if (origin != null && !origin.equals(claim)) {
+                return Optional.of("Pending claim delivery origin already exists");
+            }
+            if (existing == null) {
+                additions++;
+            }
+        }
+        if (additions > MAX_PENDING_CARRIER_CLAIMS - pendingCarrierClaims.size()) {
+            return Optional.of("Pending carrier claim capacity is full");
+        }
+        return additions == 0 ? Optional.empty()
+                : ProgressiveSkillsDataSerializer.pendingClaimBatchInsertionRejection(view(), claims);
+    }
+
+    public synchronized boolean canAcceptPendingClaim(PendingCarrierClaim claim) {
+        return pendingClaimRejection(claim).isEmpty();
+    }
+
+    public synchronized boolean addPendingClaim(PendingCarrierClaim claim) {
+        return addPendingClaims(java.util.List.of(claim)) == 1;
+    }
+
+    public synchronized int addPendingClaims(java.util.List<PendingCarrierClaim> claims) {
+        requireActive();
+        claims = java.util.List.copyOf(Objects.requireNonNull(claims, "claims"));
+        pendingClaimsRejection(claims).ifPresent(reason -> {
+            throw new IllegalStateException(reason);
+        });
+        int added = 0;
+        for (PendingCarrierClaim claim : claims) {
+            if (pendingCarrierClaims.putIfAbsent(claim.claimId(), claim) == null) {
+                added++;
+            }
+        }
+        if (added > 0) {
+            incrementStorageRevision();
+        }
+        return added;
+    }
+
+    public synchronized Optional<PendingCarrierClaim> pendingClaim(UUID claimId) {
+        return Optional.ofNullable(pendingCarrierClaims.get(Objects.requireNonNull(claimId, "claimId")));
+    }
+
+    public synchronized Optional<PendingCarrierClaim> pendingClaimByOrigin(UUID originDeliveryId) {
+        Objects.requireNonNull(originDeliveryId, "originDeliveryId");
+        return pendingCarrierClaims.values().stream()
+                .filter(claim -> claim.originDeliveryId().equals(originDeliveryId))
+                .findFirst();
+    }
+
+    public synchronized java.util.List<PendingCarrierClaim> pendingClaims() {
+        return pendingCarrierClaims.values().stream().sorted(PendingCarrierClaim.ORDER).toList();
+    }
+
+    public synchronized PendingClaimTakeStatus takePendingClaim(
+            UUID claimId,
+            PendingClaimDelivery delivery
+    ) {
+        requireActive();
+        Objects.requireNonNull(claimId, "claimId");
+        Objects.requireNonNull(delivery, "delivery");
+        PendingCarrierClaim claim = pendingCarrierClaims.get(claimId);
+        if (claim == null) {
+            return PendingClaimTakeStatus.NOT_FOUND;
+        }
+        if (!delivery.deliver(claim)) {
+            return PendingClaimTakeStatus.DELIVERY_REJECTED;
+        }
+        if (!claim.equals(pendingCarrierClaims.get(claimId))) {
+            throw new IllegalStateException("Pending claim changed during delivery");
+        }
+        pendingCarrierClaims.remove(claimId);
+        incrementStorageRevision();
+        return PendingClaimTakeStatus.DELIVERED;
+    }
+
+    public synchronized PendingClaimBatchResult takeAllPendingClaims(PendingClaimDelivery delivery) {
+        requireActive();
+        Objects.requireNonNull(delivery, "delivery");
+        int delivered = 0;
+        for (PendingCarrierClaim claim : pendingClaims()) {
+            if (!delivery.deliver(claim)) {
+                break;
+            }
+            if (!claim.equals(pendingCarrierClaims.get(claim.claimId()))) {
+                throw new IllegalStateException("Pending claim changed during delivery");
+            }
+            pendingCarrierClaims.remove(claim.claimId());
+            incrementStorageRevision();
+            delivered++;
+        }
+        return new PendingClaimBatchResult(delivered, pendingCarrierClaims.size());
+    }
+
+    public synchronized long nextExpectedCarrierUse(UUID instanceId) {
+        Objects.requireNonNull(instanceId, "instanceId");
+        return carrierUseCounters.getOrDefault(instanceId, 0L);
+    }
+
+    public synchronized CarrierUseReservationStatus previewCarrierUse(UUID instanceId, long useCounter) {
+        requireActive();
+        Objects.requireNonNull(instanceId, "instanceId");
+        if (useCounter < 0) {
+            throw new IllegalArgumentException("Carrier use counter must not be negative");
+        }
+        long expected = carrierUseCounters.getOrDefault(instanceId, 0L);
+        if (useCounter < expected) {
+            return CarrierUseReservationStatus.REPLAYED;
+        }
+        if (useCounter > expected) {
+            return CarrierUseReservationStatus.SKIPPED;
+        }
+        if (reservedCarrierUses.containsKey(instanceId)) {
+            return CarrierUseReservationStatus.ALREADY_RESERVED;
+        }
+        if (useCounter == Long.MAX_VALUE || storageRevision == Long.MAX_VALUE) {
+            return CarrierUseReservationStatus.CAPACITY_FULL;
+        }
+        if (!carrierUseCounters.containsKey(instanceId)
+                && carrierUseCounters.size() >= MAX_CARRIER_USE_COUNTERS) {
+            return CarrierUseReservationStatus.CAPACITY_FULL;
+        }
+        if (!carrierUseCounters.containsKey(instanceId)
+                && ProgressiveSkillsDataSerializer.carrierUseCounterInsertionRejection(
+                view(), instanceId).isPresent()) {
+            return CarrierUseReservationStatus.CAPACITY_FULL;
+        }
+        return CarrierUseReservationStatus.RESERVED;
+    }
+
+    public synchronized CarrierUseReservationStatus reserveCarrierUse(UUID instanceId, long useCounter) {
+        CarrierUseReservationStatus status = previewCarrierUse(instanceId, useCounter);
+        if (status == CarrierUseReservationStatus.RESERVED) {
+            reservedCarrierUses.put(instanceId, useCounter);
+        }
+        return status;
+    }
+
+    public synchronized void commitCarrierUse(UUID instanceId, long useCounter) {
+        requireActive();
+        Objects.requireNonNull(instanceId, "instanceId");
+        Long reserved = reservedCarrierUses.get(instanceId);
+        if (reserved == null || reserved != useCounter) {
+            throw new IllegalStateException("Carrier use was not reserved at the expected counter");
+        }
+        long expected = carrierUseCounters.getOrDefault(instanceId, 0L);
+        if (expected != useCounter) {
+            throw new IllegalStateException("Carrier use counter changed before commit");
+        }
+        carrierUseCounters.put(instanceId, Math.addExact(useCounter, 1));
+        reservedCarrierUses.remove(instanceId);
+        incrementStorageRevision();
+    }
+
+    public synchronized boolean cancelCarrierUse(UUID instanceId, long useCounter) {
+        Objects.requireNonNull(instanceId, "instanceId");
+        return reservedCarrierUses.remove(instanceId, useCounter);
+    }
+
+    public synchronized void markCarrierProjectionChanged() {
+        requireActive();
+        incrementStorageRevision();
+    }
+
     public synchronized DeathMarker prepareDeath(UUID deathId, Instant createdAt, boolean keepInventory) {
         requireActive();
         if (deathMarker.isPresent()) {
@@ -311,6 +517,8 @@ public final class ProgressiveSkillsData {
                 definitionStates,
                 orphans,
                 operationReceipts,
+                pendingCarrierClaims,
+                carrierUseCounters,
                 deathMarker,
                 outputShadow,
                 quarantine,

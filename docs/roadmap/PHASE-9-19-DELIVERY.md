@@ -20,6 +20,12 @@ This delivery train is cumulative. Each phase checkpoint contains every earlier 
 | 18 | Native parties, contribution accounting, mentoring, shared challenges, seasons, and privacy. |
 | 19 | Studio drafts, visual authoring, history, conflicts, atomic publishing, rollback, and import security. |
 
+## Phase 19 cumulative checkpoint
+
+Status: automated cumulative Phase 19 beta checkpoint complete. Phases 13 through 19 were implemented as one uninterrupted delivery and passed the consolidated automated gate. The exact test JAR, checksum, evidence, and final mass checklist are recorded in [PHASE-19.md](../verification/PHASE-19.md).
+
+The checkpoint remains off `main` until the user approves the exported in game mass check. No Phase 13 through Phase 18 tag is created because those phases were not released as separate approved checkpoints.
+
 ## Phase 10 checkpoint contract
 
 Status: automated Phase 10 beta checkpoint complete. Rendering, narration, real input, and multiplayer remain in the final mass test.

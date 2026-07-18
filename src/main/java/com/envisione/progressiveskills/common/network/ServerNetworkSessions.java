@@ -178,7 +178,8 @@ public final class ServerNetworkSessions {
         return handleIntent(
                 playerId, payload, IntentExecutor.REJECT_TREE_INTENTS,
                 ClassIntentExecutor.REJECT_CLASS_INTENTS,
-                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS,
+                CarrierIntentExecutor.REJECT_CARRIER_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -187,7 +188,8 @@ public final class ServerNetworkSessions {
             IntentExecutor executor
     ) {
         return handleIntent(playerId, payload, executor, ClassIntentExecutor.REJECT_CLASS_INTENTS,
-                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS,
+                CarrierIntentExecutor.REJECT_CARRIER_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -197,7 +199,8 @@ public final class ServerNetworkSessions {
             ClassIntentExecutor classExecutor
     ) {
         return handleIntent(playerId, payload, executor, classExecutor,
-                AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
+                AbilityIntentExecutor.REJECT_ABILITY_INTENTS,
+                CarrierIntentExecutor.REJECT_CARRIER_INTENTS);
     }
 
     public synchronized List<CustomPacketPayload> handleIntent(
@@ -207,11 +210,24 @@ public final class ServerNetworkSessions {
             ClassIntentExecutor classExecutor,
             AbilityIntentExecutor abilityExecutor
     ) {
+        return handleIntent(playerId, payload, executor, classExecutor, abilityExecutor,
+                CarrierIntentExecutor.REJECT_CARRIER_INTENTS);
+    }
+
+    public synchronized List<CustomPacketPayload> handleIntent(
+            UUID playerId,
+            NetworkPayloads.Intent payload,
+            IntentExecutor executor,
+            ClassIntentExecutor classExecutor,
+            AbilityIntentExecutor abilityExecutor,
+            CarrierIntentExecutor carrierExecutor
+    ) {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(payload, "payload");
         Objects.requireNonNull(executor, "executor");
         Objects.requireNonNull(classExecutor, "classExecutor");
         Objects.requireNonNull(abilityExecutor, "abilityExecutor");
+        Objects.requireNonNull(carrierExecutor, "carrierExecutor");
         Session session = sessions.get(playerId);
         if (session == null) {
             return List.of(staleSessionResult(payload.sessionId(), payload.requestId(), 0));
@@ -272,13 +288,18 @@ public final class ServerNetworkSessions {
         try {
             boolean classIntent = isClassIntent(payload.intentType());
             boolean abilityIntent = isAbilityIntent(payload.intentType());
-            TreeIntentPayload treePayload = classIntent || abilityIntent ? null
+            boolean carrierIntent = isCarrierIntent(payload.intentType());
+            TreeIntentPayload treePayload = classIntent || abilityIntent || carrierIntent ? null
                     : TreeIntentPayload.decode(payload.intentType(), payload.payload());
             ClassIntentPayload classPayload = classIntent
                     ? ClassIntentPayload.decode(payload.intentType(), payload.payload()) : null;
             AbilityIntentPayload abilityPayload = abilityIntent
                     ? AbilityIntentPayload.decode(payload.intentType(), payload.payload()) : null;
-            IntentExecution execution = Objects.requireNonNull(abilityIntent
+            CarrierIntentPayload carrierPayload = carrierIntent
+                    ? CarrierIntentPayload.decode(payload.intentType(), payload.payload()) : null;
+            IntentExecution execution = Objects.requireNonNull(carrierIntent
+                            ? carrierExecutor.execute(playerId, payload, carrierPayload)
+                            : abilityIntent
                             ? abilityExecutor.execute(playerId, payload, abilityPayload)
                             : classIntent
                             ? classExecutor.execute(playerId, payload, classPayload)
@@ -286,7 +307,8 @@ public final class ServerNetworkSessions {
                     "intent execution");
             response = result(session, payload.requestId(), execution.status(), execution.message());
             List<CustomPacketPayload> responses = validateExecutionResponses(
-                    session, payload, treePayload, classPayload, response, execution.followups());
+                    session, payload, treePayload, classPayload, carrierPayload,
+                    response, execution.followups());
             cacheResponses(session, payload.requestId(), responses);
             session.lastActivity = Instant.now(clock);
             return responses;
@@ -464,6 +486,7 @@ public final class ServerNetworkSessions {
             NetworkPayloads.Intent intent,
             TreeIntentPayload treePayload,
             ClassIntentPayload classPayload,
+            CarrierIntentPayload carrierPayload,
             NetworkPayloads.IntentResult response,
             List<CustomPacketPayload> followups
     ) {
@@ -475,7 +498,8 @@ public final class ServerNetworkSessions {
         responses.add(response);
         for (CustomPacketPayload followup : followups) {
             if (!validTreeFollowup(session, intent, treePayload, followup)
-                    && !validClassFollowup(session, intent, classPayload, followup)) {
+                    && !validClassFollowup(session, intent, classPayload, followup)
+                    && !validCarrierFollowup(session, intent, carrierPayload, followup)) {
                 throw new IllegalArgumentException("Intent execution returned an invalid followup");
             }
             responses.add(followup);
@@ -519,6 +543,22 @@ public final class ServerNetworkSessions {
                 && preview.replacementClassId().equals(payload.replacementClassId());
     }
 
+    private static boolean validCarrierFollowup(
+            Session session,
+            NetworkPayloads.Intent intent,
+            CarrierIntentPayload payload,
+            CustomPacketPayload followup
+    ) {
+        return payload != null
+                && followup instanceof NetworkPayloads.CarrierMigrationPreview preview
+                && intent.intentType() == NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW
+                && preview.sessionId().equals(session.hello.sessionId())
+                && preview.requestId() == intent.requestId()
+                && preview.definitionGeneration() == intent.definitionGeneration()
+                && preview.semanticDigest().equals(intent.semanticDigest())
+                && preview.stateRevision() == intent.stateRevision();
+    }
+
     private static boolean isClassIntent(NetworkPayloads.IntentType type) {
         return type == NetworkPayloads.IntentType.CLASS_SELECT
                 || type == NetworkPayloads.IntentType.CLASS_RESPEC_PREVIEW
@@ -533,6 +573,14 @@ public final class ServerNetworkSessions {
                 || type == NetworkPayloads.IntentType.ABILITY_SELECT
                 || type == NetworkPayloads.IntentType.ABILITY_TOGGLE
                 || type == NetworkPayloads.IntentType.ABILITY_ACTIVATE;
+    }
+
+    private static boolean isCarrierIntent(NetworkPayloads.IntentType type) {
+        return type == NetworkPayloads.IntentType.CLAIM_TAKE
+                || type == NetworkPayloads.IntentType.CLAIM_TAKE_ALL
+                || type == NetworkPayloads.IntentType.CARRIER_INSPECT
+                || type == NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW
+                || type == NetworkPayloads.IntentType.CARRIER_MIGRATE_CONFIRM;
     }
 
     private static String safeIntentMessage(RuntimeException exception) {
@@ -586,6 +634,18 @@ public final class ServerNetworkSessions {
                 UUID playerId,
                 NetworkPayloads.Intent intent,
                 AbilityIntentPayload payload
+        );
+    }
+
+    @FunctionalInterface
+    public interface CarrierIntentExecutor {
+        CarrierIntentExecutor REJECT_CARRIER_INTENTS = (playerId, intent, payload) ->
+                IntentExecution.invalid("Carrier intents are not configured on this server");
+
+        IntentExecution execute(
+                UUID playerId,
+                NetworkPayloads.Intent intent,
+                CarrierIntentPayload payload
         );
     }
 

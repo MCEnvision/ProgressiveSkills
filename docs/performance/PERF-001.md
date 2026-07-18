@@ -2,7 +2,7 @@
 
 Status: locked before gameplay implementation. Threshold changes require an ADR containing before/after profiles and the reason for the change.
 
-The normative inputs are machine-readable in [`fixtures/perf-001-v1.toml`](fixtures/perf-001-v1.toml). The fixture generator and synthetic-client driver do not exist in the Phase 1 scaffold because their schemas and event routes begin in later phases; when implemented, they must consume this contract without changing its counts, seeds, schedules, or timing. Any such change requires the same ADR as a threshold change.
+The normative inputs are machine-readable in [`fixtures/perf-001-v1.toml`](fixtures/perf-001-v1.toml). The Phase 16 fixture generator and synthetic client driver consume this contract without changing its counts, seeds, schedules, or timing. The driver compiles real rule definitions, matcher routes, requirements, and stack resolution. Any contract change requires the same ADR as a threshold change.
 
 ## Reference environment
 

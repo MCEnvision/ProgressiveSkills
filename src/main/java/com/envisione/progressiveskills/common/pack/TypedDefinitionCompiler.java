@@ -41,10 +41,12 @@ public final class TypedDefinitionCompiler {
             return ClassTomlCompiler.classDefinition(key, fields, provenance, sourceMap);
         } else if (key.kind().equals(DefinitionKinds.ABILITY)) {
             return AbilityTomlCompiler.ability(key, fields, provenance, sourceMap);
+        } else if (key.kind().equals(DefinitionKinds.ITEM)) {
+            return CarrierTomlCompiler.carrier(key, fields, provenance, sourceMap);
+        } else if (key.kind().equals(DefinitionKinds.COMPATIBILITY_PROFILE)) {
+            return CompatibilityProfileCompiler.compile(key, fields, provenance, sourceMap);
         } else {
-            throw new UnsupportedDefinitionSchemaException(
-                    "Definition kind " + key.kind().id() + " is reserved but its typed compiler is not implemented yet"
-            );
+            return GenericDefinitionCompiler.compile(key, fields, provenance, sourceMap);
         }
         return new CanonicalDefinition(
                 DefinitionHeader.withoutPresentation(SchemaVersion.V2, key),

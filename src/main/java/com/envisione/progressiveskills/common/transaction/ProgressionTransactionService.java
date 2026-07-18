@@ -355,6 +355,29 @@ public final class ProgressionTransactionService {
         );
     }
 
+    public static ProgressionSnapshot previewSnapshot(
+            ProgressionSnapshot snapshot,
+            CascadePlan cascade
+    ) {
+        Objects.requireNonNull(snapshot, "snapshot");
+        Objects.requireNonNull(cascade, "cascade");
+        if (cascade.transaction().expectedStateRevision() != snapshot.stateRevision()) {
+            throw new IllegalArgumentException("Preview state revision does not match the cascade");
+        }
+        CoreState working = new CoreState(
+                snapshot.stateRevision(), copyBalances(snapshot.balances()),
+                copyOwnership(snapshot.ownership()), copyPaidCosts(snapshot.paidCosts()),
+                new TreeMap<>(snapshot.projectedValues()));
+        applyBalances(working.balances, flattenBalanceMutations(cascade));
+        applyEntitlements(working.ownership, flattenEntitlementMutations(cascade));
+        applyPaidCosts(working.paidCosts, flattenPaidCostMutations(cascade),
+                PersistedTransactionState.MAX_PAID_COST_RECORDS);
+        working.projected = resolveEffective(working.ownership);
+        return new ProgressionSnapshot(
+                snapshot.stateRevision(), working.balances, working.ownership, working.paidCosts,
+                working.projected, snapshot.receiptCount(), snapshot.idempotencyCount(), snapshot.auditCount());
+    }
+
     public synchronized TransactionResult rollback(
             UUID actorId,
             UUID targetId,

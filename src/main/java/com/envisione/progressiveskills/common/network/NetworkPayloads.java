@@ -297,6 +297,80 @@ public final class NetworkPayloads {
         }
     }
 
+    public record StudioFilePut(
+            ResourceLocation draftId,
+            long revision,
+            String path,
+            String contents
+    ) implements CustomPacketPayload {
+        public static final Type<StudioFilePut> TYPE = NetworkPayloads.type("studio_file_put");
+        public static final StreamCodec<FriendlyByteBuf, StudioFilePut> STREAM_CODEC = StreamCodec.of(
+                (buffer, value) -> {
+                    writeId(buffer, value.draftId);
+                    buffer.writeVarLong(value.revision);
+                    buffer.writeUtf(value.path, NetworkLimits.MAX_STUDIO_PATH_BYTES);
+                    buffer.writeUtf(value.contents, NetworkLimits.MAX_STUDIO_CONTENT_BYTES);
+                },
+                buffer -> new StudioFilePut(
+                        readId(buffer), buffer.readVarLong(),
+                        buffer.readUtf(NetworkLimits.MAX_STUDIO_PATH_BYTES),
+                        buffer.readUtf(NetworkLimits.MAX_STUDIO_CONTENT_BYTES))
+        );
+
+        public StudioFilePut {
+            draftId = StableId.requireValid(draftId);
+            if (revision < 0) {
+                throw new IllegalArgumentException("Studio revision must not be negative");
+            }
+            path = NetworkLimits.requireBoundedText(
+                    path, NetworkLimits.MAX_STUDIO_PATH_BYTES, "Studio file path");
+            contents = NetworkLimits.requireBoundedText(
+                    contents, NetworkLimits.MAX_STUDIO_CONTENT_BYTES, "Studio file contents");
+            if (path.isBlank()) {
+                throw new IllegalArgumentException("Studio file path must not be blank");
+            }
+        }
+
+        @Override
+        public Type<StudioFilePut> type() {
+            return TYPE;
+        }
+    }
+
+    public record StudioFileResult(
+            ResourceLocation draftId,
+            boolean success,
+            long revision,
+            String message
+    ) implements CustomPacketPayload {
+        public static final Type<StudioFileResult> TYPE = NetworkPayloads.type("studio_file_result");
+        public static final StreamCodec<FriendlyByteBuf, StudioFileResult> STREAM_CODEC = StreamCodec.of(
+                (buffer, value) -> {
+                    writeId(buffer, value.draftId);
+                    buffer.writeBoolean(value.success);
+                    buffer.writeVarLong(value.revision);
+                    buffer.writeUtf(value.message, NetworkLimits.MAX_RESYNC_REASON_BYTES);
+                },
+                buffer -> new StudioFileResult(
+                        readId(buffer), buffer.readBoolean(), buffer.readVarLong(),
+                        buffer.readUtf(NetworkLimits.MAX_RESYNC_REASON_BYTES))
+        );
+
+        public StudioFileResult {
+            draftId = StableId.requireValid(draftId);
+            if (revision < 0) {
+                throw new IllegalArgumentException("Studio result revision must not be negative");
+            }
+            message = NetworkLimits.requireBoundedText(
+                    message, NetworkLimits.MAX_RESYNC_REASON_BYTES, "Studio result message");
+        }
+
+        @Override
+        public Type<StudioFileResult> type() {
+            return TYPE;
+        }
+    }
+
     public record Intent(
             UUID sessionId,
             long requestId,
@@ -644,6 +718,79 @@ public final class NetworkPayloads {
         }
     }
 
+    public record CarrierMigrationPreview(
+            UUID sessionId,
+            long requestId,
+            long definitionGeneration,
+            String semanticDigest,
+            long stateRevision,
+            boolean allowed,
+            Optional<ResourceLocation> definitionId,
+            int currentBehaviorVersion,
+            int nextBehaviorVersion,
+            int currentCharges,
+            int nextCharges,
+            String previewDigest,
+            String message
+    ) implements CustomPacketPayload {
+        public static final Type<CarrierMigrationPreview> TYPE = NetworkPayloads.type(
+                "carrier_migration_preview");
+        public static final StreamCodec<FriendlyByteBuf, CarrierMigrationPreview> STREAM_CODEC = StreamCodec.of(
+                (buffer, value) -> {
+                    buffer.writeUUID(value.sessionId);
+                    buffer.writeVarLong(value.requestId);
+                    buffer.writeVarLong(value.definitionGeneration);
+                    buffer.writeUtf(value.semanticDigest, 64);
+                    buffer.writeVarLong(value.stateRevision);
+                    buffer.writeBoolean(value.allowed);
+                    buffer.writeBoolean(value.definitionId.isPresent());
+                    value.definitionId.ifPresent(id -> writeId(buffer, id));
+                    buffer.writeVarInt(value.currentBehaviorVersion);
+                    buffer.writeVarInt(value.nextBehaviorVersion);
+                    buffer.writeVarInt(value.currentCharges);
+                    buffer.writeVarInt(value.nextCharges);
+                    buffer.writeUtf(value.previewDigest, 64);
+                    buffer.writeUtf(value.message, NetworkLimits.MAX_RESYNC_REASON_BYTES);
+                },
+                buffer -> new CarrierMigrationPreview(
+                        buffer.readUUID(), buffer.readVarLong(), buffer.readVarLong(),
+                        buffer.readUtf(64), buffer.readVarLong(), buffer.readBoolean(),
+                        buffer.readBoolean() ? Optional.of(readId(buffer)) : Optional.empty(),
+                        buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
+                        buffer.readUtf(64), buffer.readUtf(NetworkLimits.MAX_RESYNC_REASON_BYTES)
+                )
+        );
+
+        public CarrierMigrationPreview {
+            Objects.requireNonNull(sessionId, "sessionId");
+            if (requestId < 0 || definitionGeneration < 0 || stateRevision < 0) {
+                throw new IllegalArgumentException("Carrier migration preview revisions must not be negative");
+            }
+            semanticDigest = NetworkLimits.requireDigest(semanticDigest, "semanticDigest");
+            definitionId = Objects.requireNonNull(definitionId, "definitionId").map(StableId::requireValid);
+            if (currentBehaviorVersion < 0
+                    || currentBehaviorVersion > NetworkLimits.MAX_CARRIER_BEHAVIOR_VERSION
+                    || nextBehaviorVersion < 0
+                    || nextBehaviorVersion > NetworkLimits.MAX_CARRIER_BEHAVIOR_VERSION
+                    || currentCharges < 0 || currentCharges > NetworkLimits.MAX_CARRIER_CHARGES
+                    || nextCharges < 0 || nextCharges > NetworkLimits.MAX_CARRIER_CHARGES) {
+                throw new IllegalArgumentException("Carrier migration preview values exceed capacity");
+            }
+            if (allowed && (definitionId.isEmpty() || currentBehaviorVersion < 1
+                    || nextBehaviorVersion < 1 || nextCharges < 1)) {
+                throw new IllegalArgumentException("Allowed carrier migration preview is incomplete");
+            }
+            previewDigest = NetworkLimits.requireDigest(previewDigest, "carrier preview digest");
+            message = NetworkLimits.requireBoundedText(
+                    message, NetworkLimits.MAX_RESYNC_REASON_BYTES, "carrier preview message");
+        }
+
+        @Override
+        public Type<CarrierMigrationPreview> type() {
+            return TYPE;
+        }
+    }
+
     public enum IntentType {
         NOOP_TEST,
         TREE_BUY,
@@ -658,7 +805,12 @@ public final class NetworkPayloads {
         ABILITY_UNASSIGN,
         ABILITY_SELECT,
         ABILITY_TOGGLE,
-        ABILITY_ACTIVATE
+        ABILITY_ACTIVATE,
+        CLAIM_TAKE,
+        CLAIM_TAKE_ALL,
+        CARRIER_INSPECT,
+        CARRIER_MIGRATE_PREVIEW,
+        CARRIER_MIGRATE_CONFIRM
     }
 
     public enum IntentStatus {

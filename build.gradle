@@ -322,6 +322,7 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
+    systemProperty 'progressiveskills.projectDir', layout.projectDirectory.asFile.absolutePath
     testLogging {
         events 'passed', 'skipped', 'failed'
         exceptionFormat = 'full'
@@ -380,7 +381,7 @@ def prepareGameTestServerProperties = tasks.register('prepareGameTestServerPrope
 }
 def verifyGameTestResults = tasks.register('verifyGameTestResults', VerifyTextFileContains) {
     textFile = gameTestLog
-    requiredText = 'All 1 required tests passed :)'
+    requiredText = 'All 2 required tests passed :)'
 }
 def verifyGameTestLogClean = tasks.register('verifyGameTestLogClean', VerifyTextFileExcludes) {
     textFile = gameTestLog

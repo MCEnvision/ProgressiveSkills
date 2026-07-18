@@ -50,7 +50,7 @@ class StableIdTest {
     }
 
     @Test
-    void idsDeriveExactlyFromKindDirectoryAndTomlPath() {
+    void idsDeriveExactlyFromKindDirectoryAndSourcePath() {
         assertEquals(
                 "mypack:combat/physique",
                 StableId.derive(SKILL, "mypack", "skills/combat/physique.toml").toString()
@@ -58,6 +58,10 @@ class StableIdTest {
         assertEquals(
                 "mypack:warrior_tree",
                 StableId.derive(TREE, "mypack", "trees/warrior_tree.toml").toString()
+        );
+        assertEquals(
+                StableId.derive(SKILL, "mypack", "skills/combat/physique.toml"),
+                StableId.derive(SKILL, "mypack", "skills/combat/physique.json")
         );
         assertEquals(
                 "mypack:combat/physique",
@@ -89,8 +93,7 @@ class StableIdTest {
                 "skills//a.toml",
                 "trees/a.toml",
                 "skills/a.TOML",
-                "skills/.toml",
-                "skills/a.json"
+                "skills/.toml"
         );
         invalid.forEach(
                 sourcePath -> assertThrows(

@@ -1,0 +1,20 @@
+schema_version = 2
+
+[profile]
+id = "progressiveskills:multiplayer"
+active = true
+assist_skill = "progressiveskills:physique"
+assist_xp_units_per_damage = 25
+assist_max_award_units = 1000
+assist_window_ticks = 200
+assist_min_damage_milli = 1000
+mentor_bonus_basis_points = 500
+mentor_max_bonus_per_award = 1000
+mentor_max_level_gap = 20
+pvp_awards_enabled = true
+pvp_pair_cooldown_ticks = 1200
+pvp_pair_daily_cap_units = 2500
+pvp_repeat_multiplier_basis_points = 2500
+pvp_free_level_gap = 5
+pvp_level_penalty_basis_points = 500
+pvp_minimum_multiplier_basis_points = 1000

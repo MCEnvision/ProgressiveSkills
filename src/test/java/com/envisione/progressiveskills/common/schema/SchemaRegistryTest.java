@@ -28,7 +28,7 @@ class SchemaRegistryTest {
         var ids = registry.schemas().stream().map(schema -> schema.id().toString()).toList();
 
         assertEquals(ids.stream().sorted().toList(), ids);
-        assertEquals(50, ids.size());
+        assertEquals(58, ids.size());
         assertEquals(DefinitionKinds.all(), registry.definitionKinds().stream().toList());
         for (var schema : registry.schemas()) {
             assertEquals(
@@ -147,7 +147,9 @@ class SchemaRegistryTest {
                         "class_select", "class_respec_preview", "class_respec_confirm",
                         "class_swap_preview", "class_swap_confirm",
                         "ability_assign", "ability_unassign", "ability_select",
-                        "ability_toggle", "ability_activate"),
+                        "ability_toggle", "ability_activate",
+                        "claim_take", "claim_take_all", "carrier_inspect",
+                        "carrier_migrate_preview", "carrier_migrate_confirm"),
                 networkIntent.fields().stream().filter(field -> field.path().equals("intent_type"))
                         .findFirst().orElseThrow().allowedValues()
         );
@@ -266,7 +268,47 @@ class SchemaRegistryTest {
         assertEquals(List.of("ability_id", "slot"),
                 intent.fields().stream().map(FieldDescriptor::path).toList());
         assertTrue(intent.fields().stream().noneMatch(FieldDescriptor::required));
-        assertEquals(4, com.envisione.progressiveskills.common.network.NetworkLimits.PROTOCOL_VERSION);
+        assertEquals(7, com.envisione.progressiveskills.common.network.NetworkLimits.PROTOCOL_VERSION);
+    }
+
+    @Test
+    void phaseThirteenCarrierContractsKeepEconomicsServerOwned() {
+        var registry = CoreSchemas.createRegistry();
+        var definition = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "carrier_definition"));
+        var definitionFields = definition.fields().stream()
+                .collect(Collectors.toMap(FieldDescriptor::path, Function.identity()));
+        var action = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "carrier_use_action"));
+        var identity = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "carrier_identity"));
+        var state = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "carrier_stack_state"));
+        var claim = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "pending_carrier_claim"));
+        var visible = registry.require(ResourceLocation.fromNamespaceAndPath(
+                "progressiveskills", "visible_carrier_summary"));
+
+        assertEquals(List.of("tome", "token", "charm", "consumable", "artifact"),
+                definitionFields.get("carrier").allowedValues());
+        assertEquals(List.of("keep_pinned", "migrate", "warn", "invalidate"),
+                definitionFields.get("migration_policy").allowedValues());
+        assertEquals(List.of("refuse_transaction", "pending_claim", "drop_if_safe"),
+                definitionFields.get("delivery_policy").allowedValues());
+        assertEquals(DiffPolicy.ORDERED, definitionFields.get("use_actions").diffPolicy());
+        assertEquals(List.of("xp", "level", "currency", "tree_respec"),
+                action.fields().stream().filter(field -> field.path().equals("type"))
+                        .findFirst().orElseThrow().allowedValues());
+        assertTrue(identity.fields().stream().allMatch(field ->
+                field.projection() == ProjectionPolicy.SERVER_ONLY));
+        assertTrue(state.fields().stream().allMatch(field ->
+                field.projection() == ProjectionPolicy.SERVER_ONLY));
+        assertTrue(claim.fields().stream().allMatch(field ->
+                field.projection() == ProjectionPolicy.SERVER_ONLY));
+        assertTrue(visible.fields().stream().allMatch(field ->
+                field.projection() == ProjectionPolicy.CLIENT_VISIBLE));
+        assertFalse(visible.fields().stream().anyMatch(field ->
+                field.path().equals("behavior") || field.path().equals("use_actions")));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.envisione.progressiveskills.server.skill;
 
+import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.rule.RuleMemoryKeys;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillAwardPlan;
@@ -13,6 +14,11 @@ import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.TransactionResult;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
+import com.envisione.progressiveskills.server.hardening.DecisionTraceRuntime;
+import com.envisione.progressiveskills.server.hardening.HardeningRuntime;
+import com.envisione.progressiveskills.server.creator.CreatorRuntime;
+import com.envisione.progressiveskills.server.social.MentorCatchupService;
+import com.envisione.progressiveskills.server.social.MultiplayerSavedData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -92,6 +98,28 @@ public final class SkillRuntime {
         );
     }
 
+    public static AwardResult awardShared(
+            UUID actor,
+            ServerPlayer target,
+            SkillDefinition skill,
+            long amountUnits,
+            UUID receiptId
+    ) {
+        if (amountUnits < 1) {
+            throw new IllegalArgumentException("Shared skill XP must be positive");
+        }
+        return award(
+                actor,
+                target,
+                skill,
+                amountUnits,
+                ResourceLocation.fromNamespaceAndPath(ProjectIdentity.MOD_ID, "social/shared_xp"),
+                "phase18/shared/" + receiptId + "/" + target.getUUID(),
+                ProgressionCause.GAMEPLAY,
+                "Award shared contribution skill XP"
+        );
+    }
+
     private static AwardResult award(
             UUID actor,
             ServerPlayer target,
@@ -133,11 +161,17 @@ public final class SkillRuntime {
                 .orElseThrow(() -> new IllegalStateException("Transaction runtime is unavailable"));
         DefinitionRevision definition = TransactionRuntime.currentDefinition()
                 .orElseThrow(() -> new IllegalStateException("Live definitions are unavailable"));
+        long effectiveAmount = cause == ProgressionCause.GAMEPLAY
+                && !origin.equals(ResourceLocation.fromNamespaceAndPath(ProjectIdentity.MOD_ID, "social/shared_xp"))
+                ? MentorCatchupService.adjustedAward(
+                MultiplayerSavedData.get(target.getServer()), target, skill, amountUnits)
+                : amountUnits;
+        long started = System.nanoTime();
         SkillAwardPlan plan = SkillProgression.award(
                 actor,
                 target.getUUID(),
                 skill,
-                amountUnits,
+                effectiveAmount,
                 catalog,
                 context.service().snapshot(target.getUUID()),
                 definition,
@@ -148,8 +182,28 @@ public final class SkillRuntime {
                 memoryMutations
         );
         TransactionResult result = context.executeAndPersist(target, plan.cascade(), definition);
-        if (result.status().committed() && !result.replayed()) {
-            feedback(target, skill, plan);
+        HardeningRuntime.performance().record("skill_award", 5_000_000L, System.nanoTime() - started);
+        DecisionTraceRuntime.record(
+                target.getUUID(),
+                "xp",
+                skill.id().toString(),
+                result.status().committed(),
+                result.message(),
+                context.service().snapshot(target.getUUID()).stateRevision()
+        );
+        if (result.status().committed()) {
+            if (!result.replayed()) {
+                feedback(target, skill, plan);
+            }
+            try {
+                CreatorRuntime.onSkillAward(
+                        target, result.transactionId().value(), skill.id(), plan.awardedUnits());
+            } catch (RuntimeException exception) {
+                DecisionTraceRuntime.record(
+                        target.getUUID(), "creator", skill.id().toString(), false,
+                        exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage(),
+                        context.service().snapshot(target.getUUID()).stateRevision());
+            }
         }
         return new AwardResult(skill, plan, result);
     }

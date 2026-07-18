@@ -150,7 +150,7 @@ class PaidCostNbtCodecTest {
         CompoundTag migratedRaw = PlayerDataMigrations.migrateToCurrent(versionTwo, 2);
         ProgressiveSkillsData migrated = ProgressiveSkillsDataSerializer.decode(PLAYER, versionTwo);
 
-        assertEquals(3, migratedRaw.getInt("data_version"));
+        assertEquals(ProgressiveSkillsData.CURRENT_DATA_VERSION, migratedRaw.getInt("data_version"));
         assertTrue(migratedRaw.getCompound("transaction").contains("paid_costs", Tag.TAG_LIST));
         assertTrue(migrated.active());
         assertTrue(migrated.transactionState().paidCosts().isEmpty());

@@ -16,6 +16,7 @@ public final class PlayerDataMigrations {
             current = switch (version) {
                 case 1 -> migrateV1ToV2(current);
                 case 2 -> migrateV2ToV3(current);
+                case 3 -> migrateV3ToV4(current);
                 default -> throw new IllegalArgumentException("No player-data migration from version " + version);
             };
             version++;
@@ -59,6 +60,18 @@ public final class PlayerDataMigrations {
             transaction.put("paid_costs", new ListTag());
         }
         output.put("transaction", transaction);
+        return output;
+    }
+
+    static CompoundTag migrateV3ToV4(CompoundTag input) {
+        CompoundTag output = input.copy();
+        output.putInt("data_version", 4);
+        if (!output.contains("pending_carrier_claims", Tag.TAG_LIST)) {
+            output.put("pending_carrier_claims", new ListTag());
+        }
+        if (!output.contains("carrier_use_counters", Tag.TAG_LIST)) {
+            output.put("carrier_use_counters", new ListTag());
+        }
         return output;
     }
 }

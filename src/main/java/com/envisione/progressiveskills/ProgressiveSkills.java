@@ -1,5 +1,7 @@
 package com.envisione.progressiveskills;
 
+import com.envisione.progressiveskills.common.carrier.PsCarrierComponents;
+import com.envisione.progressiveskills.common.carrier.PsCarrierItems;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.network.PsNetworking;
 import com.mojang.logging.LogUtils;
@@ -20,6 +22,8 @@ public final class ProgressiveSkills {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public ProgressiveSkills(IEventBus modEventBus) {
+        PsCarrierComponents.register(modEventBus);
+        PsCarrierItems.register(modEventBus);
         PsDataAttachments.register(modEventBus);
         modEventBus.addListener(PsNetworking::register);
         modEventBus.addListener(ProgressiveSkills::onCommonSetup);

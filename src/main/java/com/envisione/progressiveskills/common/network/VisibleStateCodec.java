@@ -14,8 +14,8 @@ import java.util.UUID;
 
 /** Strict codec for full visible state and semantic deltas. */
 public final class VisibleStateCodec {
-    private static final int FULL_VERSION = 4;
-    private static final int DELTA_VERSION = 4;
+    private static final int FULL_VERSION = 5;
+    private static final int DELTA_VERSION = 5;
 
     private VisibleStateCodec() {
     }
@@ -45,6 +45,7 @@ public final class VisibleStateCodec {
                     readAbilities(input),
                     readAbilitySlots(input),
                     input.readInt(),
+                    CarrierProjectionCodec.readEmbedded(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean()
@@ -88,6 +89,7 @@ public final class VisibleStateCodec {
                     readAbilitySlots(input),
                     readAbilitySlotIds(input),
                     input.readInt(),
+                    CarrierProjectionCodec.readEmbedded(input),
                     input.readInt(),
                     input.readInt(),
                     input.readBoolean(),
@@ -119,6 +121,7 @@ public final class VisibleStateCodec {
         writeAbilities(output, state.abilities());
         writeAbilitySlots(output, state.abilitySlots());
         output.writeInt(state.selectedAbilitySlot());
+        CarrierProjectionCodec.writeEmbedded(output, state.carriers());
         output.writeInt(state.orphanCount());
         output.writeInt(state.operationReceiptCount());
         output.writeBoolean(state.quarantined());
@@ -146,6 +149,7 @@ public final class VisibleStateCodec {
         writeAbilitySlots(output, delta.changedAbilitySlots());
         writeAbilitySlotIds(output, delta.removedAbilitySlots());
         output.writeInt(delta.selectedAbilitySlot());
+        CarrierProjectionCodec.writeEmbedded(output, delta.carriers());
         output.writeInt(delta.orphanCount());
         output.writeInt(delta.operationReceiptCount());
         output.writeBoolean(delta.quarantined());

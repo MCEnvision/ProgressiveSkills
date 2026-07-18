@@ -35,6 +35,7 @@ public record StateDelta(
         Map<Integer, ResourceLocation> changedAbilitySlots,
         Set<Integer> removedAbilitySlots,
         int selectedAbilitySlot,
+        CarrierProjection carriers,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined,
@@ -114,6 +115,41 @@ public record StateDelta(
                 presentationRevision, presentationDigest, changedBalances, removedBalances,
                 changedEffectiveValues, removedEffectiveValues, changedNodeRanks, removedNodeRanks,
                 changedSelectedClasses, removedSelectedClasses, Map.of(), Set.of(), Map.of(), Set.of(), -1,
+                CarrierProjection.EMPTY,
+                orphanCount, operationReceiptCount, quarantined, resultingStateDigest);
+    }
+
+    public StateDelta(
+            UUID playerId,
+            long baseSyncRevision,
+            long newSyncRevision,
+            long newStateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> changedBalances,
+            Set<String> removedBalances,
+            Map<String, Long> changedEffectiveValues,
+            Set<String> removedEffectiveValues,
+            Map<ResourceLocation, Integer> changedNodeRanks,
+            Set<ResourceLocation> removedNodeRanks,
+            Map<ResourceLocation, VisiblePlayerState.ClassSelection> changedSelectedClasses,
+            Set<ResourceLocation> removedSelectedClasses,
+            Map<ResourceLocation, VisiblePlayerState.AbilityState> changedAbilities,
+            Set<ResourceLocation> removedAbilities,
+            Map<Integer, ResourceLocation> changedAbilitySlots,
+            Set<Integer> removedAbilitySlots,
+            int selectedAbilitySlot,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined,
+            String resultingStateDigest
+    ) {
+        this(playerId, baseSyncRevision, newSyncRevision, newStateRevision, definitionRevision,
+                presentationRevision, presentationDigest, changedBalances, removedBalances,
+                changedEffectiveValues, removedEffectiveValues, changedNodeRanks, removedNodeRanks,
+                changedSelectedClasses, removedSelectedClasses, changedAbilities, removedAbilities,
+                changedAbilitySlots, removedAbilitySlots, selectedAbilitySlot, CarrierProjection.EMPTY,
                 orphanCount, operationReceiptCount, quarantined, resultingStateDigest);
     }
 
@@ -137,6 +173,7 @@ public record StateDelta(
         removedAbilities = copyNodeIds(removedAbilities);
         changedAbilitySlots = copyAbilitySlots(changedAbilitySlots);
         removedAbilitySlots = copyAbilitySlotIds(removedAbilitySlots);
+        carriers = Objects.requireNonNull(carriers, "carriers");
         if (selectedAbilitySlot < -1 || selectedAbilitySlot >= NetworkLimits.FIXED_ABILITY_SLOTS) {
             throw new IllegalArgumentException("State delta selected ability slot is invalid");
         }
@@ -179,6 +216,7 @@ public record StateDelta(
                 abilitySlotChanges(before.abilitySlots(), after.abilitySlots()),
                 abilitySlotRemovals(before.abilitySlots(), after.abilitySlots()),
                 after.selectedAbilitySlot(),
+                after.carriers(),
                 after.orphanCount(), after.operationReceiptCount(), after.quarantined(), digest
         );
     }

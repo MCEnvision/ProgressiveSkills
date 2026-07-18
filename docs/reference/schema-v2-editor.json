@@ -23,12 +23,28 @@
       "source_directory": "classes"
     },
     {
+      "id": "progressiveskills:class_rank",
+      "source_directory": "class_ranks"
+    },
+    {
       "id": "progressiveskills:class_slot",
       "source_directory": "class_slots"
     },
     {
+      "id": "progressiveskills:combo_mastery",
+      "source_directory": "combo_mastery"
+    },
+    {
+      "id": "progressiveskills:compatibility_profile",
+      "source_directory": "compatibility_profiles"
+    },
+    {
       "id": "progressiveskills:component_spec",
       "source_directory": "component_specs"
+    },
+    {
+      "id": "progressiveskills:context_effect",
+      "source_directory": "context_effects"
     },
     {
       "id": "progressiveskills:conversion",
@@ -71,6 +87,14 @@
       "source_directory": "layouts"
     },
     {
+      "id": "progressiveskills:loadout",
+      "source_directory": "loadouts"
+    },
+    {
+      "id": "progressiveskills:milestone_choice",
+      "source_directory": "milestone_choices"
+    },
+    {
       "id": "progressiveskills:notification_profile",
       "source_directory": "notification_profiles"
     },
@@ -83,8 +107,16 @@
       "source_directory": "prestige"
     },
     {
+      "id": "progressiveskills:primitive",
+      "source_directory": "primitives"
+    },
+    {
       "id": "progressiveskills:profile",
       "source_directory": "profiles"
+    },
+    {
+      "id": "progressiveskills:reactive_proc",
+      "source_directory": "reactive_procs"
     },
     {
       "id": "progressiveskills:requirement",
@@ -103,8 +135,16 @@
       "source_directory": "seasons"
     },
     {
+      "id": "progressiveskills:simulation",
+      "source_directory": "simulations"
+    },
+    {
       "id": "progressiveskills:skill",
       "source_directory": "skills"
+    },
+    {
+      "id": "progressiveskills:stance",
+      "source_directory": "stances"
     },
     {
       "id": "progressiveskills:station",
@@ -123,8 +163,16 @@
       "source_directory": "themes"
     },
     {
+      "id": "progressiveskills:training_contract",
+      "source_directory": "training_contracts"
+    },
+    {
       "id": "progressiveskills:tree",
       "source_directory": "trees"
+    },
+    {
+      "id": "progressiveskills:tree_rank",
+      "source_directory": "tree_ranks"
     },
     {
       "id": "progressiveskills:variable",
@@ -1308,6 +1356,813 @@
           },
           "projection": "server_only",
           "diff": "merge_by_key",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_behavior_archive",
+      "version": 2,
+      "audience": "internal",
+      "title": "Carrier behavior archive",
+      "description": "World scoped checksummed immutable behavior payloads retained without age eviction.",
+      "fields": [
+        {
+          "path": "checksum",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "SHA 256 checksum of one canonical payload.",
+          "example": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "diagnostic": "PS-CARRIER-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "SHA 256 checksum of one canonical payload."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "data_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Archive persistence contract version.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Archive persistence contract version."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Semantic behavior digest used as the archive key.",
+          "example": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "diagnostic": "PS-CARRIER-002",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Semantic behavior digest used as the archive key."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "payload",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded canonical binary behavior payload.",
+          "example": "base64",
+          "diagnostic": "PS-CARRIER-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Bounded canonical binary behavior payload."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_definition",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Carrier item definition",
+      "description": "Configured stack behavior for one of the five startup registered carrier items.",
+      "fields": [
+        {
+          "path": "behavior_version",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 1,
+          "description": "Positive behavior revision pinned into issued stacks.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Positive behavior revision pinned into issued stacks."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "bind",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["none", "on_pickup", "on_use", "on_craft"],
+          "default": "none",
+          "description": "Owner binding point enforced by the server.",
+          "example": "on_use",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 90,
+            "help": "Owner binding point enforced by the server."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "carrier",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["tome", "token", "charm", "consumable", "artifact"],
+          "default": null,
+          "description": "Fixed registry carrier item selected for this configured stack.",
+          "example": "tome",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 60,
+            "help": "Fixed registry carrier item selected for this configured stack."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "charges",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 1,
+          "description": "Initial bounded charge count.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 140,
+            "help": "Initial bounded charge count."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "cooldown_ticks",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 0,
+          "description": "Server game ticks between successful uses.",
+          "example": "20",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 150,
+            "help": "Server game ticks between successful uses."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "delivery_policy",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["refuse_transaction", "pending_claim", "drop_if_safe"],
+          "default": "pending_claim",
+          "description": "Native inventory overflow behavior.",
+          "example": "pending_claim",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 100,
+            "help": "Native inventory overflow behavior."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "description",
+          "type": "component",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized cosmetic description.",
+          "example": "{ fallback = \"Grants skill XP.\" }",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 30,
+            "help": "Localized cosmetic description."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "display",
+          "type": "component",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Localized cosmetic stack name.",
+          "example": "{ fallback = \"Tome of Might\" }",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "component",
+            "group": "core",
+            "order": 20,
+            "help": "Localized cosmetic stack name."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "enabled",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": true,
+          "description": "Whether new stacks may be issued from this definition.",
+          "example": "true",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 50,
+            "help": "Whether new stacks may be issued from this definition."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "glint",
+          "type": "boolean",
+          "required": false,
+          "allowed_values": [],
+          "default": false,
+          "description": "Cosmetic enchantment glint override.",
+          "example": "true",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "checkbox",
+            "group": "core",
+            "order": 120,
+            "help": "Cosmetic enchantment glint override."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "icon",
+          "type": "icon",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Carrier icon with vanilla safe fallback and alternative text.",
+          "example": "{ type = \"item\", value = \"minecraft:enchanted_book\", fallback = \"minecraft:barrier\", alt = \"Book\" }",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "icon",
+            "group": "core",
+            "order": 40,
+            "help": "Carrier icon with vanilla safe fallback and alternative text."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "migration_policy",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["keep_pinned", "migrate", "warn", "invalidate"],
+          "default": "keep_pinned",
+          "description": "Changed digest policy. Unsafe live acceptance is not authorable in Core.",
+          "example": "keep_pinned",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 80,
+            "help": "Changed digest policy. Unsafe live acceptance is not authorable in Core."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "rarity",
+          "type": "enum",
+          "required": false,
+          "allowed_values": ["common", "uncommon", "rare", "epic"],
+          "default": "common",
+          "description": "Cosmetic vanilla rarity.",
+          "example": "rare",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 110,
+            "help": "Cosmetic vanilla rarity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "search_aliases",
+          "type": "list",
+          "required": false,
+          "allowed_values": [],
+          "default": [],
+          "description": "Bounded alternate carrier search terms.",
+          "example": "[\"XP book\"]",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 45,
+            "help": "Bounded alternate carrier search terms."
+          },
+          "projection": "client_visible",
+          "diff": "set",
+          "omit_when_default": true
+        },
+        {
+          "path": "stack_size",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 64,
+          "description": "Visible maximum stack size from one through sixty four.",
+          "example": "16",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 130,
+            "help": "Visible maximum stack size from one through sixty four."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "use_actions",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authored order of one through sixteen pinned Core actions.",
+          "example": "[{ id = \"mypack:tome/grant\", type = \"xp\", skill = \"mypack:physique\", amount = 500, consume = 1 }]",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "list",
+            "group": "core",
+            "order": 160,
+            "help": "Authored order of one through sixteen pinned Core actions."
+          },
+          "projection": "client_visible",
+          "diff": "ordered",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_identity",
+      "version": 2,
+      "audience": "internal",
+      "title": "Carrier component identity",
+      "description": "Persistent network synchronized definition identity and pinned behavior digest without economic actions.",
+      "fields": [
+        {
+          "path": "behavior_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Lowercase SHA 256 of the archived canonical behavior.",
+          "example": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Lowercase SHA 256 of the archived canonical behavior."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable configured item definition identity.",
+          "example": "mypack:tome_of_might",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable configured item definition identity."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_intent",
+      "version": 2,
+      "audience": "internal",
+      "title": "Carrier and claim intent payload",
+      "description": "Closed selection only payload for inspection, claim delivery, and explicit held stack migration.",
+      "fields": [
+        {
+          "path": "claim_id",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Viewer owned claim UUID required only by take one.",
+          "example": "00000000-0000-0000-0000-000000000130",
+          "diagnostic": "PS-CARRIER-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Viewer owned claim UUID required only by take one."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "preview_digest",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exact server produced held migration preview digest required only by confirmation.",
+          "example": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "diagnostic": "PS-CARRIER-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Exact server produced held migration preview digest required only by confirmation."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_stack_state",
+      "version": 2,
+      "audience": "internal",
+      "title": "Carrier component state",
+      "description": "Bounded issuance, charge, binding, and migration state carried by one stack.",
+      "fields": [
+        {
+          "path": "behavior_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned positive behavior revision.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Pinned positive behavior revision."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "bound_owner",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owner UUID when binding is active.",
+          "example": "00000000-0000-0000-0000-000000000013",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Owner UUID when binding is active."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "charges",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Nonnegative remaining charges no greater than archived initial charges.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Nonnegative remaining charges no greater than archived initial charges."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "creation_pack_digest",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Live pack digest present when the stack was issued.",
+          "example": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Live pack digest present when the stack was issued."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "data_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Persistent component contract version.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Persistent component contract version."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "instance_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "World issued UUID checked by the exact use ledger.",
+          "example": "00000000-0000-0000-0000-000000000013",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "World issued UUID checked by the exact use ledger."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "migration_marker",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded marker describing one explicit reviewed migration.",
+          "example": "v1_to_v2",
+          "diagnostic": "PS-CARRIER-007",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Bounded marker describing one explicit reviewed migration."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "use_counter",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Monotonic issuance counter checked before every economic use.",
+          "example": "0",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Monotonic issuance counter checked before every economic use."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
+      "id": "progressiveskills:carrier_use_action",
+      "version": 2,
+      "audience": "authoring",
+      "title": "Carrier use action",
+      "description": "One ordered Core XP, level, currency, or tree respec action stored in pinned behavior.",
+      "fields": [
+        {
+          "path": "amount",
+          "type": "decimal",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Positive fixed point XP, positive level count, or positive currency amount.",
+          "example": "500",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "decimal",
+            "group": "core",
+            "order": 60,
+            "help": "Positive fixed point XP, positive level count, or positive currency amount."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "consume",
+          "type": "integer",
+          "required": false,
+          "allowed_values": [],
+          "default": 1,
+          "description": "Charges consumed by this action from zero through sixty four.",
+          "example": "1",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "integer",
+            "group": "core",
+            "order": 70,
+            "help": "Charges consumed by this action from zero through sixty four."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": true
+        },
+        {
+          "path": "currency",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Existing named currency required by a currency action.",
+          "example": "progressiveskills:global_points",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 40,
+            "help": "Existing named currency required by a currency action."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Globally unique stable action identity.",
+          "example": "mypack:tome/grant_xp",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 10,
+            "help": "Globally unique stable action identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "skill",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Existing enabled skill required by XP and level actions.",
+          "example": "mypack:physique",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 30,
+            "help": "Existing enabled skill required by XP and level actions."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "tree",
+          "type": "resource_location",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Existing enabled tree required by a respec action.",
+          "example": "mypack:physique_training",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "resource_location",
+            "group": "core",
+            "order": 50,
+            "help": "Existing enabled tree required by a respec action."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "type",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["xp", "level", "currency", "tree_respec"],
+          "default": null,
+          "description": "Closed Core carrier action family.",
+          "example": "xp",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "select",
+            "group": "core",
+            "order": 20,
+            "help": "Closed Core carrier action family."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
           "omit_when_default": false
         }
       ],
@@ -3583,7 +4438,7 @@
           "allowed_values": [],
           "default": null,
           "description": "Required bounded protocol feature bitset.",
-          "example": "127",
+          "example": "511",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -3640,7 +4495,7 @@
           "allowed_values": [],
           "default": null,
           "description": "ProgressiveSkills application protocol version.",
-          "example": "4",
+          "example": "7",
           "diagnostic": "PS-NET-001",
           "editor": {
             "widget": "object",
@@ -3743,7 +4598,7 @@
           "path": "intent_type",
           "type": "enum",
           "required": true,
-          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm", "class_select", "class_respec_preview", "class_respec_confirm", "class_swap_preview", "class_swap_confirm", "ability_assign", "ability_unassign", "ability_select", "ability_toggle", "ability_activate"],
+          "allowed_values": ["noop_test", "tree_buy", "tree_refund_preview", "tree_refund_confirm", "class_select", "class_respec_preview", "class_respec_confirm", "class_swap_preview", "class_swap_confirm", "ability_assign", "ability_unassign", "ability_select", "ability_toggle", "ability_activate", "claim_take", "claim_take_all", "carrier_inspect", "carrier_migrate_preview", "carrier_migrate_confirm"],
           "default": null,
           "description": "Closed server-registered intent family.",
           "example": "tree_buy",
@@ -4776,6 +5631,169 @@
       ]
     },
     {
+      "id": "progressiveskills:pending_carrier_claim",
+      "version": 2,
+      "audience": "internal",
+      "title": "Pending carrier claim",
+      "description": "Durable materialized inventory overflow delivery with pinned behavior and stable origin identity.",
+      "fields": [
+        {
+          "path": "behavior",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Full bounded canonical behavior snapshot verified against the identity digest.",
+          "example": "{ behavior_version = 1 }",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Full bounded canonical behavior snapshot verified against the identity digest."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "claim_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable claim UUID.",
+          "example": "00000000-0000-0000-0000-000000000130",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Stable claim UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "created_at",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Authoritative creation epoch milliseconds.",
+          "example": "1784203200000",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 70,
+            "help": "Authoritative creation epoch milliseconds."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "identity",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Definition id and behavior digest.",
+          "example": "{ definition_id = \"mypack:tome\" }",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Definition id and behavior digest."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["tome", "token", "charm", "consumable", "artifact"],
+          "default": null,
+          "description": "Fixed physical carrier kind.",
+          "example": "tome",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Fixed physical carrier kind."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "origin_delivery_id",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable acquisition or transaction delivery UUID.",
+          "example": "00000000-0000-0000-0000-000000000131",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Stable acquisition or transaction delivery UUID."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "reason",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded safe claim creation reason.",
+          "example": "Inventory was full",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 80,
+            "help": "Bounded safe claim creation reason."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "state",
+          "type": "object",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Materialized issuance, charge, binding, and migration state.",
+          "example": "{ charges = 1 }",
+          "diagnostic": "PS-CARRIER-003",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Materialized issuance, charge, binding, and migration state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:pending_progression_operation",
       "version": 2,
       "audience": "internal",
@@ -5079,13 +6097,32 @@
       "description": "Bounded durable progression state with transaction truth, migration evidence, and fail-closed quarantine.",
       "fields": [
         {
+          "path": "carrier_use_counters",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Exact non evicting issuance counters used to reject copied or replayed carrier state.",
+          "example": "[]",
+          "diagnostic": "PS-CARRIER-004",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 75,
+            "help": "Exact non evicting issuance counters used to reject copied or replayed carrier state."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
           "path": "data_version",
           "type": "integer",
           "required": true,
           "allowed_values": [],
           "default": null,
           "description": "Persisted attachment contract version.",
-          "example": "2",
+          "example": "4",
           "diagnostic": "PS-DATA-003",
           "editor": {
             "widget": "object",
@@ -5206,6 +6243,25 @@
             "group": "core",
             "order": 60,
             "help": "Persisted definition state awaiting a compatible definition or explicit replacement."
+          },
+          "projection": "server_only",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "pending_carrier_claims",
+          "type": "list",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Bounded durable materialized inventory overflow deliveries.",
+          "example": "[]",
+          "diagnostic": "PS-CARRIER-006",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 72,
+            "help": "Bounded durable materialized inventory overflow deliveries."
           },
           "projection": "server_only",
           "diff": "replace",
@@ -8652,6 +9708,131 @@
       ]
     },
     {
+      "id": "progressiveskills:visible_carrier_summary",
+      "version": 2,
+      "audience": "internal",
+      "title": "Visible carrier or claim summary",
+      "description": "Owner visible identity and status without archived actions, amounts, receipts, or server internals.",
+      "fields": [
+        {
+          "path": "behavior_version",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Pinned visible behavior revision.",
+          "example": "1",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 40,
+            "help": "Pinned visible behavior revision."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "claim_id",
+          "type": "string",
+          "required": false,
+          "allowed_values": [],
+          "default": null,
+          "description": "Owner visible claim UUID for a pending summary.",
+          "example": "00000000-0000-0000-0000-000000000130",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 10,
+            "help": "Owner visible claim UUID for a pending summary."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "definition_id",
+          "type": "resource_location",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Stable configured carrier definition identity.",
+          "example": "mypack:tome_of_might",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 20,
+            "help": "Stable configured carrier definition identity."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "kind",
+          "type": "enum",
+          "required": true,
+          "allowed_values": ["tome", "token", "charm", "consumable", "artifact"],
+          "default": null,
+          "description": "Fixed physical carrier kind.",
+          "example": "tome",
+          "diagnostic": "PS-CARRIER-001",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 30,
+            "help": "Fixed physical carrier kind."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "remaining_charges",
+          "type": "integer",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Visible nonnegative remaining charges.",
+          "example": "1",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 50,
+            "help": "Visible nonnegative remaining charges."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        },
+        {
+          "path": "status",
+          "type": "string",
+          "required": true,
+          "allowed_values": [],
+          "default": null,
+          "description": "Explicit noncolor held or pending claim status.",
+          "example": "ready",
+          "diagnostic": "PS-NET-005",
+          "editor": {
+            "widget": "object",
+            "group": "core",
+            "order": 60,
+            "help": "Explicit noncolor held or pending claim status."
+          },
+          "projection": "client_visible",
+          "diff": "replace",
+          "omit_when_default": false
+        }
+      ],
+      "constraints": [
+      ]
+    },
+    {
       "id": "progressiveskills:visible_class_selection",
       "version": 2,
       "audience": "internal",
@@ -9097,6 +10278,69 @@
       "why": "Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.",
       "fix": "Synchronize state and review the current ability status before retrying.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-ability-006",
+      "suppressible": true
+    },
+    {
+      "code": "PS-CARRIER-001",
+      "severity": "error",
+      "title": "Carrier definition is invalid",
+      "why": "A carrier requires one fixed registry kind and bounded pinned behavior with valid Core actions.",
+      "fix": "Correct the item definition using the generated carrier schemas.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-001",
+      "suppressible": true
+    },
+    {
+      "code": "PS-CARRIER-002",
+      "severity": "error",
+      "title": "Carrier behavior is unavailable",
+      "why": "An unknown, missing, corrupt, or quarantined archived snapshot cannot authorize economic use.",
+      "fix": "Verify the behavior archive and restore the complete world data before retrying.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-002",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CARRIER-003",
+      "severity": "error",
+      "title": "Carrier component state was rejected",
+      "why": "The physical kind, digest, version, charges, owner, issuance identity, or counter did not agree with server authority.",
+      "fix": "Inspect the held stack and replace or explicitly migrate invalid carrier data.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-003",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CARRIER-004",
+      "severity": "warning",
+      "title": "Carrier use was denied",
+      "why": "Creative mode, cooldown, binding, charge, replay, capacity, or a referenced progression action blocked use.",
+      "fix": "Inspect the held stack and current action blockers before submitting a fresh use.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-004",
+      "suppressible": true
+    },
+    {
+      "code": "PS-CARRIER-005",
+      "severity": "error",
+      "title": "Carrier behavior archive is full",
+      "why": "Publishing or issuing behavior without an exact retained snapshot would make old stacks unsafe.",
+      "fix": "Review archive status and perform only an explicit proven reference migration or capacity change.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-005",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CARRIER-006",
+      "severity": "error",
+      "title": "Pending carrier claim storage is full",
+      "why": "A value bearing delivery cannot complete without durable materialized claim capacity.",
+      "fix": "Deliver existing claims or increase the bounded capacity before retrying acquisition.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-006",
+      "suppressible": false
+    },
+    {
+      "code": "PS-CARRIER-007",
+      "severity": "warning",
+      "title": "Carrier migration was denied",
+      "why": "Migration requires a current reviewed policy, matching owner, archived source, and exact preview digest.",
+      "fix": "Request a fresh held item migration preview and confirm that exact digest.",
+      "docs": "docs/reference/SCHEMA-V2.md#ps-carrier-007",
       "suppressible": true
     },
     {

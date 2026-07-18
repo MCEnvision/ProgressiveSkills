@@ -3,6 +3,8 @@ package com.envisione.progressiveskills.gametest;
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.classdef.ClassGrantType;
 import com.envisione.progressiveskills.common.classdef.ClassProgression;
+import com.envisione.progressiveskills.common.carrier.CarrierCatalog;
+import com.envisione.progressiveskills.common.creator.BuildShareCode;
 import com.envisione.progressiveskills.common.ability.AbilityFlagEffect;
 import com.envisione.progressiveskills.common.ability.AbilityState;
 import com.envisione.progressiveskills.common.ability.AbilityTargetMode;
@@ -13,6 +15,8 @@ import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.rule.BlockOrigin;
 import com.envisione.progressiveskills.common.skill.FixedPoint;
 import com.envisione.progressiveskills.common.skill.SkillStateIds;
+import com.envisione.progressiveskills.common.skill.SkillCatalog;
+import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.common.transaction.CascadePlan;
 import com.envisione.progressiveskills.common.transaction.EntitlementKey;
 import com.envisione.progressiveskills.common.transaction.EntitlementMutation;
@@ -23,6 +27,7 @@ import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.TransactionPlan;
 import com.envisione.progressiveskills.common.transaction.TransactionStep;
 import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
+import com.envisione.progressiveskills.server.carrier.BehaviorArchiveSavedData;
 import com.envisione.progressiveskills.server.ability.AbilityRuntime;
 import com.envisione.progressiveskills.server.ability.AbilityTargetResolver;
 import com.envisione.progressiveskills.server.offline.PendingOperationCoordinator;
@@ -32,6 +37,11 @@ import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import com.envisione.progressiveskills.server.transaction.PlayerPersistentProjector;
 import com.envisione.progressiveskills.server.rule.RuleRuntime;
 import com.envisione.progressiveskills.server.rule.BlockProvenanceSavedData;
+import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.provider.ProviderRuntime;
+import com.envisione.progressiveskills.server.social.MultiplayerSavedData;
+import com.envisione.progressiveskills.server.social.TeamSavedData;
+import com.envisione.progressiveskills.server.studio.StudioService;
 import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -59,6 +69,7 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Real-server proof for staged packs, transaction lifecycles, and Phase 5 persistence. */
@@ -949,6 +960,85 @@ public final class ProgressiveSkillsGameTests {
             helper.succeed();
         } catch (CommandSyntaxException exception) {
             helper.fail("Phase 3 command execution failed: " + exception.getMessage());
+        }
+    }
+
+    @GameTest(template = "empty", timeoutTicks = 100)
+    public static void latePhaseInfrastructure(GameTestHelper helper) {
+        try {
+            var server = helper.getLevel().getServer();
+            var pack = PackRuntime.service().orElseThrow();
+            var canonical = pack.live().snapshot().canonicalIr();
+            SkillCatalog skills = SkillCatalog.from(canonical);
+            TreeCatalog trees = TreeCatalog.from(canonical, skills);
+            CarrierCatalog carriers = CarrierCatalog.from(canonical, skills, trees);
+            var archive = BehaviorArchiveSavedData.get(server);
+            helper.assertTrue(!carriers.carriers().isEmpty(),
+                    "The cumulative starter pack must contain carrier definitions");
+            helper.assertTrue(archive.verify().valid()
+                            && archive.status().entries() >= carriers.behaviors().size(),
+                    "Pinned carrier behaviors must be reserved and verifiable");
+            helper.assertTrue(ProviderRuntime.registry().isPresent(),
+                    "The provider registry must be active without optional mods");
+            var source = server.createCommandSourceStack().withPermission(4);
+            helper.assertTrue(server.getCommands().getDispatcher().execute("ps doctor", source) == 1,
+                    "The consolidated doctor must report healthy late phase services");
+            helper.assertTrue(server.getCommands().getDispatcher().execute("ps diagnose", source) == 1,
+                    "Provider diagnostics must remain available through chat");
+
+            UUID partyOwner = UUID.randomUUID();
+            UUID partyMember = UUID.randomUUID();
+            MultiplayerSavedData social = MultiplayerSavedData.get(server);
+            social.createParty(partyOwner, "Game Test Party");
+            social.invite(partyOwner, partyMember);
+            social.acceptInvite(partyMember);
+            var receipt = social.shareExact(
+                    partyOwner,
+                    ResourceLocation.fromNamespaceAndPath("progressiveskills", "physique"),
+                    Map.of(partyOwner, 1L, partyMember, 1L),
+                    "Game test contribution allocation");
+            social.markContributionDelivered(partyOwner, receipt.receiptId(), partyOwner);
+            social.markContributionDelivered(partyOwner, receipt.receiptId(), partyMember);
+            social.completeContribution(partyOwner, receipt.receiptId());
+            helper.assertTrue(social.receipt(receipt.receiptId()).isPresent(),
+                    "Completed contribution receipts must remain inspectable");
+
+            UUID teamOwner = UUID.randomUUID();
+            UUID teamMember = UUID.randomUUID();
+            TeamSavedData teams = TeamSavedData.get(server);
+            teams.create(teamOwner, ResourceLocation.fromNamespaceAndPath(
+                    "progressiveskills", "gametest_team_" + teamOwner.toString().replace("-", "")));
+            teams.invite(teamOwner, teamMember);
+            teams.accept(teamMember);
+            teams.transferOwnership(teamOwner, teamMember);
+            helper.assertTrue(teams.team(teamOwner).orElseThrow().owner().equals(teamMember),
+                    "Team ownership changes must use authoritative saved state");
+
+            UUID studioOwner = UUID.randomUUID();
+            var draft = StudioService.create(server, studioOwner, "gametest", "Game Test Draft");
+            var edited = StudioService.write(
+                    server, draft.id(), studioOwner, draft.revision(), "variables/value.json",
+                    "{\"schema_version\":2,\"variable\":{\"id\":\"gametest:value\",\"value\":1}}");
+            helper.assertTrue(StudioService.lint(server, draft.id()).valid()
+                            && StudioService.history(server, draft.id()).equals(List.of(0L)),
+                    "Studio edits must create a valid restorable history revision");
+            var rebased = StudioService.rebase(
+                    server, draft.id(), studioOwner, edited.revision());
+            var restored = StudioService.restoreHistory(
+                    server, draft.id(), studioOwner, rebased.revision(), 0L);
+            helper.assertTrue(restored.revision() == 3
+                            && StudioService.lint(server, draft.id()).valid(),
+                    "Studio rebase and history restore must preserve a valid draft");
+
+            var build = new BuildShareCode.Build(
+                    pack.live().snapshot().contentDigest(), List.of(), List.of(), Map.of());
+            helper.assertTrue(BuildShareCode.decode(BuildShareCode.encode(build)).equals(build),
+                    "Build sharing must round trip with a canonical checksum");
+            helper.succeed();
+        } catch (Exception exception) {
+            helper.fail("Late phase infrastructure failed. "
+                    + (exception.getMessage() == null ? exception.getClass().getSimpleName()
+                    : exception.getMessage()));
         }
     }
 

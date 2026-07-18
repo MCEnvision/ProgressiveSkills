@@ -289,20 +289,41 @@ class ContentPackLoaderTest {
     }
 
     @Test
-    void plannedButUnavailableGameplaySchemasFailClosed() throws IOException {
+    void itemCarrierSchemaCompilesIntoCanonicalIr() throws IOException {
         Path root = temporaryDirectory.resolve("packs");
         writePack(root, "future-pack", "future:core", "future", List.of(), 0);
+        write(root.resolve("future-pack/currencies/coins.toml"), """
+                schema_version = 2
+                [currency]
+                id = "future:coins"
+                display = { fallback = "Coins" }
+                icon = { type = "item", value = "minecraft:gold_nugget", fallback = "minecraft:barrier", alt = "Gold nugget" }
+                minimum = 0
+                maximum = 1000
+                initial = 0
+                scope = "character"
+                """);
         write(root.resolve("future-pack/items/miner.toml"), """
                 schema_version = 2
                 [item]
                 id = "future:miner"
+                display = { fallback = "Miner Token" }
+                icon = { type = "item", value = "minecraft:iron_pickaxe", fallback = "minecraft:barrier", alt = "Iron pickaxe" }
+                carrier = "progressiveskills:token"
+
+                [[use_actions]]
+                id = "future:miner/grant"
+                type = "currency"
+                currency = "future:coins"
+                amount = 1
+                consume = 1
                 """);
 
         StagingResult result = loader(root).stage(List.of(root(root)), AvailableEnvironment.empty());
 
-        assertFalse(result.valid());
-        assertTrue(result.diagnostics().diagnostics().stream().anyMatch(diagnostic ->
-                diagnostic.descriptor().code().equals(CoreDiagnostics.UNSUPPORTED_DEFINITION_SCHEMA)));
+        assertTrue(result.valid(), () -> result.diagnostics().diagnostics().toString());
+        var key = DefinitionKey.parse(DefinitionKinds.ITEM, "future:miner");
+        assertTrue(result.snapshot().orElseThrow().canonicalIr().definitions().containsKey(key));
     }
 
     @Test

@@ -28,8 +28,11 @@ public final class ClientNetworkState {
     private Optional<NetworkPayloads.IntentResult> lastIntentResult = Optional.empty();
     private Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview = Optional.empty();
     private Optional<NetworkPayloads.ClassChangePreview> classChangePreview = Optional.empty();
+    private Optional<NetworkPayloads.CarrierMigrationPreview> carrierMigrationPreview = Optional.empty();
+    private Optional<String> lastResyncReason = Optional.empty();
     private long nextRequestId;
     private long latestClassPreviewRequestId = -1;
+    private long latestCarrierPreviewRequestId = -1;
     private ClientPhase phase = ClientPhase.DISCONNECTED;
 
     public ClientNetworkState(Clock clock) {
@@ -144,7 +147,9 @@ public final class ClientNetworkState {
                 visibleState = Optional.of(state);
                 treeRefundPreview = Optional.empty();
                 classChangePreview = Optional.empty();
+                carrierMigrationPreview = Optional.empty();
                 latestClassPreviewRequestId = -1;
+                latestCarrierPreviewRequestId = -1;
                 phase = ClientPhase.ACTIVE;
             }
             return Optional.of(new NetworkPayloads.TransferAck(
@@ -179,7 +184,9 @@ public final class ClientNetworkState {
             if (next.stateRevision() != current.stateRevision()) {
                 treeRefundPreview = Optional.empty();
                 classChangePreview = Optional.empty();
+                carrierMigrationPreview = Optional.empty();
                 latestClassPreviewRequestId = -1;
+                latestCarrierPreviewRequestId = -1;
             }
             return new NetworkPayloads.StateAck(payload.sessionId(), next.syncRevision(), digest);
         } catch (RuntimeException exception) {
@@ -191,6 +198,17 @@ public final class ClientNetworkState {
     public synchronized void receiveIntentResult(NetworkPayloads.IntentResult result) {
         requireSession(result.sessionId());
         lastIntentResult = Optional.of(result);
+    }
+
+    public synchronized Optional<NetworkPayloads.ResyncRequest> prepareResync(String reason) {
+        if (hello.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(resync(NetworkLimits.requireBoundedText(
+                Objects.requireNonNull(reason, "reason"),
+                NetworkLimits.MAX_RESYNC_REASON_BYTES,
+                "resync reason"
+        )));
     }
 
     public synchronized void receiveTreeRefundPreview(NetworkPayloads.TreeRefundPreview preview) {
@@ -229,6 +247,28 @@ public final class ClientNetworkState {
             throw new IllegalArgumentException("Class preview does not match active synchronized state");
         }
         classChangePreview = Optional.of(preview);
+    }
+
+    public synchronized void receiveCarrierMigrationPreview(
+            NetworkPayloads.CarrierMigrationPreview preview
+    ) {
+        Objects.requireNonNull(preview, "preview");
+        requireSession(preview.sessionId());
+        if (phase != ClientPhase.ACTIVE || visibleState.isEmpty()) {
+            throw new IllegalArgumentException("Carrier preview arrived before active synchronized state");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        if (preview.definitionGeneration() != currentHello.definitionGeneration()
+                || !preview.semanticDigest().equals(currentHello.semanticDigest())
+                || preview.stateRevision() != currentState.stateRevision()
+                || preview.requestId() != latestCarrierPreviewRequestId
+                || preview.definitionId().isPresent() && currentState.carriers().held()
+                .filter(held -> held.definitionId().equals(preview.definitionId().orElseThrow()))
+                .isEmpty()) {
+            throw new IllegalArgumentException("Carrier preview does not match active synchronized state");
+        }
+        carrierMigrationPreview = Optional.of(preview);
     }
 
     public synchronized Optional<NetworkPayloads.Intent> prepareIntent(
@@ -348,6 +388,60 @@ public final class ClientNetworkState {
         ));
     }
 
+    public synchronized Optional<NetworkPayloads.Intent> prepareCarrierIntent(
+            NetworkPayloads.IntentType intentType,
+            CarrierIntentPayload payload
+    ) {
+        Objects.requireNonNull(intentType, "intentType");
+        Objects.requireNonNull(payload, "payload");
+        if (phase != ClientPhase.ACTIVE || hello.isEmpty() || visibleState.isEmpty()) {
+            return Optional.empty();
+        }
+        VisiblePlayerState currentState = visibleState.orElseThrow();
+        if (intentType == NetworkPayloads.IntentType.CLAIM_TAKE
+                && currentState.carriers().pendingClaims().stream().noneMatch(
+                claim -> claim.claimId().equals(payload.claimId().orElseThrow()))) {
+            throw new IllegalArgumentException("Carrier claim intent references an unavailable claim");
+        }
+        if (intentType == NetworkPayloads.IntentType.CLAIM_TAKE_ALL
+                && currentState.carriers().pendingClaims().isEmpty()) {
+            throw new IllegalArgumentException("Carrier claim list is empty");
+        }
+        if ((intentType == NetworkPayloads.IntentType.CARRIER_INSPECT
+                || intentType == NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW
+                || intentType == NetworkPayloads.IntentType.CARRIER_MIGRATE_CONFIRM)
+                && currentState.carriers().held().isEmpty()) {
+            throw new IllegalArgumentException("Carrier intent requires a held carrier");
+        }
+        if (intentType == NetworkPayloads.IntentType.CARRIER_MIGRATE_CONFIRM) {
+            NetworkPayloads.CarrierMigrationPreview preview = carrierMigrationPreview
+                    .filter(NetworkPayloads.CarrierMigrationPreview::allowed)
+                    .filter(value -> value.previewDigest().equals(payload.previewDigest().orElseThrow()))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Carrier migration confirm requires the current accepted preview"));
+            if (preview.stateRevision() != currentState.stateRevision()) {
+                throw new IllegalArgumentException("Carrier migration preview is stale");
+            }
+        }
+        if (nextRequestId == Long.MAX_VALUE) {
+            throw new IllegalStateException("Carrier intent request sequence is exhausted");
+        }
+        NetworkPayloads.ServerHello currentHello = hello.orElseThrow();
+        long requestId = nextRequestId++;
+        if (intentType == NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW) {
+            carrierMigrationPreview = Optional.empty();
+            latestCarrierPreviewRequestId = requestId;
+        } else if (intentType == NetworkPayloads.IntentType.CARRIER_MIGRATE_CONFIRM) {
+            carrierMigrationPreview = Optional.empty();
+            latestCarrierPreviewRequestId = -1;
+        }
+        return Optional.of(new NetworkPayloads.Intent(
+                currentHello.sessionId(), requestId, currentHello.definitionGeneration(),
+                currentHello.semanticDigest(), currentState.stateRevision(), intentType,
+                payload.encode(intentType)
+        ));
+    }
+
     public synchronized void disconnect() {
         clearAuthoritativeState();
         hello = Optional.empty();
@@ -371,6 +465,8 @@ public final class ClientNetworkState {
                 lastIntentResult,
                 treeRefundPreview,
                 classChangePreview,
+                carrierMigrationPreview,
+                lastResyncReason,
                 definitionCache.size()
         );
     }
@@ -386,9 +482,11 @@ public final class ClientNetworkState {
     }
 
     private NetworkPayloads.ResyncRequest resync(String reason) {
+        String bounded = reason.substring(0, Math.min(reason.length(), NetworkLimits.MAX_RESYNC_REASON_BYTES));
+        lastResyncReason = Optional.of(bounded);
         return new NetworkPayloads.ResyncRequest(
                 hello.orElseThrow().sessionId(),
-                reason.substring(0, Math.min(reason.length(), NetworkLimits.MAX_RESYNC_REASON_BYTES))
+                bounded
         );
     }
 
@@ -405,8 +503,11 @@ public final class ClientNetworkState {
         lastIntentResult = Optional.empty();
         treeRefundPreview = Optional.empty();
         classChangePreview = Optional.empty();
+        carrierMigrationPreview = Optional.empty();
+        lastResyncReason = Optional.empty();
         nextRequestId = 0;
         latestClassPreviewRequestId = -1;
+        latestCarrierPreviewRequestId = -1;
     }
 
     private void putCache(CacheKey key, DefinitionProjection projection) {
@@ -499,6 +600,8 @@ public final class ClientNetworkState {
             Optional<NetworkPayloads.IntentResult> lastIntentResult,
             Optional<NetworkPayloads.TreeRefundPreview> treeRefundPreview,
             Optional<NetworkPayloads.ClassChangePreview> classChangePreview,
+            Optional<NetworkPayloads.CarrierMigrationPreview> carrierMigrationPreview,
+            Optional<String> lastResyncReason,
             int cachedDefinitionSets
     ) {
         public Snapshot {
@@ -509,6 +612,9 @@ public final class ClientNetworkState {
             lastIntentResult = Objects.requireNonNull(lastIntentResult, "lastIntentResult");
             treeRefundPreview = Objects.requireNonNull(treeRefundPreview, "treeRefundPreview");
             classChangePreview = Objects.requireNonNull(classChangePreview, "classChangePreview");
+            carrierMigrationPreview = Objects.requireNonNull(
+                    carrierMigrationPreview, "carrierMigrationPreview");
+            lastResyncReason = Objects.requireNonNull(lastResyncReason, "lastResyncReason");
         }
     }
 

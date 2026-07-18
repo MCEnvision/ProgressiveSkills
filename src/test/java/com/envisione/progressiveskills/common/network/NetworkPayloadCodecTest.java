@@ -33,9 +33,25 @@ class NetworkPayloadCodecTest {
                 new NetworkPayloads.StateAck(session, 4, "a".repeat(64)));
         assertRoundTrip(NetworkPayloads.ResyncRequest.STREAM_CODEC,
                 new NetworkPayloads.ResyncRequest(session, "continuity gap"));
+        assertRoundTrip(NetworkPayloads.StudioFilePut.STREAM_CODEC,
+                new NetworkPayloads.StudioFilePut(
+                        ResourceLocation.parse("example:draft"), 2,
+                        "skills/example.json", "{\"schema_version\":2}"));
         assertRoundTrip(NetworkPayloads.Intent.STREAM_CODEC,
                 new NetworkPayloads.Intent(session, 7, 1, "b".repeat(64), 4,
                         NetworkPayloads.IntentType.NOOP_TEST, ""));
+    }
+
+    @Test
+    void studioWriteResultsRoundTripAndRejectUnsafeText() {
+        var result = new NetworkPayloads.StudioFileResult(
+                ResourceLocation.parse("example:draft"), true, 3, "Studio file saved.");
+
+        assertEquals(result, roundTrip(NetworkPayloads.StudioFileResult.STREAM_CODEC, result));
+        assertThrows(IllegalArgumentException.class, () -> new NetworkPayloads.StudioFilePut(
+                ResourceLocation.parse("example:draft"), 0, "skills/example.json", "bad\u0000json"));
+        assertThrows(IllegalArgumentException.class, () -> new NetworkPayloads.StudioFileResult(
+                ResourceLocation.parse("example:draft"), false, 0, "bad\u0000message"));
     }
 
     @Test

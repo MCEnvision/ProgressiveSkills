@@ -14,6 +14,7 @@ import static com.envisione.progressiveskills.common.pack.ContentPackLoaderTest.
 import static com.envisione.progressiveskills.common.pack.ContentPackLoaderTest.writePack;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -71,6 +72,32 @@ class DefinitionRegistryServiceTest {
         assertFalse(rejected.published());
         assertTrue(rejected.message().contains("changed after dry-run"));
         assertEquals(1, service.live().generation());
+    }
+
+    @Test
+    void replacementValidationExcludesThePublishedSourceWithoutMutatingIt() throws IOException {
+        Path packs = temporaryDirectory.resolve("packs");
+        Path published = packs.resolve("base-pack");
+        writePack(packs, "base-pack", "base:core", "base", List.of(), 0);
+        writeDefinition(published.resolve("component_specs/greeting.toml"), "Published");
+        var service = service(packs);
+        assertTrue(service.start().live().isPresent());
+        String publishedDigest = service.live().snapshot().contentDigest();
+
+        Path preview = temporaryDirectory.resolve("preview");
+        writePack(preview, "candidate", "base:core", "base", List.of(), 0);
+        writeDefinition(preview.resolve("candidate/component_specs/greeting.toml"), "Candidate");
+        StagingResult result = service.validateWithReplacement(
+                published,
+                new PackRoot(PackRootTier.STUDIO_OVERLAY, "preview", preview));
+
+        assertTrue(result.valid(), () -> result.diagnostics().diagnostics().toString());
+        assertNotEquals(publishedDigest, result.snapshot().orElseThrow().contentDigest());
+        assertEquals("Published", Files.readString(
+                published.resolve("component_specs/greeting.toml")).lines()
+                .filter(line -> line.startsWith("fallback")).findFirst().orElseThrow()
+                .replace("fallback = ", "").replace("\"", ""));
+        assertEquals(publishedDigest, service.live().snapshot().contentDigest());
     }
 
     @Test

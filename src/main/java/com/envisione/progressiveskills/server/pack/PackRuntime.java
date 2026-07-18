@@ -15,6 +15,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import org.slf4j.Logger;
 
@@ -30,11 +31,14 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class PackRuntime {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final AtomicReference<DefinitionRegistryService> SERVICE = new AtomicReference<>();
+    private static final AtomicReference<DefinitionRegistryService> PENDING_SERVICE = new AtomicReference<>();
 
     private PackRuntime() {}
 
     @SubscribeEvent
     static void onServerAboutToStart(ServerAboutToStartEvent event) {
+        SERVICE.set(null);
+        PENDING_SERVICE.set(null);
         Path globalRoot = FMLPaths.CONFIGDIR.get().resolve("progressiveskills/packs");
         Path worldRoot = event.getServer().getWorldPath(LevelResource.ROOT)
                 .resolve("serverconfig/progressiveskills/packs");
@@ -51,12 +55,12 @@ public final class PackRuntime {
                     new LastKnownGoodStore(storage),
                     storage.resolve("recovery")
             );
-            SERVICE.set(service);
             var result = service.start();
             if (result.live().isPresent()) {
                 var live = result.live().orElseThrow();
+                PENDING_SERVICE.set(service);
                 LOGGER.info(
-                        "[ProgressiveSkills] loaded generation {}: {} packs, {} definitions, digest {}{}",
+                        "[ProgressiveSkills] compiled generation {}: {} packs, {} definitions, digest {}{}",
                         live.generation(),
                         live.snapshot().manifests().size(),
                         live.snapshot().canonicalIr().definitions().size(),
@@ -75,13 +79,35 @@ public final class PackRuntime {
             });
         } catch (IOException | IllegalArgumentException | ArithmeticException exception) {
             SERVICE.set(null);
+            PENDING_SERVICE.set(null);
             LOGGER.error("[ProgressiveSkills] content-pack startup failed; progression routes remain disabled", exception);
+        }
+    }
+
+    @SubscribeEvent
+    static void onServerStarted(ServerStartedEvent event) {
+        DefinitionRegistryService service = PENDING_SERVICE.getAndSet(null);
+        if (service == null) {
+            return;
+        }
+        try {
+            var reservation = CarrierPublicationGuard.reserve(event.getServer(), service.live().snapshot());
+            SERVICE.set(service);
+            LOGGER.info(
+                    "[ProgressiveSkills] activated generation {} after carrier archive reservation. Added {} entries and {} bytes",
+                    service.live().generation(), reservation.addedEntries(), reservation.addedBytes()
+            );
+            com.envisione.progressiveskills.server.rule.RuleRuntime.reload(event.getServer());
+        } catch (RuntimeException exception) {
+            SERVICE.set(null);
+            LOGGER.error("[ProgressiveSkills] carrier archive reservation failed. Progression routes remain disabled", exception);
         }
     }
 
     @SubscribeEvent
     static void onServerStopping(ServerStoppingEvent event) {
         SERVICE.set(null);
+        PENDING_SERVICE.set(null);
     }
 
     public static Optional<DefinitionRegistryService> service() {

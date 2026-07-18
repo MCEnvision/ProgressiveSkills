@@ -83,7 +83,7 @@ public final class DefinitionResolver {
             try {
                 definitions.add(compiler.compile(
                         entry.getKey(),
-                        immutableObject(state.fields),
+                        immutableObject(materializedFields(entry.getKey(), state, states)),
                         state.provenance,
                         sourceMap(state.sources)
                 ));
@@ -163,7 +163,7 @@ public final class DefinitionResolver {
                 if (current == null) {
                     throw new IllegalArgumentException("replace requires an existing definition: " + layer.key());
                 }
-                verifyExpectedDigest(layer, current);
+                verifyExpectedDigest(layer, current, states);
                 states.put(layer.key(), RawState.from(layer));
                 disabled.remove(layer.key());
             }
@@ -196,13 +196,17 @@ public final class DefinitionResolver {
         }
     }
 
-    private void verifyExpectedDigest(ParsedDefinitionLayer layer, RawState current) {
+    private void verifyExpectedDigest(
+            ParsedDefinitionLayer layer,
+            RawState current,
+            Map<DefinitionKey, RawState> states
+    ) {
         if (layer.expectedOldDigest().isEmpty()) {
             return;
         }
         CanonicalDefinition compiled = compiler.compile(
                 layer.key(),
-                immutableObject(current.fields),
+                immutableObject(materializedFields(layer.key(), current, states)),
                 current.provenance,
                 sourceMap(current.sources)
         );
@@ -210,6 +214,127 @@ public final class DefinitionResolver {
         if (!actual.equals(layer.expectedOldDigest().orElseThrow())) {
             throw new IllegalArgumentException("replace expected old digest "
                     + layer.expectedOldDigest().orElseThrow() + " but found " + actual + " for " + layer.key());
+        }
+    }
+
+    private static Map<String, Object> materializedFields(
+            DefinitionKey key,
+            RawState state,
+            Map<DefinitionKey, RawState> states
+    ) {
+        if (key.kind().equals(com.envisione.progressiveskills.common.id.DefinitionKinds.TEMPLATE)) {
+            return state.fields;
+        }
+        List<net.minecraft.resources.ResourceLocation> templates = new ArrayList<>();
+        templates.addAll(templateIds(state.fields.get("templates"), "templates"));
+        templates.addAll(templateIds(state.fields.get("mixins"), "mixins"));
+        if (templates.isEmpty()) {
+            return state.fields;
+        }
+        if (templates.size() > 16 || new java.util.HashSet<>(templates).size() != templates.size()) {
+            throw new IllegalArgumentException(key + " template list is invalid");
+        }
+        var result = new LinkedHashMap<String, Object>();
+        for (net.minecraft.resources.ResourceLocation template : templates) {
+            mergeTemplateFields(result, resolveTemplate(
+                    key.kind(), template, states, new java.util.HashSet<>(), 0));
+        }
+        var local = new LinkedHashMap<String, Object>(state.fields);
+        local.remove("templates");
+        local.remove("mixins");
+        mergeTemplateFields(result, local);
+        requireStructureBudget(result, 0, new int[]{0});
+        return result;
+    }
+
+    private static Map<String, Object> resolveTemplate(
+            com.envisione.progressiveskills.common.id.DefinitionKind targetKind,
+            net.minecraft.resources.ResourceLocation templateId,
+            Map<DefinitionKey, RawState> states,
+            Set<net.minecraft.resources.ResourceLocation> visiting,
+            int depth
+    ) {
+        if (depth > 32 || !visiting.add(templateId)) {
+            throw new IllegalArgumentException("Template inheritance is cyclic or exceeds its depth bound at "
+                    + templateId);
+        }
+        RawState template = states.get(new DefinitionKey(
+                com.envisione.progressiveskills.common.id.DefinitionKinds.TEMPLATE, templateId));
+        if (template == null) {
+            throw new IllegalArgumentException("Template is unavailable " + templateId);
+        }
+        Object declared = template.fields.get("target_kind");
+        if (!(declared instanceof String text)) {
+            throw new IllegalArgumentException("Template target kind is unavailable " + templateId);
+        }
+        net.minecraft.resources.ResourceLocation targetId = text.indexOf(':') >= 0
+                ? com.envisione.progressiveskills.common.id.StableId.parse(text)
+                : net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("progressiveskills", text);
+        if (!targetKind.id().equals(targetId)) {
+            throw new IllegalArgumentException("Template " + templateId + " targets " + targetId
+                    + " and cannot apply to " + targetKind.id());
+        }
+        var result = new LinkedHashMap<String, Object>();
+        for (net.minecraft.resources.ResourceLocation parent : templateIds(
+                template.fields.get("extends"), "extends")) {
+            mergeTemplateFields(result, resolveTemplate(targetKind, parent, states, visiting, depth + 1));
+        }
+        Object fields = template.fields.get("fields");
+        if (!(fields instanceof Map<?, ?> raw)) {
+            throw new IllegalArgumentException("Template fields are unavailable " + templateId);
+        }
+        var checked = new LinkedHashMap<String, Object>();
+        raw.forEach((field, value) -> {
+            if (!(field instanceof String name)) {
+                throw new IllegalArgumentException("Template field name is invalid " + templateId);
+            }
+            checked.put(name, mutableCopy(value));
+        });
+        mergeTemplateFields(result, checked);
+        visiting.remove(templateId);
+        return result;
+    }
+
+    private static List<net.minecraft.resources.ResourceLocation> templateIds(Object value, String field) {
+        if (value == null) {
+            return List.of();
+        }
+        if (!(value instanceof List<?> list) || list.size() > 16) {
+            throw new IllegalArgumentException("Template " + field + " must be a bounded list");
+        }
+        var result = new ArrayList<net.minecraft.resources.ResourceLocation>();
+        for (Object entry : list) {
+            if (!(entry instanceof String text)) {
+                throw new IllegalArgumentException("Template " + field + " contains a nontext identity");
+            }
+            result.add(com.envisione.progressiveskills.common.id.StableId.parse(text));
+        }
+        return List.copyOf(result);
+    }
+
+    private static void mergeTemplateFields(Map<String, Object> target, Map<String, Object> overlay) {
+        overlay.forEach((field, value) -> {
+            Object previous = target.get(field);
+            if (previous instanceof Map<?, ?> previousRaw && value instanceof Map<?, ?> incomingRaw) {
+                @SuppressWarnings("unchecked") Map<String, Object> previousMap =
+                        (Map<String, Object>) previousRaw;
+                var incoming = new LinkedHashMap<String, Object>();
+                incomingRaw.forEach((key, child) -> incoming.put(Objects.requireNonNull(key).toString(), child));
+                mergeTemplateFields(previousMap, incoming);
+            } else {
+                target.put(field, mutableCopy(value));
+            }
+        });
+    }
+
+    private static void requireStructureBudget(Object value, int depth, int[] nodes) {
+        if (depth > TomlDocument.MAX_DEPTH || ++nodes[0] > TomlDocument.MAX_NODES) {
+            throw new IllegalArgumentException("Expanded template exceeds its structure budget");
+        }
+        if (value instanceof Map<?, ?> map) {
+            map.values().forEach(child -> requireStructureBudget(child, depth + 1, nodes));
+        } else if (value instanceof List<?> list) {
+            list.forEach(child -> requireStructureBudget(child, depth + 1, nodes));
         }
     }
 

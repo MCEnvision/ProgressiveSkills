@@ -19,8 +19,12 @@ public final class DefinitionKinds {
     public static final DefinitionKind CATEGORY = kind("category", "categories");
     public static final DefinitionKind CHALLENGE = kind("challenge", "challenges");
     public static final DefinitionKind CLASS = kind("class", "classes");
+    public static final DefinitionKind CLASS_RANK = kind("class_rank", "class_ranks");
     public static final DefinitionKind CLASS_SLOT = kind("class_slot", "class_slots");
     public static final DefinitionKind COMPONENT_SPEC = kind("component_spec", "component_specs");
+    public static final DefinitionKind COMPATIBILITY_PROFILE = kind(
+            "compatibility_profile", "compatibility_profiles");
+    public static final DefinitionKind CONTEXT_EFFECT = kind("context_effect", "context_effects");
     public static final DefinitionKind CONVERSION = kind("conversion", "conversions");
     public static final DefinitionKind COST_BUNDLE = kind("cost_bundle", "cost_bundles");
     public static final DefinitionKind CURRENCY = kind("currency", "currencies");
@@ -31,20 +35,29 @@ public final class DefinitionKinds {
     public static final DefinitionKind ITEM = kind("item", "items");
     public static final DefinitionKind ITEM_STACK_SPEC = kind("item_stack_spec", "item_stack_specs");
     public static final DefinitionKind LAYOUT = kind("layout", "layouts");
+    public static final DefinitionKind LOADOUT = kind("loadout", "loadouts");
+    public static final DefinitionKind MILESTONE_CHOICE = kind("milestone_choice", "milestone_choices");
     public static final DefinitionKind NOTIFICATION_PROFILE = kind("notification_profile", "notification_profiles");
     public static final DefinitionKind PREDICATE = kind("predicate", "predicates");
     public static final DefinitionKind PRESTIGE = kind("prestige", "prestige");
+    public static final DefinitionKind PRIMITIVE = kind("primitive", "primitives");
     public static final DefinitionKind PROFILE = kind("profile", "profiles");
     public static final DefinitionKind REQUIREMENT = kind("requirement", "requirements");
+    public static final DefinitionKind REACTIVE_PROC = kind("reactive_proc", "reactive_procs");
     public static final DefinitionKind RESOURCE = kind("resource", "resources");
+    public static final DefinitionKind SIMULATION = kind("simulation", "simulations");
+    public static final DefinitionKind TRAINING_CONTRACT = kind("training_contract", "training_contracts");
+    public static final DefinitionKind COMBO_MASTERY = kind("combo_mastery", "combo_mastery");
     public static final DefinitionKind RULE = kind("rule", "rules");
     public static final DefinitionKind SEASON = kind("season", "seasons");
     public static final DefinitionKind SKILL = kind("skill", "skills");
     public static final DefinitionKind STATION = kind("station", "stations");
+    public static final DefinitionKind STANCE = kind("stance", "stances");
     public static final DefinitionKind TARGETING_PROFILE = kind("targeting_profile", "targeting_profiles");
     public static final DefinitionKind TEMPLATE = kind("template", "templates");
     public static final DefinitionKind THEME = kind("theme", "themes");
     public static final DefinitionKind TREE = kind("tree", "trees");
+    public static final DefinitionKind TREE_RANK = kind("tree_rank", "tree_ranks");
     public static final DefinitionKind VARIABLE = kind("variable", "variables");
 
     private static final List<DefinitionKind> ALL = REGISTRATIONS.stream().sorted().toList();

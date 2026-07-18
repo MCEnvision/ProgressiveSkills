@@ -35,10 +35,23 @@ public final class ContentPackLoader {
     private final DefinitionResolver definitionResolver = new DefinitionResolver();
 
     public StagingResult stage(Collection<PackRoot> roots, AvailableEnvironment environment) {
+        return stage(roots, environment, Set.of());
+    }
+
+    public StagingResult stage(
+            Collection<PackRoot> roots,
+            AvailableEnvironment environment,
+            Collection<Path> excludedSources
+    ) {
         var problems = new ArrayList<PackProblem>();
         List<PackSource> sources;
         try {
-            sources = packDiscoverer.discover(roots);
+            Set<Path> excluded = excludedSources.stream()
+                    .map(path -> path.toAbsolutePath().normalize())
+                    .collect(Collectors.toUnmodifiableSet());
+            sources = packDiscoverer.discover(roots).stream()
+                    .filter(source -> !excluded.contains(source.directory().toAbsolutePath().normalize()))
+                    .toList();
         } catch (IOException | IllegalArgumentException exception) {
             problems.add(problemWithoutSource(
                     CoreDiagnostics.PACK_DISCOVERY_FAILED,
@@ -82,9 +95,11 @@ public final class ContentPackLoader {
             try {
                 for (PackFileDiscoverer.DefinitionFile file : fileDiscoverer.discover(pack)) {
                     try {
-                        definitionLayers.add(definitionParser.parse(
-                                pack, file.kind(), file.path(), TomlDocument.read(file.path())
-                        ));
+                        definitionLayers.add(file.json()
+                                ? definitionParser.parseJson(
+                                pack, file.kind(), file.path(), JsonDefinitionDocument.read(file.path()))
+                                : definitionParser.parse(
+                                pack, file.kind(), file.path(), TomlDocument.read(file.path())));
                     } catch (IOException | ParsingException | IllegalArgumentException exception) {
                         String relative = pack.source().directory().relativize(file.path()).toString().replace('\\', '/');
                         problems.add(PackProblem.error(
@@ -137,6 +152,15 @@ public final class ContentPackLoader {
                 );
                 abilities = com.envisione.progressiveskills.common.ability.AbilityCatalog.from(
                         definitions.canonicalIr(), skills, classes
+                );
+                com.envisione.progressiveskills.common.carrier.CarrierCatalog.from(
+                        definitions.canonicalIr(), skills, trees
+                );
+                com.envisione.progressiveskills.common.creator.CreatorCatalog.from(
+                        definitions.canonicalIr()
+                );
+                com.envisione.progressiveskills.common.provider.CapabilityProfileCatalog.from(
+                        definitions.canonicalIr()
                 );
             } catch (IllegalArgumentException | ArithmeticException exception) {
                 definitions.canonicalIr().definitions().values().stream().findFirst().ifPresent(definition ->
@@ -291,8 +315,8 @@ public final class ContentPackLoader {
         if (!rootFile && !contentFile) {
             throw new IllegalArgumentException("Unknown top-level pack path: " + relative);
         }
-        if (contentFile && !relative.endsWith(".toml")) {
-            throw new IllegalArgumentException("Pack content files must use lowercase .toml: " + relative);
+        if (contentFile && !(relative.endsWith(".toml") || relative.endsWith(".json"))) {
+            throw new IllegalArgumentException("Pack content files must use lowercase TOML or JSON: " + relative);
         }
     }
 

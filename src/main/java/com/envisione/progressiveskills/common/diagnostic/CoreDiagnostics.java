@@ -75,6 +75,13 @@ public final class CoreDiagnostics {
     public static final DiagnosticCode INVALID_ABILITY_TARGET = code("PS-ABILITY-004");
     public static final DiagnosticCode INVALID_ABILITY_ACTION = code("PS-ABILITY-005");
     public static final DiagnosticCode ABILITY_INTENT_DENIED = code("PS-ABILITY-006");
+    public static final DiagnosticCode INVALID_CARRIER = code("PS-CARRIER-001");
+    public static final DiagnosticCode CARRIER_BEHAVIOR_UNAVAILABLE = code("PS-CARRIER-002");
+    public static final DiagnosticCode CARRIER_TAMPER_REJECTED = code("PS-CARRIER-003");
+    public static final DiagnosticCode CARRIER_USE_DENIED = code("PS-CARRIER-004");
+    public static final DiagnosticCode CARRIER_ARCHIVE_FULL = code("PS-CARRIER-005");
+    public static final DiagnosticCode CARRIER_CLAIM_FULL = code("PS-CARRIER-006");
+    public static final DiagnosticCode CARRIER_MIGRATION_DENIED = code("PS-CARRIER-007");
     public static final DiagnosticCode INVALID_RULE = code("PS-RULE-001");
     public static final DiagnosticCode UNKNOWN_RULE_TRIGGER = code("PS-RULE-002");
     public static final DiagnosticCode INVALID_RULE_MATCHER = code("PS-RULE-003");
@@ -371,6 +378,34 @@ public final class CoreDiagnostics {
                         "Ability intent was denied",
                         "Ownership, assignment, toggle, target, resource, charge, cooldown, or revision validation failed.",
                         "Synchronize state and review the current ability status before retrying.", true))
+                .register(descriptor(INVALID_CARRIER, DiagnosticSeverity.ERROR,
+                        "Carrier definition is invalid",
+                        "A carrier requires one fixed registry kind and bounded pinned behavior with valid Core actions.",
+                        "Correct the item definition using the generated carrier schemas.", true))
+                .register(descriptor(CARRIER_BEHAVIOR_UNAVAILABLE, DiagnosticSeverity.ERROR,
+                        "Carrier behavior is unavailable",
+                        "An unknown, missing, corrupt, or quarantined archived snapshot cannot authorize economic use.",
+                        "Verify the behavior archive and restore the complete world data before retrying.", false))
+                .register(descriptor(CARRIER_TAMPER_REJECTED, DiagnosticSeverity.ERROR,
+                        "Carrier component state was rejected",
+                        "The physical kind, digest, version, charges, owner, issuance identity, or counter did not agree with server authority.",
+                        "Inspect the held stack and replace or explicitly migrate invalid carrier data.", false))
+                .register(descriptor(CARRIER_USE_DENIED, DiagnosticSeverity.WARNING,
+                        "Carrier use was denied",
+                        "Creative mode, cooldown, binding, charge, replay, capacity, or a referenced progression action blocked use.",
+                        "Inspect the held stack and current action blockers before submitting a fresh use.", true))
+                .register(descriptor(CARRIER_ARCHIVE_FULL, DiagnosticSeverity.ERROR,
+                        "Carrier behavior archive is full",
+                        "Publishing or issuing behavior without an exact retained snapshot would make old stacks unsafe.",
+                        "Review archive status and perform only an explicit proven reference migration or capacity change.", false))
+                .register(descriptor(CARRIER_CLAIM_FULL, DiagnosticSeverity.ERROR,
+                        "Pending carrier claim storage is full",
+                        "A value bearing delivery cannot complete without durable materialized claim capacity.",
+                        "Deliver existing claims or increase the bounded capacity before retrying acquisition.", false))
+                .register(descriptor(CARRIER_MIGRATION_DENIED, DiagnosticSeverity.WARNING,
+                        "Carrier migration was denied",
+                        "Migration requires a current reviewed policy, matching owner, archived source, and exact preview digest.",
+                        "Request a fresh held item migration preview and confirm that exact digest.", true))
                 .register(descriptor(INVALID_RULE, DiagnosticSeverity.ERROR,
                         "Rule definition is invalid",
                         "A gameplay route must compile to one bounded deterministic transaction path.",

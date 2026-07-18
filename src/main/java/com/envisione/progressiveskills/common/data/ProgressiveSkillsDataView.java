@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.common.data;
 
 import com.envisione.progressiveskills.common.id.DefinitionKey;
+import com.envisione.progressiveskills.common.carrier.PendingCarrierClaim;
 import com.envisione.progressiveskills.common.transaction.DefinitionRevision;
 import com.envisione.progressiveskills.common.transaction.PersistedTransactionState;
 import net.minecraft.nbt.CompoundTag;
@@ -23,6 +24,8 @@ public record ProgressiveSkillsDataView(
         Map<DefinitionKey, StoredDefinitionState> definitionStates,
         Map<DefinitionKey, OrphanRecord> orphans,
         Map<UUID, OperationReceipt> operationReceipts,
+        Map<UUID, PendingCarrierClaim> pendingCarrierClaims,
+        Map<UUID, Long> carrierUseCounters,
         Optional<DeathMarker> deathMarker,
         Optional<MigrationShadow> migrationShadow,
         Optional<QuarantineRecord> quarantine,
@@ -39,6 +42,13 @@ public record ProgressiveSkillsDataView(
         definitionStates = immutableSorted(definitionStates);
         orphans = immutableSorted(orphans);
         operationReceipts = immutableSorted(operationReceipts);
+        pendingCarrierClaims = immutableSorted(pendingCarrierClaims);
+        carrierUseCounters = immutableSorted(carrierUseCounters);
+        carrierUseCounters.forEach((instanceId, nextCounter) -> {
+            if (nextCounter < 0) {
+                throw new IllegalArgumentException("Carrier use counter must not be negative");
+            }
+        });
         deathMarker = Objects.requireNonNull(deathMarker, "deathMarker");
         migrationShadow = Objects.requireNonNull(migrationShadow, "migrationShadow");
         quarantine = Objects.requireNonNull(quarantine, "quarantine");
@@ -49,6 +59,25 @@ public record ProgressiveSkillsDataView(
         if (status == PlayerDataStatus.QUARANTINED && quarantine.isEmpty()) {
             throw new IllegalArgumentException("Quarantined player data requires a quarantine record");
         }
+    }
+
+    public ProgressiveSkillsDataView(
+            UUID playerId,
+            long storageRevision,
+            PlayerDataStatus status,
+            PersistedTransactionState transactionState,
+            Optional<DefinitionRevision> stateDefinition,
+            Map<DefinitionKey, StoredDefinitionState> definitionStates,
+            Map<DefinitionKey, OrphanRecord> orphans,
+            Map<UUID, OperationReceipt> operationReceipts,
+            Optional<DeathMarker> deathMarker,
+            Optional<MigrationShadow> migrationShadow,
+            Optional<QuarantineRecord> quarantine,
+            CompoundTag unknownExtensions
+    ) {
+        this(playerId, storageRevision, status, transactionState, stateDefinition, definitionStates,
+                orphans, operationReceipts, Map.of(), Map.of(), deathMarker, migrationShadow, quarantine,
+                unknownExtensions);
     }
 
     @Override

@@ -15,7 +15,9 @@ import com.envisione.progressiveskills.common.pack.SemanticDiff;
 import com.envisione.progressiveskills.common.pack.StageAttempt;
 import com.envisione.progressiveskills.common.pack.StagingResult;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.pack.CarrierPublicationGuard;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
+import com.envisione.progressiveskills.server.hardening.HardeningRuntime;
 import com.mojang.logging.LogUtils;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -118,11 +120,13 @@ public final class PackCommands {
     }
 
     private static int dryRun(CommandSourceStack source, boolean showDiff) {
+        long started = System.nanoTime();
         DefinitionRegistryService service = service(source);
         if (service == null) {
             return 0;
         }
         StageAttempt attempt = service.stageDryRun();
+        HardeningRuntime.performance().record("pack_stage", 250_000_000L, System.nanoTime() - started);
         long errors = attempt.result().diagnostics().diagnostics().stream()
                 .filter(diagnostic -> diagnostic.severity() == DiagnosticSeverity.ERROR).count();
         long warnings = attempt.result().diagnostics().diagnostics().stream()
@@ -133,6 +137,15 @@ public final class PackCommands {
             return 0;
         }
         var snapshot = attempt.result().snapshot().orElseThrow();
+        try {
+            var reservation = CarrierPublicationGuard.preview(source.getServer(), snapshot);
+            success(source, "Carrier archive preview. New entries " + reservation.addedEntries()
+                    + ". New bytes " + reservation.addedBytes() + ". Resulting entries "
+                    + reservation.resultingEntries() + ". Resulting bytes " + reservation.resultingBytes() + ".");
+        } catch (RuntimeException exception) {
+            failure(source, "Carrier archive blocks publication. " + safeMessage(exception));
+            return 0;
+        }
         success(source, (showDiff ? "Dry-run staged" : "Validation passed") + ": "
                 + snapshot.manifests().size() + " packs, "
                 + snapshot.canonicalIr().definitions().size() + " definitions, "
@@ -174,12 +187,22 @@ public final class PackCommands {
     }
 
     private static int publish(CommandSourceStack source) {
+        long started = System.nanoTime();
         DefinitionRegistryService service = service(source);
         if (service == null) {
             return 0;
         }
         PublishResult result;
         try {
+            var staged = service.staged().orElseThrow(
+                    () -> new IllegalStateException("No dry-run snapshot is staged")
+            );
+            if (!staged.result().valid()) {
+                throw new IllegalStateException("The staged snapshot contains blocking validation errors");
+            }
+            CarrierPublicationGuard.reserve(
+                    source.getServer(), staged.result().snapshot().orElseThrow()
+            );
             result = service.publishStaged();
         } catch (IOException | ArithmeticException | IllegalArgumentException exception) {
             failure(source, "Publication failed before the live registry changed: " + safeMessage(exception));
@@ -192,6 +215,7 @@ public final class PackCommands {
         success(source, result.message() + "; digest "
                 + result.liveState().orElseThrow().snapshot().contentDigest());
         TransactionRuntime.onDefinitionsPublished(source.getServer());
+        HardeningRuntime.performance().record("pack_publish", 500_000_000L, System.nanoTime() - started);
         return 1;
     }
 

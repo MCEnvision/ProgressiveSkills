@@ -4,12 +4,15 @@ import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.common.ability.AbilityCatalog;
 import com.envisione.progressiveskills.common.ability.AbilityProgression;
 import com.envisione.progressiveskills.common.ability.AbilityState;
+import com.envisione.progressiveskills.common.carrier.PsCarrierItems;
 import com.envisione.progressiveskills.common.data.PsDataAttachments;
 import com.envisione.progressiveskills.common.classdef.ClassCatalog;
 import com.envisione.progressiveskills.common.classdef.ClassProgression;
 import com.envisione.progressiveskills.common.network.BoundedNetworkCodec;
 import com.envisione.progressiveskills.common.network.AbilityIntentPayload;
 import com.envisione.progressiveskills.common.network.ClassIntentPayload;
+import com.envisione.progressiveskills.common.network.CarrierIntentPayload;
+import com.envisione.progressiveskills.common.network.CarrierProjection;
 import com.envisione.progressiveskills.common.network.DefinitionProjection;
 import com.envisione.progressiveskills.common.network.DefinitionProjectionCodec;
 import com.envisione.progressiveskills.common.network.PsNetworking;
@@ -28,6 +31,9 @@ import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.ability.AbilityRuntime;
 import com.envisione.progressiveskills.server.classruntime.ClassRuntime;
+import com.envisione.progressiveskills.server.carrier.CarrierDeliveryService;
+import com.envisione.progressiveskills.server.carrier.CarrierStackService;
+import com.envisione.progressiveskills.server.hardening.HardeningRuntime;
 import com.envisione.progressiveskills.server.tree.TreeRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import net.minecraft.network.chat.Component;
@@ -43,6 +49,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -59,6 +66,7 @@ public final class NetworkRuntime {
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
         PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
         PsNetworking.configureServerAbilityIntentExecutor(NetworkRuntime::executeAbilityIntent);
+        PsNetworking.configureServerCarrierIntentExecutor(NetworkRuntime::executeCarrierIntent);
     }
 
     private NetworkRuntime() {
@@ -86,20 +94,28 @@ public final class NetworkRuntime {
                 ServerNetworkSessions.ClassIntentExecutor.REJECT_CLASS_INTENTS);
         PsNetworking.configureServerAbilityIntentExecutor(
                 ServerNetworkSessions.AbilityIntentExecutor.REJECT_ABILITY_INTENTS);
+        PsNetworking.configureServerCarrierIntentExecutor(
+                ServerNetworkSessions.CarrierIntentExecutor.REJECT_CARRIER_INTENTS);
         CACHED_DEFINITIONS.set(null);
         ACTIVE_SERVER.compareAndSet(event.getServer(), null);
     }
 
     @SubscribeEvent
     static void onServerTick(ServerTickEvent.Post event) {
-        if (event.getServer().getTickCount() % 20 != 0) {
-            return;
+        long started = System.nanoTime();
+        try {
+            if (event.getServer().getTickCount() % 20 != 0) {
+                return;
+            }
+            event.getServer().getPlayerList().getPlayers().forEach(player ->
+                    PsNetworking.serverStatus(player.getUUID())
+                            .filter(status -> status.phase() == ServerNetworkSessions.ServerPhase.TIMED_OUT)
+                            .ifPresent(status -> player.connection.disconnect(Component.literal(
+                                    "ProgressiveSkills synchronization timed out. Reconnect to retry safely."))));
+        } finally {
+            HardeningRuntime.performance().record(
+                    "network.tick", 1_000_000L, System.nanoTime() - started);
         }
-        event.getServer().getPlayerList().getPlayers().forEach(player ->
-                PsNetworking.serverStatus(player.getUUID())
-                        .filter(status -> status.phase() == ServerNetworkSessions.ServerPhase.TIMED_OUT)
-                        .ifPresent(status -> player.connection.disconnect(Component.literal(
-                                "ProgressiveSkills synchronization timed out; reconnect to retry safely."))));
     }
 
     public static void begin(ServerPlayer player) {
@@ -107,6 +123,7 @@ public final class NetworkRuntime {
         PsNetworking.configureServerIntentExecutor(NetworkRuntime::executeTreeIntent);
         PsNetworking.configureServerClassIntentExecutor(NetworkRuntime::executeClassIntent);
         PsNetworking.configureServerAbilityIntentExecutor(NetworkRuntime::executeAbilityIntent);
+        PsNetworking.configureServerCarrierIntentExecutor(NetworkRuntime::executeCarrierIntent);
         if (!player.connection.hasChannel(NetworkPayloads.ServerHello.TYPE)) {
             PsNetworking.removeServerSession(player.getUUID());
             return;
@@ -162,6 +179,11 @@ public final class NetworkRuntime {
     }
 
     private static Projection projection(ServerPlayer player) {
+        return HardeningRuntime.performance().measure(
+                "network.projection", 2_000_000L, () -> buildProjection(player));
+    }
+
+    private static Projection buildProjection(ServerPlayer player) {
         var packService = PackRuntime.service();
         var transactionContext = TransactionRuntime.context(player.getServer());
         if (packService.isEmpty() || transactionContext.isEmpty()) {
@@ -202,6 +224,7 @@ public final class NetworkRuntime {
                 visibleAbilities(abilityState, cached.abilities(), gameTick),
                 visibleAbilitySlots(abilityState),
                 visibleSelectedAbilitySlot(abilityState),
+                carrierProjection(player),
                 dataView.orphans().size(),
                 dataView.operationReceipts().size(),
                 !progressionReady
@@ -316,6 +339,37 @@ public final class NetworkRuntime {
                 .map(AbilityState::slotIndex).orElse(-1);
     }
 
+    static CarrierProjection carrierProjection(ServerPlayer player) {
+        var data = player.getData(PsDataAttachments.PLAYER_DATA);
+        var claims = data.pendingClaims().stream().map(CarrierProjection::summarize).toList();
+        var stack = player.getMainHandItem();
+        var kind = PsCarrierItems.kindOf(stack);
+        if (kind.isEmpty()) {
+            return new CarrierProjection(Optional.empty(), claims);
+        }
+        CarrierStackService.Inspection inspection = CarrierStackService.inspect(player, stack);
+        if (inspection.identity().isEmpty() || inspection.state().isEmpty()) {
+            return new CarrierProjection(Optional.empty(), claims);
+        }
+        var identity = inspection.identity().orElseThrow();
+        var state = inspection.state().orElseThrow();
+        String status = inspection.resolution().map(value -> value.code().name().toLowerCase(Locale.ROOT))
+                .orElse("incomplete");
+        var held = new CarrierProjection.HeldCarrier(
+                identity.definitionId(),
+                kind.orElseThrow(),
+                identity.behaviorDigest(),
+                state.behaviorVersion(),
+                state.charges(),
+                state.boundOwner().isPresent(),
+                state.boundOwner().filter(player.getUUID()::equals).isPresent(),
+                state.migrationMarker().isPresent(),
+                status,
+                inspection.message()
+        );
+        return new CarrierProjection(Optional.of(held), claims);
+    }
+
     private static ServerNetworkSessions.IntentExecution executeTreeIntent(
             UUID playerId,
             NetworkPayloads.Intent intent,
@@ -364,6 +418,29 @@ public final class NetworkRuntime {
         return dispatchAbilityIntent(intent, payload, new LiveAbilityIntentOperations(player));
     }
 
+    private static ServerNetworkSessions.IntentExecution executeCarrierIntent(
+            UUID playerId,
+            NetworkPayloads.Intent intent,
+            CarrierIntentPayload payload
+    ) {
+        MinecraftServer server = ACTIVE_SERVER.get();
+        if (server == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Server progression runtime is unavailable");
+        }
+        ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+        if (player == null) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player is no longer online");
+        }
+        ServerNetworkSessions.IntentExecution execution = dispatchCarrierIntent(
+                intent, payload, new LiveCarrierIntentOperations(player));
+        if (execution.status() == NetworkPayloads.IntentStatus.ACCEPTED
+                && intent.intentType() != NetworkPayloads.IntentType.CARRIER_INSPECT
+                && intent.intentType() != NetworkPayloads.IntentType.CARRIER_MIGRATE_PREVIEW) {
+            sync(player);
+        }
+        return execution;
+    }
+
     static ServerNetworkSessions.IntentExecution dispatchTreeIntent(
             NetworkPayloads.Intent intent,
             TreeIntentPayload payload,
@@ -399,6 +476,9 @@ public final class NetworkRuntime {
             case ABILITY_ASSIGN, ABILITY_UNASSIGN, ABILITY_SELECT, ABILITY_TOGGLE,
                     ABILITY_ACTIVATE -> ServerNetworkSessions.IntentExecution.invalid(
                     "Ability intent reached the tree dispatcher");
+            case CLAIM_TAKE, CLAIM_TAKE_ALL, CARRIER_INSPECT, CARRIER_MIGRATE_PREVIEW,
+                    CARRIER_MIGRATE_CONFIRM -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Carrier intent reached the tree dispatcher");
         };
     }
 
@@ -442,6 +522,9 @@ public final class NetworkRuntime {
             case ABILITY_ASSIGN, ABILITY_UNASSIGN, ABILITY_SELECT, ABILITY_TOGGLE,
                     ABILITY_ACTIVATE -> ServerNetworkSessions.IntentExecution.invalid(
                     "Ability intent reached the class dispatcher");
+            case CLAIM_TAKE, CLAIM_TAKE_ALL, CARRIER_INSPECT, CARRIER_MIGRATE_PREVIEW,
+                    CARRIER_MIGRATE_CONFIRM -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Carrier intent reached the class dispatcher");
         };
     }
 
@@ -471,6 +554,60 @@ public final class NetworkRuntime {
             default -> ServerNetworkSessions.IntentExecution.invalid(
                     "Non ability intent reached the ability dispatcher");
         };
+    }
+
+    static ServerNetworkSessions.IntentExecution dispatchCarrierIntent(
+            NetworkPayloads.Intent intent,
+            CarrierIntentPayload payload,
+            CarrierIntentOperations operations
+    ) {
+        Objects.requireNonNull(intent, "intent");
+        Objects.requireNonNull(payload, "payload");
+        Objects.requireNonNull(operations, "operations");
+        if (!operations.active()) {
+            return ServerNetworkSessions.IntentExecution.invalid("Player progression data is quarantined");
+        }
+        return switch (intent.intentType()) {
+            case CLAIM_TAKE -> carrierMutationExecution(
+                    operations.takeClaim(payload.claimId().orElseThrow()));
+            case CLAIM_TAKE_ALL -> carrierMutationExecution(operations.takeAllClaims());
+            case CARRIER_INSPECT -> carrierMutationExecution(operations.inspect());
+            case CARRIER_MIGRATE_PREVIEW -> carrierPreviewExecution(intent, operations.migratePreview());
+            case CARRIER_MIGRATE_CONFIRM -> carrierMutationExecution(
+                    operations.migrate(payload.previewDigest().orElseThrow()));
+            default -> ServerNetworkSessions.IntentExecution.invalid(
+                    "Non carrier intent reached the carrier dispatcher");
+        };
+    }
+
+    private static ServerNetworkSessions.IntentExecution carrierMutationExecution(
+            CarrierMutationOutcome outcome
+    ) {
+        return outcome.accepted()
+                ? ServerNetworkSessions.IntentExecution.accepted(outcome.message())
+                : ServerNetworkSessions.IntentExecution.invalid(outcome.message());
+    }
+
+    private static ServerNetworkSessions.IntentExecution carrierPreviewExecution(
+            NetworkPayloads.Intent intent,
+            CarrierPreviewOutcome preview
+    ) {
+        var followup = new NetworkPayloads.CarrierMigrationPreview(
+                intent.sessionId(),
+                intent.requestId(),
+                intent.definitionGeneration(),
+                intent.semanticDigest(),
+                intent.stateRevision(),
+                preview.allowed(),
+                preview.definitionId(),
+                preview.currentBehaviorVersion(),
+                preview.nextBehaviorVersion(),
+                preview.currentCharges(),
+                preview.nextCharges(),
+                preview.digest(),
+                preview.message()
+        );
+        return ServerNetworkSessions.IntentExecution.accepted("Carrier migration preview ready", followup);
     }
 
     private static ServerNetworkSessions.IntentExecution abilityMutationExecution(
@@ -628,8 +765,45 @@ public final class NetworkRuntime {
         AbilityMutationOutcome activate(int slot, IdempotencyKey idempotencyKey);
     }
 
+    interface CarrierIntentOperations {
+        boolean active();
+
+        CarrierMutationOutcome takeClaim(UUID claimId);
+
+        CarrierMutationOutcome takeAllClaims();
+
+        CarrierMutationOutcome inspect();
+
+        CarrierPreviewOutcome migratePreview();
+
+        CarrierMutationOutcome migrate(String previewDigest);
+    }
+
     record AbilityMutationOutcome(boolean accepted, String message) {
         AbilityMutationOutcome {
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    record CarrierMutationOutcome(boolean accepted, String message) {
+        CarrierMutationOutcome {
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    record CarrierPreviewOutcome(
+            boolean allowed,
+            Optional<net.minecraft.resources.ResourceLocation> definitionId,
+            int currentBehaviorVersion,
+            int nextBehaviorVersion,
+            int currentCharges,
+            int nextCharges,
+            String digest,
+            String message
+    ) {
+        CarrierPreviewOutcome {
+            definitionId = Objects.requireNonNull(definitionId, "definitionId");
+            digest = Objects.requireNonNull(digest, "digest");
             message = Objects.requireNonNull(message, "message");
         }
     }
@@ -816,6 +990,65 @@ public final class NetworkRuntime {
         public AbilityMutationOutcome activate(int slot, IdempotencyKey idempotencyKey) {
             var result = AbilityRuntime.activate(player, slot, idempotencyKey);
             return new AbilityMutationOutcome(result.accepted(), result.message());
+        }
+    }
+
+    private record LiveCarrierIntentOperations(ServerPlayer player)
+            implements CarrierIntentOperations {
+        private LiveCarrierIntentOperations {
+            Objects.requireNonNull(player, "player");
+        }
+
+        @Override
+        public boolean active() {
+            return player.getData(PsDataAttachments.PLAYER_DATA).active();
+        }
+
+        @Override
+        public CarrierMutationOutcome takeClaim(UUID claimId) {
+            var result = CarrierDeliveryService.takeClaim(player, claimId);
+            return new CarrierMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public CarrierMutationOutcome takeAllClaims() {
+            var result = CarrierDeliveryService.takeAllClaims(player);
+            return new CarrierMutationOutcome(result.accepted(), result.message());
+        }
+
+        @Override
+        public CarrierMutationOutcome inspect() {
+            var inspection = CarrierStackService.inspect(player, player.getMainHandItem());
+            return new CarrierMutationOutcome(
+                    inspection.identity().isPresent() && inspection.state().isPresent(),
+                    inspection.message()
+            );
+        }
+
+        @Override
+        public CarrierPreviewOutcome migratePreview() {
+            var inspection = CarrierStackService.inspect(player, player.getMainHandItem());
+            var preview = CarrierStackService.migratePreview(player, player.getMainHandItem());
+            return new CarrierPreviewOutcome(
+                    preview.allowed(),
+                    inspection.identity().map(value -> value.definitionId()),
+                    inspection.state().map(value -> value.behaviorVersion()).orElse(0),
+                    preview.behavior().map(value -> value.behaviorVersion()).orElse(0),
+                    inspection.state().map(value -> value.charges()).orElse(0),
+                    preview.state().map(value -> value.charges()).orElse(0),
+                    preview.previewDigest(),
+                    preview.message()
+            );
+        }
+
+        @Override
+        public CarrierMutationOutcome migrate(String previewDigest) {
+            var result = CarrierStackService.migrate(player, player.getMainHandItem(), previewDigest);
+            if (result.migrated()) {
+                player.getInventory().setChanged();
+                player.getData(PsDataAttachments.PLAYER_DATA).markCarrierProjectionChanged();
+            }
+            return new CarrierMutationOutcome(result.migrated(), result.message());
         }
     }
 

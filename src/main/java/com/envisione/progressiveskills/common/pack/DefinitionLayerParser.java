@@ -28,6 +28,7 @@ public final class DefinitionLayerParser {
     private static final Set<String> ABILITY_COMPANION_FIELDS = Set.of(
             "targeting", "persistent_effects", "costs", "actions"
     );
+    private static final Set<String> ITEM_COMPANION_FIELDS = Set.of("use_actions");
 
     public ParsedDefinitionLayer parse(
             PackLayer pack,
@@ -38,7 +39,30 @@ public final class DefinitionLayerParser {
         String relative = pack.source().directory().relativize(file.toAbsolutePath().normalize())
                 .toString().replace('\\', '/');
         var provenance = new Provenance(pack.manifest().id(), relative, "toml");
-        Map<String, Object> root = document.values();
+        return parseValues(pack, kind, relative, document.values(), provenance,
+                document.sourceMap(provenance));
+    }
+
+    public ParsedDefinitionLayer parseJson(
+            PackLayer pack,
+            DefinitionKind kind,
+            Path file,
+            Map<String, Object> values
+    ) {
+        String relative = pack.source().directory().relativize(file.toAbsolutePath().normalize())
+                .toString().replace('\\', '/');
+        var provenance = new Provenance(pack.manifest().id(), relative, "json");
+        return parseValues(pack, kind, relative, values, provenance, SourceMap.empty());
+    }
+
+    private ParsedDefinitionLayer parseValues(
+            PackLayer pack,
+            DefinitionKind kind,
+            String relative,
+            Map<String, Object> root,
+            Provenance provenance,
+            SourceMap documentSources
+    ) {
         String tableName = kind.id().getPath();
         var rootFields = new java.util.HashSet<>(
                 Set.of("schema_version", "merge_intent", "expected_old_digest", "patches", tableName)
@@ -52,6 +76,8 @@ public final class DefinitionLayerParser {
             companionFields = CLASS_COMPANION_FIELDS;
         } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.ABILITY)) {
             companionFields = ABILITY_COMPANION_FIELDS;
+        } else if (kind.equals(com.envisione.progressiveskills.common.id.DefinitionKinds.ITEM)) {
+            companionFields = ITEM_COMPANION_FIELDS;
         } else {
             companionFields = Set.of();
         }
@@ -82,7 +108,6 @@ public final class DefinitionLayerParser {
                     + " layers cannot declare definition fields");
         }
         List<DefinitionPatch> patches = parsePatches(root, intent);
-        SourceMap documentSources = document.sourceMap(provenance);
         SourceMap sourceMap = definitionSourceMap(documentSources, tableName, companionFields);
         List<SourceReference> patchSources = patchSources(documentSources, provenance, patches.size());
         return new ParsedDefinitionLayer(

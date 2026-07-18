@@ -1,5 +1,11 @@
 package com.envisione.progressiveskills.common.data;
 
+import com.envisione.progressiveskills.common.carrier.CarrierBehaviorCodec;
+import com.envisione.progressiveskills.common.carrier.CarrierBehaviorSnapshot;
+import com.envisione.progressiveskills.common.carrier.CarrierIdentity;
+import com.envisione.progressiveskills.common.carrier.CarrierKind;
+import com.envisione.progressiveskills.common.carrier.CarrierStackState;
+import com.envisione.progressiveskills.common.carrier.PendingCarrierClaim;
 import com.envisione.progressiveskills.common.id.DefinitionKey;
 import com.envisione.progressiveskills.common.id.DefinitionKind;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
@@ -37,6 +43,8 @@ public final class ProgressiveSkillsDataSerializer
             "definition_states",
             "orphans",
             "operation_receipts",
+            "pending_carrier_claims",
+            "carrier_use_counters",
             "death_marker",
             "migration_shadow",
             "quarantine",
@@ -118,9 +126,75 @@ public final class ProgressiveSkillsDataSerializer
                 current.definitionStates(),
                 current.orphans(),
                 current.operationReceipts(),
+                current.pendingCarrierClaims(),
+                current.carrierUseCounters(),
                 current.deathMarker(),
                 migrationShadow,
                 current.quarantine(),
+                current.unknownExtensions()
+        );
+        return NbtDataLimits.rejection(encodeView(candidate));
+    }
+
+    static Optional<String> pendingClaimInsertionRejection(
+            ProgressiveSkillsDataView current,
+            PendingCarrierClaim claim
+    ) {
+        return pendingClaimBatchInsertionRejection(current, java.util.List.of(claim));
+    }
+
+    static Optional<String> pendingClaimBatchInsertionRejection(
+            ProgressiveSkillsDataView current,
+            java.util.List<PendingCarrierClaim> additions
+    ) {
+        Objects.requireNonNull(current, "current");
+        additions = java.util.List.copyOf(Objects.requireNonNull(additions, "additions"));
+        var claims = new TreeMap<>(current.pendingCarrierClaims());
+        additions.forEach(claim -> claims.put(claim.claimId(), claim));
+        long nextRevision;
+        try {
+            nextRevision = Math.addExact(current.storageRevision(), 1);
+        } catch (ArithmeticException exception) {
+            return Optional.of("Player data storage revision would overflow");
+        }
+        var candidate = new ProgressiveSkillsDataView(
+                current.playerId(),
+                nextRevision,
+                current.status(),
+                current.transactionState(),
+                current.stateDefinition(),
+                current.definitionStates(),
+                current.orphans(),
+                current.operationReceipts(),
+                claims,
+                current.carrierUseCounters(),
+                current.deathMarker(),
+                current.migrationShadow(),
+                current.quarantine(),
+                current.unknownExtensions()
+        );
+        return NbtDataLimits.rejection(encodeView(candidate));
+    }
+
+    static Optional<String> carrierUseCounterInsertionRejection(
+            ProgressiveSkillsDataView current,
+            UUID instanceId
+    ) {
+        Objects.requireNonNull(current, "current");
+        Objects.requireNonNull(instanceId, "instanceId");
+        var counters = new TreeMap<>(current.carrierUseCounters());
+        counters.put(instanceId, 1L);
+        long nextRevision;
+        try {
+            nextRevision = Math.addExact(current.storageRevision(), 1);
+        } catch (ArithmeticException exception) {
+            return Optional.of("Player data storage revision would overflow");
+        }
+        var candidate = new ProgressiveSkillsDataView(
+                current.playerId(), nextRevision, current.status(), current.transactionState(),
+                current.stateDefinition(), current.definitionStates(), current.orphans(),
+                current.operationReceipts(), current.pendingCarrierClaims(), counters,
+                current.deathMarker(), current.migrationShadow(), current.quarantine(),
                 current.unknownExtensions()
         );
         return NbtDataLimits.rejection(encodeView(candidate));
@@ -193,6 +267,8 @@ public final class ProgressiveSkillsDataSerializer
                 decodeDefinitionStates(optionalList(tag, "definition_states")),
                 decodeOrphans(optionalList(tag, "orphans")),
                 decodeOperationReceipts(optionalList(tag, "operation_receipts")),
+                decodePendingCarrierClaims(optionalList(tag, "pending_carrier_claims")),
+                decodeCarrierUseCounters(optionalList(tag, "carrier_use_counters")),
                 deathMarker,
                 migrationShadow,
                 quarantine,
@@ -215,6 +291,8 @@ public final class ProgressiveSkillsDataSerializer
         tag.put("definition_states", encodeDefinitionStates(view.definitionStates()));
         tag.put("orphans", encodeOrphans(view.orphans()));
         tag.put("operation_receipts", encodeOperationReceipts(view.operationReceipts()));
+        tag.put("pending_carrier_claims", encodePendingCarrierClaims(view.pendingCarrierClaims()));
+        tag.put("carrier_use_counters", encodeCarrierUseCounters(view.carrierUseCounters()));
         view.deathMarker().ifPresent(marker -> tag.put("death_marker", encodeDeathMarker(marker)));
         view.migrationShadow().ifPresent(shadow -> tag.put("migration_shadow", encodeMigrationShadow(shadow)));
         view.quarantine().ifPresent(quarantine -> tag.put("quarantine", encodeQuarantine(quarantine)));
@@ -234,6 +312,8 @@ public final class ProgressiveSkillsDataSerializer
                 view.definitionStates(),
                 view.orphans(),
                 view.operationReceipts(),
+                view.pendingCarrierClaims(),
+                view.carrierUseCounters(),
                 view.deathMarker(),
                 Optional.of(shadow),
                 view.quarantine(),
@@ -371,6 +451,121 @@ public final class ProgressiveSkillsDataSerializer
             throw new IllegalArgumentException("Operation-receipt count exceeds capacity");
         }
         return receipts;
+    }
+
+    private static ListTag encodePendingCarrierClaims(Map<UUID, PendingCarrierClaim> claims) {
+        var list = new ListTag();
+        claims.values().stream().sorted(PendingCarrierClaim.ORDER)
+                .map(ProgressiveSkillsDataSerializer::encodePendingCarrierClaim)
+                .forEach(list::add);
+        return list;
+    }
+
+    private static Map<UUID, PendingCarrierClaim> decodePendingCarrierClaims(ListTag list) {
+        if (list.size() > ProgressiveSkillsData.MAX_PENDING_CARRIER_CLAIMS) {
+            throw new IllegalArgumentException("Pending carrier claim count exceeds capacity");
+        }
+        var claims = new TreeMap<UUID, PendingCarrierClaim>();
+        var origins = new java.util.HashSet<UUID>();
+        for (int index = 0; index < list.size(); index++) {
+            PendingCarrierClaim claim = decodePendingCarrierClaim(compoundAt(list, index));
+            if (claims.putIfAbsent(claim.claimId(), claim) != null) {
+                throw new IllegalArgumentException("Duplicate pending carrier claim id");
+            }
+            if (!origins.add(claim.originDeliveryId())) {
+                throw new IllegalArgumentException("Duplicate pending carrier delivery origin");
+            }
+        }
+        return claims;
+    }
+
+    private static CompoundTag encodePendingCarrierClaim(PendingCarrierClaim claim) {
+        var tag = new CompoundTag();
+        tag.putString("claim_id", claim.claimId().toString());
+        tag.putString("origin_delivery_id", claim.originDeliveryId().toString());
+        tag.putString("definition_id", claim.identity().definitionId().toString());
+        tag.putString("behavior_digest", claim.identity().behaviorDigest());
+        tag.putString("kind", claim.kind().serializedName());
+        tag.put("state", encodeCarrierStackState(claim.state()));
+        tag.putByteArray("behavior", CarrierBehaviorCodec.encode(claim.behavior()));
+        tag.putLong("created_at", claim.createdAt().toEpochMilli());
+        tag.putString("reason", claim.reason());
+        return tag;
+    }
+
+    private static PendingCarrierClaim decodePendingCarrierClaim(CompoundTag tag) {
+        if (!tag.contains("behavior", Tag.TAG_BYTE_ARRAY)) {
+            throw new IllegalArgumentException("Missing pending carrier behavior");
+        }
+        byte[] behaviorBytes = tag.getByteArray("behavior");
+        if (behaviorBytes.length == 0 || behaviorBytes.length > CarrierBehaviorCodec.MAX_ENCODED_BYTES) {
+            throw new IllegalArgumentException("Pending carrier behavior exceeds capacity");
+        }
+        CarrierBehaviorSnapshot behavior = CarrierBehaviorCodec.decode(behaviorBytes);
+        return new PendingCarrierClaim(
+                requiredUuid(tag, "claim_id"),
+                requiredUuid(tag, "origin_delivery_id"),
+                new CarrierIdentity(requiredId(tag, "definition_id"), requiredString(tag, "behavior_digest")),
+                CarrierKind.parse(requiredString(tag, "kind")),
+                decodeCarrierStackState(requiredCompound(tag, "state")),
+                behavior,
+                requiredInstant(tag, "created_at"),
+                requiredString(tag, "reason")
+        );
+    }
+
+    private static CompoundTag encodeCarrierStackState(CarrierStackState state) {
+        var tag = new CompoundTag();
+        tag.putInt("data_version", state.dataVersion());
+        tag.putInt("behavior_version", state.behaviorVersion());
+        tag.putInt("charges", state.charges());
+        tag.putString("creation_pack_digest", state.creationPackDigest());
+        tag.putString("instance_id", state.instanceId().toString());
+        tag.putLong("use_counter", state.useCounter());
+        state.boundOwner().ifPresent(owner -> tag.putString("bound_owner", owner.toString()));
+        state.migrationMarker().ifPresent(marker -> tag.putString("migration_marker", marker));
+        return tag;
+    }
+
+    private static CarrierStackState decodeCarrierStackState(CompoundTag tag) {
+        return new CarrierStackState(
+                requiredInt(tag, "data_version"),
+                requiredInt(tag, "behavior_version"),
+                requiredInt(tag, "charges"),
+                requiredString(tag, "creation_pack_digest"),
+                requiredUuid(tag, "instance_id"),
+                requiredLong(tag, "use_counter"),
+                optionalUuid(tag, "bound_owner"),
+                tag.contains("migration_marker", Tag.TAG_STRING)
+                        ? Optional.of(requiredString(tag, "migration_marker")) : Optional.empty()
+        );
+    }
+
+    private static ListTag encodeCarrierUseCounters(Map<UUID, Long> counters) {
+        var list = new ListTag();
+        counters.forEach((instanceId, nextCounter) -> {
+            var tag = new CompoundTag();
+            tag.putString("instance_id", instanceId.toString());
+            tag.putLong("next_counter", nextCounter);
+            list.add(tag);
+        });
+        return list;
+    }
+
+    private static Map<UUID, Long> decodeCarrierUseCounters(ListTag list) {
+        if (list.size() > ProgressiveSkillsData.MAX_CARRIER_USE_COUNTERS) {
+            throw new IllegalArgumentException("Carrier use counter count exceeds capacity");
+        }
+        var counters = new TreeMap<UUID, Long>();
+        for (int index = 0; index < list.size(); index++) {
+            CompoundTag tag = compoundAt(list, index);
+            UUID instanceId = requiredUuid(tag, "instance_id");
+            long nextCounter = requiredLong(tag, "next_counter");
+            if (nextCounter < 0 || counters.putIfAbsent(instanceId, nextCounter) != null) {
+                throw new IllegalArgumentException("Carrier use counter entry is invalid");
+            }
+        }
+        return counters;
     }
 
     private static CompoundTag encodeDeathMarker(DeathMarker marker) {
@@ -526,6 +721,11 @@ public final class ProgressiveSkillsDataSerializer
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Invalid UUID field: " + key, exception);
         }
+    }
+
+    private static Optional<UUID> optionalUuid(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_STRING)
+                ? Optional.of(requiredUuid(tag, key)) : Optional.empty();
     }
 
     private static Instant requiredInstant(CompoundTag tag, String key) {

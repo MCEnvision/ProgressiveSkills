@@ -111,6 +111,19 @@ public final class DefinitionRegistryService {
         return loader.stage(roots, environment);
     }
 
+    public StagingResult validateWithAdditionalRoot(PackRoot root) {
+        var previewRoots = new java.util.ArrayList<>(roots);
+        previewRoots.add(Objects.requireNonNull(root, "root"));
+        return loader.stage(previewRoots, environment);
+    }
+
+    public StagingResult validateWithReplacement(Path excludedSource, PackRoot root) {
+        var previewRoots = new java.util.ArrayList<>(roots);
+        previewRoots.add(Objects.requireNonNull(root, "root"));
+        return loader.stage(previewRoots, environment, List.of(
+                Objects.requireNonNull(excludedSource, "excludedSource")));
+    }
+
     public synchronized PublishResult publishStaged() throws IOException {
         StageAttempt candidate = staged.get();
         if (candidate == null) {

@@ -28,6 +28,7 @@ public record VisiblePlayerState(
         Map<ResourceLocation, AbilityState> abilities,
         Map<Integer, ResourceLocation> abilitySlots,
         int selectedAbilitySlot,
+        CarrierProjection carriers,
         int orphanCount,
         int operationReceiptCount,
         boolean quarantined
@@ -47,6 +48,7 @@ public record VisiblePlayerState(
     ) {
         this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
                 presentationDigest, balances, effectiveValues, Map.of(), Map.of(), Map.of(), Map.of(), -1,
+                CarrierProjection.EMPTY,
                 orphanCount,
                 operationReceiptCount, quarantined);
     }
@@ -67,6 +69,7 @@ public record VisiblePlayerState(
     ) {
         this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
                 presentationDigest, balances, effectiveValues, nodeRanks, Map.of(), Map.of(), Map.of(), -1,
+                CarrierProjection.EMPTY,
                 orphanCount,
                 operationReceiptCount, quarantined);
     }
@@ -88,7 +91,32 @@ public record VisiblePlayerState(
     ) {
         this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
                 presentationDigest, balances, effectiveValues, nodeRanks, selectedClasses,
-                Map.of(), Map.of(), -1, orphanCount, operationReceiptCount, quarantined);
+                Map.of(), Map.of(), -1, CarrierProjection.EMPTY,
+                orphanCount, operationReceiptCount, quarantined);
+    }
+
+    public VisiblePlayerState(
+            UUID playerId,
+            long syncRevision,
+            long stateRevision,
+            DefinitionRevision definitionRevision,
+            long presentationRevision,
+            String presentationDigest,
+            Map<String, Long> balances,
+            Map<String, Long> effectiveValues,
+            Map<ResourceLocation, Integer> nodeRanks,
+            Map<ResourceLocation, ClassSelection> selectedClasses,
+            Map<ResourceLocation, AbilityState> abilities,
+            Map<Integer, ResourceLocation> abilitySlots,
+            int selectedAbilitySlot,
+            int orphanCount,
+            int operationReceiptCount,
+            boolean quarantined
+    ) {
+        this(playerId, syncRevision, stateRevision, definitionRevision, presentationRevision,
+                presentationDigest, balances, effectiveValues, nodeRanks, selectedClasses,
+                abilities, abilitySlots, selectedAbilitySlot, CarrierProjection.EMPTY,
+                orphanCount, operationReceiptCount, quarantined);
     }
 
     public VisiblePlayerState {
@@ -105,6 +133,7 @@ public record VisiblePlayerState(
         selectedClasses = immutableClassSelections(selectedClasses);
         abilities = immutableAbilities(abilities);
         abilitySlots = immutableAbilitySlots(abilitySlots, abilities);
+        carriers = Objects.requireNonNull(carriers, "carriers");
         if (selectedAbilitySlot < -1 || selectedAbilitySlot >= NetworkLimits.FIXED_ABILITY_SLOTS
                 || selectedAbilitySlot >= 0 && !abilitySlots.containsKey(selectedAbilitySlot)) {
             throw new IllegalArgumentException("Visible selected ability slot is invalid");
@@ -144,6 +173,7 @@ public record VisiblePlayerState(
                 applyAbilities(delta),
                 applyAbilitySlots(delta),
                 delta.selectedAbilitySlot(),
+                delta.carriers(),
                 delta.orphanCount(),
                 delta.operationReceiptCount(),
                 delta.quarantined()

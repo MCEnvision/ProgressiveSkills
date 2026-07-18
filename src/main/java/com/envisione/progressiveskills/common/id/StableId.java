@@ -69,10 +69,11 @@ public final class StableId {
         }
 
         String fileName = segments[segments.length - 1];
-        if (!fileName.endsWith(".toml") || fileName.length() == ".toml".length()) {
-            throw new IllegalArgumentException("Definition source must end in a nonblank lowercase .toml filename: " + sourcePath);
+        String extension = fileName.endsWith(".toml") ? ".toml" : fileName.endsWith(".json") ? ".json" : "";
+        if (extension.isEmpty() || fileName.length() == extension.length()) {
+            throw new IllegalArgumentException("Definition source must end in a nonblank lowercase TOML or JSON filename: " + sourcePath);
         }
-        segments[segments.length - 1] = fileName.substring(0, fileName.length() - ".toml".length());
+        segments[segments.length - 1] = fileName.substring(0, fileName.length() - extension.length());
 
         StringBuilder definitionPath = new StringBuilder();
         for (int index = 1; index < segments.length; index++) {

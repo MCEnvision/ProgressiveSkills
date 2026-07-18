@@ -4,8 +4,8 @@ import java.util.Objects;
 
 /** Hard protocol ceilings shared by codecs, transfer assembly, and tests. */
 public final class NetworkLimits {
-    public static final int PROTOCOL_VERSION = 4;
-    public static final String REGISTRAR_VERSION = "4";
+    public static final int PROTOCOL_VERSION = 7;
+    public static final String REGISTRAR_VERSION = "7";
     public static final long FEATURE_DEFINITION_PROJECTION = 1L;
     public static final long FEATURE_FULL_STATE = 1L << 1;
     public static final long FEATURE_STATE_DELTA = 1L << 2;
@@ -13,9 +13,20 @@ public final class NetworkLimits {
     public static final long FEATURE_CORE_TREES = 1L << 4;
     public static final long FEATURE_CORE_CLASSES = 1L << 5;
     public static final long FEATURE_CORE_ABILITIES = 1L << 6;
+    public static final long FEATURE_CORE_CARRIERS = 1L << 7;
+    public static final long FEATURE_STUDIO_AUTHORING = 1L << 8;
     public static final long REQUIRED_FEATURES = FEATURE_DEFINITION_PROJECTION
             | FEATURE_FULL_STATE | FEATURE_STATE_DELTA | FEATURE_BOUNDED_INTENTS
-            | FEATURE_CORE_TREES | FEATURE_CORE_CLASSES | FEATURE_CORE_ABILITIES;
+            | FEATURE_CORE_TREES | FEATURE_CORE_CLASSES | FEATURE_CORE_ABILITIES
+            | FEATURE_CORE_CARRIERS | FEATURE_STUDIO_AUTHORING;
+
+    public static final int MAX_PENDING_CLAIM_SUMMARIES = 256;
+    public static final int MAX_CARRIER_PROJECTION_BYTES = 131_072;
+    public static final int MAX_CARRIER_BEHAVIOR_VERSION = 1_000_000;
+    public static final int MAX_CARRIER_CHARGES = 1_000_000;
+    public static final int MAX_CARRIER_KIND_BYTES = 32;
+    public static final int MAX_CARRIER_STATUS_BYTES = 64;
+    public static final int MAX_CLAIM_REASON_BYTES = 256;
 
     public static final int FIXED_ABILITY_SLOTS = 8;
     public static final int MAX_ABILITY_ACTION_SUMMARIES = 32;
@@ -28,6 +39,8 @@ public final class NetworkLimits {
     public static final int MAX_TEXT_BYTES = 8_192;
     public static final int MAX_KEY_BYTES = 512;
     public static final int MAX_INTENT_BYTES = 2_048;
+    public static final int MAX_STUDIO_PATH_BYTES = 512;
+    public static final int MAX_STUDIO_CONTENT_BYTES = 8_192;
     public static final int MAX_DELTA_BYTES = 65_536;
     public static final int MAX_SERVERBOUND_PAYLOAD_BYTES = 16_384;
     public static final int CHUNK_BYTES = 24_576;

@@ -2,6 +2,9 @@ package com.envisione.progressiveskills.client;
 
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.client.screen.TreeScreen;
+import com.envisione.progressiveskills.client.screen.AbilityWheelScreen;
+import com.envisione.progressiveskills.client.screen.CommandPaletteScreen;
+import com.envisione.progressiveskills.client.screen.ProgressionScreen;
 import com.envisione.progressiveskills.common.network.PsNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -17,6 +20,13 @@ public final class ClientInputEvents {
 
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
+        while (ClientKeyMappings.OPEN_PROGRESS.consumeClick()) {
+            Minecraft minecraft = Minecraft.getInstance();
+            var snapshot = PsNetworking.clientSnapshot();
+            if (minecraft.player != null && minecraft.screen == null && ProgressionScreen.isAvailable(snapshot)) {
+                minecraft.setScreen(new ProgressionScreen());
+            }
+        }
         while (ClientKeyMappings.OPEN_TREE.consumeClick()) {
             Minecraft minecraft = Minecraft.getInstance();
             var snapshot = PsNetworking.clientSnapshot();
@@ -27,8 +37,11 @@ public final class ClientInputEvents {
         if (Minecraft.getInstance().screen != null) {
             return;
         }
+        while (ClientKeyMappings.COMMAND_PALETTE.consumeClick()) {
+            Minecraft.getInstance().setScreen(new CommandPaletteScreen());
+        }
         while (ClientKeyMappings.ABILITY_WHEEL.consumeClick()) {
-            selectRelativeAbility(1);
+            Minecraft.getInstance().setScreen(new AbilityWheelScreen());
         }
         while (ClientKeyMappings.PREVIOUS_ABILITY.consumeClick()) {
             selectRelativeAbility(-1);
@@ -58,7 +71,9 @@ public final class ClientInputEvents {
                 ? direction > 0 ? 0 : slots.size() - 1
                 : Math.floorMod(current + direction, slots.size());
         int selected = slots.get(next);
-        if (!PsNetworking.sendAbilitySelect(selected)) {
+        if (!SafeRetryTray.sendOrRemember(
+                "Select ability slot " + (selected + 1),
+                () -> PsNetworking.sendAbilitySelect(selected))) {
             report("Ability selection is unavailable while synchronization is incomplete.");
         }
     }
@@ -86,9 +101,11 @@ public final class ClientInputEvents {
                 .flatMap(entry -> entry.getValue().ability().stream())
                 .map(com.envisione.progressiveskills.common.network.DefinitionProjection.AbilityView::kind)
                 .findFirst().orElse("");
-        boolean sent = kind.equals("toggle")
-                ? PsNetworking.sendAbilityToggle(abilityId)
-                : PsNetworking.sendAbilityActivate(slot);
+        boolean sent = SafeRetryTray.sendOrRemember(
+                "Use ability " + abilityId,
+                kind.equals("toggle")
+                        ? () -> PsNetworking.sendAbilityToggle(abilityId)
+                        : () -> PsNetworking.sendAbilityActivate(slot));
         if (!sent) {
             report("Ability activation is unavailable while synchronization is incomplete.");
         }

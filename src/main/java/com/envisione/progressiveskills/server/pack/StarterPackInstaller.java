@@ -39,6 +39,9 @@ public final class StarterPackInstaller {
         copyIfMissing(pack, "abilities/warrior_guard.toml");
         copyIfMissing(pack, "abilities/combat_insight.toml");
         copyIfMissing(pack, "abilities/second_wind.toml");
+        copyIfMissing(pack, "items/tome_of_physique.toml");
+        copyIfMissing(pack, "items/physique_level_token.toml");
+        copyIfMissing(pack, "items/physique_respec_token.toml");
         return pack;
     }
 

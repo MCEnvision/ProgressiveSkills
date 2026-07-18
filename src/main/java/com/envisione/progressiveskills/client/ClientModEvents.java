@@ -26,6 +26,8 @@ public final class ClientModEvents {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         PsNetworking.configureClientConnectionIdentity(ClientConnectionIdentity::current);
+        PsNetworking.configureClientIntentLifecycle(
+                SafeRetryTray::onIntentSent, SafeRetryTray::onIntentResult);
         LOGGER.info("{} client bootstrap ready", ProjectIdentity.DISPLAY_NAME);
     }
 
@@ -39,5 +41,6 @@ public final class ClientModEvents {
     @SubscribeEvent
     static void onClientLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         PsNetworking.clientDisconnect();
+        SafeRetryTray.clear();
     }
 }

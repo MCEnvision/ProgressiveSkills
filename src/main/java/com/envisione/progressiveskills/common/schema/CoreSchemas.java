@@ -8,6 +8,10 @@ import com.envisione.progressiveskills.common.ability.AbilityTargetMode;
 import com.envisione.progressiveskills.common.classdef.ClassGrantType;
 import com.envisione.progressiveskills.common.classdef.ClassSpellLearningPolicy;
 import com.envisione.progressiveskills.common.classdef.ClassSwapPolicy;
+import com.envisione.progressiveskills.common.carrier.CarrierBindPolicy;
+import com.envisione.progressiveskills.common.carrier.CarrierKind;
+import com.envisione.progressiveskills.common.carrier.CarrierRarity;
+import com.envisione.progressiveskills.common.carrier.CarrierUseActionType;
 import com.envisione.progressiveskills.common.diagnostic.CoreDiagnostics;
 import com.envisione.progressiveskills.common.diagnostic.DiagnosticCode;
 import com.envisione.progressiveskills.common.expression.ExpressionRounding;
@@ -71,6 +75,14 @@ public final class CoreSchemas {
         builder.register(abilityCost());
         builder.register(abilityTargeting());
         builder.register(abilityAction());
+        builder.register(carrierDefinition());
+        builder.register(carrierUseAction());
+        builder.register(carrierIdentity());
+        builder.register(carrierStackState());
+        builder.register(pendingCarrierClaim());
+        builder.register(behaviorArchive());
+        builder.register(carrierIntent());
+        builder.register(visibleCarrierSummary());
         builder.register(ruleDefinition());
         builder.register(requirementExpression());
         builder.register(numericExpression());
@@ -1046,6 +1058,286 @@ public final class CoreSchemas {
         );
     }
 
+    private static SchemaDescriptor carrierDefinition() {
+        return schema(
+                "carrier_definition",
+                SchemaAudience.AUTHORING,
+                "Carrier item definition",
+                "Configured stack behavior for one of the five startup registered carrier items.",
+                List.of(
+                        field("behavior_version", SchemaValueType.INTEGER, false,
+                                "Positive behavior revision pinned into issued stacks.", "1",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.INTEGER, 70)
+                                .defaultInteger(1).omitWhenDefault().build(),
+                        field("bind", SchemaValueType.ENUM, false,
+                                "Owner binding point enforced by the server.", "on_use",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 90)
+                                .allowedValues(Arrays.stream(CarrierBindPolicy.values())
+                                        .map(CarrierBindPolicy::serializedName).toArray(String[]::new))
+                                .defaultString("none").omitWhenDefault().build(),
+                        field("carrier", SchemaValueType.ENUM, true,
+                                "Fixed registry carrier item selected for this configured stack.", "tome",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 60)
+                                .allowedValues(Arrays.stream(CarrierKind.values())
+                                        .map(CarrierKind::serializedName).toArray(String[]::new)).build(),
+                        field("charges", SchemaValueType.INTEGER, false,
+                                "Initial bounded charge count.", "1",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.INTEGER, 140)
+                                .defaultInteger(1).omitWhenDefault().build(),
+                        field("cooldown_ticks", SchemaValueType.INTEGER, false,
+                                "Server game ticks between successful uses.", "20",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.INTEGER, 150)
+                                .defaultInteger(0).omitWhenDefault().build(),
+                        field("delivery_policy", SchemaValueType.ENUM, false,
+                                "Native inventory overflow behavior.", "pending_claim",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 100)
+                                .allowedValues("refuse_transaction", "pending_claim", "drop_if_safe")
+                                .defaultString("pending_claim").omitWhenDefault().build(),
+                        field("description", SchemaValueType.COMPONENT, false,
+                                "Localized cosmetic description.", "{ fallback = \"Grants skill XP.\" }",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.COMPONENT, 30).build(),
+                        field("display", SchemaValueType.COMPONENT, true,
+                                "Localized cosmetic stack name.", "{ fallback = \"Tome of Might\" }",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.COMPONENT, 20).build(),
+                        field("enabled", SchemaValueType.BOOLEAN, false,
+                                "Whether new stacks may be issued from this definition.", "true",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.CHECKBOX, 50)
+                                .defaultBoolean(true).omitWhenDefault().build(),
+                        field("glint", SchemaValueType.BOOLEAN, false,
+                                "Cosmetic enchantment glint override.", "true",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.CHECKBOX, 120)
+                                .defaultBoolean(false).omitWhenDefault().build(),
+                        field("icon", SchemaValueType.ICON, true,
+                                "Carrier icon with vanilla safe fallback and alternative text.",
+                                "{ type = \"item\", value = \"minecraft:enchanted_book\", fallback = \"minecraft:barrier\", alt = \"Book\" }",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.ICON, 40).build(),
+                        field("migration_policy", SchemaValueType.ENUM, false,
+                                "Changed digest policy. Unsafe live acceptance is not authorable in Core.", "keep_pinned",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 80)
+                                .allowedValues("keep_pinned", "migrate", "warn", "invalidate")
+                                .defaultString("keep_pinned").omitWhenDefault().build(),
+                        field("rarity", SchemaValueType.ENUM, false,
+                                "Cosmetic vanilla rarity.", "rare",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 110)
+                                .allowedValues(Arrays.stream(CarrierRarity.values())
+                                        .map(CarrierRarity::serializedName).toArray(String[]::new))
+                                .defaultString("common").omitWhenDefault().build(),
+                        field("search_aliases", SchemaValueType.LIST, false,
+                                "Bounded alternate carrier search terms.", "[\"XP book\"]",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.LIST, 45)
+                                .defaultEmptyList().diff(DiffPolicy.SET).omitWhenDefault().build(),
+                        field("stack_size", SchemaValueType.INTEGER, false,
+                                "Visible maximum stack size from one through sixty four.", "16",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.INTEGER, 130)
+                                .defaultInteger(64).omitWhenDefault().build(),
+                        field("use_actions", SchemaValueType.LIST, true,
+                                "Authored order of one through sixteen pinned Core actions.",
+                                "[{ id = \"mypack:tome/grant\", type = \"xp\", skill = \"mypack:physique\", amount = 500, consume = 1 }]",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.LIST, 160)
+                                .diff(DiffPolicy.ORDERED).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor carrierUseAction() {
+        return schema(
+                "carrier_use_action",
+                SchemaAudience.AUTHORING,
+                "Carrier use action",
+                "One ordered Core XP, level, currency, or tree respec action stored in pinned behavior.",
+                List.of(
+                        field("amount", SchemaValueType.DECIMAL, false,
+                                "Positive fixed point XP, positive level count, or positive currency amount.", "500",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.DECIMAL, 60).build(),
+                        field("consume", SchemaValueType.INTEGER, false,
+                                "Charges consumed by this action from zero through sixty four.", "1",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.INTEGER, 70)
+                                .defaultInteger(1).omitWhenDefault().build(),
+                        field("currency", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Existing named currency required by a currency action.", "progressiveskills:global_points",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.RESOURCE_LOCATION, 40).build(),
+                        field("id", SchemaValueType.RESOURCE_LOCATION, true,
+                                "Globally unique stable action identity.", "mypack:tome/grant_xp",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.RESOURCE_LOCATION, 10).build(),
+                        field("skill", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Existing enabled skill required by XP and level actions.", "mypack:physique",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.RESOURCE_LOCATION, 30).build(),
+                        field("tree", SchemaValueType.RESOURCE_LOCATION, false,
+                                "Existing enabled tree required by a respec action.", "mypack:physique_training",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.RESOURCE_LOCATION, 50).build(),
+                        field("type", SchemaValueType.ENUM, true,
+                                "Closed Core carrier action family.", "xp",
+                                CoreDiagnostics.INVALID_CARRIER, EditorWidget.SELECT, 20)
+                                .allowedValues(Arrays.stream(CarrierUseActionType.values())
+                                        .map(CarrierUseActionType::serializedName).toArray(String[]::new)).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor carrierIdentity() {
+        return schema(
+                "carrier_identity",
+                SchemaAudience.INTERNAL,
+                "Carrier component identity",
+                "Persistent network synchronized definition identity and pinned behavior digest without economic actions.",
+                List.of(
+                        runtimeField("behavior_digest", SchemaValueType.STRING,
+                                "Lowercase SHA 256 of the archived canonical behavior.", "a".repeat(64),
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 20).build(),
+                        runtimeField("definition_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Stable configured item definition identity.", "mypack:tome_of_might",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 10).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor carrierStackState() {
+        return schema(
+                "carrier_stack_state",
+                SchemaAudience.INTERNAL,
+                "Carrier component state",
+                "Bounded issuance, charge, binding, and migration state carried by one stack.",
+                List.of(
+                        runtimeField("behavior_version", SchemaValueType.INTEGER,
+                                "Pinned positive behavior revision.", "1",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 20).build(),
+                        runtimeOptionalField("bound_owner", SchemaValueType.STRING,
+                                "Owner UUID when binding is active.", "00000000-0000-0000-0000-000000000013",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 70).build(),
+                        runtimeField("charges", SchemaValueType.INTEGER,
+                                "Nonnegative remaining charges no greater than archived initial charges.", "1",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 30).build(),
+                        runtimeField("creation_pack_digest", SchemaValueType.STRING,
+                                "Live pack digest present when the stack was issued.", "b".repeat(64),
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 40).build(),
+                        runtimeField("data_version", SchemaValueType.INTEGER,
+                                "Persistent component contract version.", "1",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 10).build(),
+                        runtimeField("instance_id", SchemaValueType.STRING,
+                                "World issued UUID checked by the exact use ledger.",
+                                "00000000-0000-0000-0000-000000000013",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 50).build(),
+                        runtimeOptionalField("migration_marker", SchemaValueType.STRING,
+                                "Bounded marker describing one explicit reviewed migration.", "v1_to_v2",
+                                CoreDiagnostics.CARRIER_MIGRATION_DENIED, 80).build(),
+                        runtimeField("use_counter", SchemaValueType.INTEGER,
+                                "Monotonic issuance counter checked before every economic use.", "0",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 60).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor pendingCarrierClaim() {
+        return schema(
+                "pending_carrier_claim",
+                SchemaAudience.INTERNAL,
+                "Pending carrier claim",
+                "Durable materialized inventory overflow delivery with pinned behavior and stable origin identity.",
+                List.of(
+                        runtimeField("behavior", SchemaValueType.OBJECT,
+                                "Full bounded canonical behavior snapshot verified against the identity digest.",
+                                "{ behavior_version = 1 }", CoreDiagnostics.CARRIER_CLAIM_FULL, 60).build(),
+                        runtimeField("claim_id", SchemaValueType.STRING,
+                                "Stable claim UUID.", "00000000-0000-0000-0000-000000000130",
+                                CoreDiagnostics.CARRIER_CLAIM_FULL, 10).build(),
+                        runtimeField("created_at", SchemaValueType.INTEGER,
+                                "Authoritative creation epoch milliseconds.", "1784203200000",
+                                CoreDiagnostics.CARRIER_CLAIM_FULL, 70).build(),
+                        runtimeField("identity", SchemaValueType.OBJECT,
+                                "Definition id and behavior digest.", "{ definition_id = \"mypack:tome\" }",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 30).build(),
+                        runtimeField("kind", SchemaValueType.ENUM,
+                                "Fixed physical carrier kind.", "tome",
+                                CoreDiagnostics.CARRIER_TAMPER_REJECTED, 40)
+                                .allowedValues(Arrays.stream(CarrierKind.values())
+                                        .map(CarrierKind::serializedName).toArray(String[]::new)).build(),
+                        runtimeField("origin_delivery_id", SchemaValueType.STRING,
+                                "Stable acquisition or transaction delivery UUID.",
+                                "00000000-0000-0000-0000-000000000131",
+                                CoreDiagnostics.CARRIER_CLAIM_FULL, 20).build(),
+                        runtimeField("reason", SchemaValueType.STRING,
+                                "Bounded safe claim creation reason.", "Inventory was full",
+                                CoreDiagnostics.CARRIER_CLAIM_FULL, 80).build(),
+                        runtimeField("state", SchemaValueType.OBJECT,
+                                "Materialized issuance, charge, binding, and migration state.",
+                                "{ charges = 1 }", CoreDiagnostics.CARRIER_TAMPER_REJECTED, 50).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor behaviorArchive() {
+        return schema(
+                "carrier_behavior_archive",
+                SchemaAudience.INTERNAL,
+                "Carrier behavior archive",
+                "World scoped checksummed immutable behavior payloads retained without age eviction.",
+                List.of(
+                        runtimeField("checksum", SchemaValueType.STRING,
+                                "SHA 256 checksum of one canonical payload.", "c".repeat(64),
+                                CoreDiagnostics.CARRIER_BEHAVIOR_UNAVAILABLE, 30).build(),
+                        runtimeField("data_version", SchemaValueType.INTEGER,
+                                "Archive persistence contract version.", "1",
+                                CoreDiagnostics.CARRIER_BEHAVIOR_UNAVAILABLE, 10).build(),
+                        runtimeField("digest", SchemaValueType.STRING,
+                                "Semantic behavior digest used as the archive key.", "d".repeat(64),
+                                CoreDiagnostics.CARRIER_BEHAVIOR_UNAVAILABLE, 20).build(),
+                        runtimeField("payload", SchemaValueType.STRING,
+                                "Bounded canonical binary behavior payload.", "base64",
+                                CoreDiagnostics.CARRIER_ARCHIVE_FULL, 40).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor carrierIntent() {
+        return schema(
+                "carrier_intent",
+                SchemaAudience.INTERNAL,
+                "Carrier and claim intent payload",
+                "Closed selection only payload for inspection, claim delivery, and explicit held stack migration.",
+                List.of(
+                        runtimeOptionalField("claim_id", SchemaValueType.STRING,
+                                "Viewer owned claim UUID required only by take one.",
+                                "00000000-0000-0000-0000-000000000130",
+                                CoreDiagnostics.CARRIER_USE_DENIED, 10).build(),
+                        runtimeOptionalField("preview_digest", SchemaValueType.STRING,
+                                "Exact server produced held migration preview digest required only by confirmation.",
+                                "e".repeat(64), CoreDiagnostics.CARRIER_MIGRATION_DENIED, 20).build()
+                )
+        );
+    }
+
+    private static SchemaDescriptor visibleCarrierSummary() {
+        return schema(
+                "visible_carrier_summary",
+                SchemaAudience.INTERNAL,
+                "Visible carrier or claim summary",
+                "Owner visible identity and status without archived actions, amounts, receipts, or server internals.",
+                List.of(
+                        networkField("behavior_version", SchemaValueType.INTEGER,
+                                "Pinned visible behavior revision.", "1",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 40).build(),
+                        networkOptionalField("claim_id", SchemaValueType.STRING,
+                                "Owner visible claim UUID for a pending summary.",
+                                "00000000-0000-0000-0000-000000000130",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 10).build(),
+                        networkField("definition_id", SchemaValueType.RESOURCE_LOCATION,
+                                "Stable configured carrier definition identity.", "mypack:tome_of_might",
+                                CoreDiagnostics.INVALID_CARRIER, 20).build(),
+                        networkField("kind", SchemaValueType.ENUM,
+                                "Fixed physical carrier kind.", "tome",
+                                CoreDiagnostics.INVALID_CARRIER, 30)
+                                .allowedValues(Arrays.stream(CarrierKind.values())
+                                        .map(CarrierKind::serializedName).toArray(String[]::new)).build(),
+                        networkField("remaining_charges", SchemaValueType.INTEGER,
+                                "Visible nonnegative remaining charges.", "1",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 50).build(),
+                        networkField("status", SchemaValueType.STRING,
+                                "Explicit noncolor held or pending claim status.", "ready",
+                                CoreDiagnostics.NETWORK_RESYNC_REQUIRED, 60).build()
+                )
+        );
+    }
+
     private static SchemaDescriptor ruleDefinition() {
         return schema(
                 "rule_definition",
@@ -1613,8 +1905,11 @@ public final class CoreSchemas {
                 "Bounded durable progression state with transaction truth, migration evidence, and fail-closed quarantine.",
                 List.of(
                         runtimeField("data_version", SchemaValueType.INTEGER,
-                                "Persisted attachment contract version.", "2",
+                                "Persisted attachment contract version.", "4",
                                 CoreDiagnostics.PLAYER_DATA_MIGRATION_FAILED, 10).build(),
+                        runtimeField("carrier_use_counters", SchemaValueType.LIST,
+                                "Exact non evicting issuance counters used to reject copied or replayed carrier state.", "[]",
+                                CoreDiagnostics.CARRIER_USE_DENIED, 75).build(),
                         runtimeOptionalField("death_marker", SchemaValueType.OBJECT,
                                 "Two-step death-copy operation marker and completion receipt.", "{ transaction_id = \"00000000-0000-0000-0000-000000000004\" }",
                                 CoreDiagnostics.PLAYER_DATA_QUARANTINED, 80).build(),
@@ -1633,6 +1928,9 @@ public final class CoreSchemas {
                         runtimeField("orphans", SchemaValueType.LIST,
                                 "Persisted definition state awaiting a compatible definition or explicit replacement.", "[]",
                                 CoreDiagnostics.PLAYER_STATE_ORPHANED, 60).build(),
+                        runtimeField("pending_carrier_claims", SchemaValueType.LIST,
+                                "Bounded durable materialized inventory overflow deliveries.", "[]",
+                                CoreDiagnostics.CARRIER_CLAIM_FULL, 72).build(),
                         runtimeField("player_id", SchemaValueType.STRING,
                                 "UUID that must match the attachment owner.", "00000000-0000-0000-0000-000000000001",
                                 CoreDiagnostics.PLAYER_DATA_IDENTITY_MISMATCH, 20).build(),
@@ -2063,7 +2361,9 @@ public final class CoreSchemas {
                                         "class_select", "class_respec_preview", "class_respec_confirm",
                                         "class_swap_preview", "class_swap_confirm",
                                         "ability_assign", "ability_unassign", "ability_select",
-                                        "ability_toggle", "ability_activate")
+                                        "ability_toggle", "ability_activate",
+                                        "claim_take", "claim_take_all", "carrier_inspect",
+                                        "carrier_migrate_preview", "carrier_migrate_confirm")
                                 .build(),
                         runtimeField("payload", SchemaValueType.STRING,
                                 "Small type-specific bounded selection payload; never effect amounts or commands.", "\"\"",

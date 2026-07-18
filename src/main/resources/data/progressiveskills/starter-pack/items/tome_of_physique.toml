@@ -1,0 +1,25 @@
+schema_version = 2
+
+[item]
+id = "progressiveskills:tome_of_physique"
+display = { key = "item.progressiveskills.tome_of_physique", fallback = "Tome of Physique" }
+description = { key = "item.progressiveskills.tome_of_physique.desc", fallback = "Grants 500 Physique XP." }
+icon = { type = "item", value = "minecraft:enchanted_book", fallback = "minecraft:barrier", alt = "Enchanted book" }
+enabled = true
+carrier = "progressiveskills:tome"
+behavior_version = 1
+migration_policy = "keep_pinned"
+bind = "none"
+delivery_policy = "pending_claim"
+rarity = "rare"
+glint = true
+stack_size = 16
+charges = 1
+cooldown_ticks = 0
+
+[[use_actions]]
+id = "progressiveskills:tome_of_physique/grant_xp"
+type = "xp"
+skill = "progressiveskills:physique"
+amount = 500
+consume = 1

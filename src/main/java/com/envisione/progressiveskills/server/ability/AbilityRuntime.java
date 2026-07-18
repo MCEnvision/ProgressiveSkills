@@ -15,6 +15,8 @@ import com.envisione.progressiveskills.common.transaction.TransactionResult;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
+import com.envisione.progressiveskills.server.hardening.DecisionTraceRuntime;
+import com.envisione.progressiveskills.server.hardening.HardeningRuntime;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -151,6 +153,7 @@ public final class AbilityRuntime {
             int slot,
             IdempotencyKey idempotencyKey
     ) {
+        long started = System.nanoTime();
         try {
             Context context = context(player);
             long tick = gameTick(player);
@@ -164,12 +167,21 @@ public final class AbilityRuntime {
             );
             AbilityTargetResolver.Resolution target = AbilityTargetResolver.resolve(player, plan.targeting());
             if (!target.accepted()) {
+                DecisionTraceRuntime.record(player.getUUID(), "ability", abilityId.toString(), false,
+                        target.message(), snapshot.stateRevision());
+                HardeningRuntime.performance().record(
+                        "ability_activation", 5_000_000L, System.nanoTime() - started);
                 return ActivationResult.rejected(plan.preview(), target.message());
             }
             AbilityProgression.ActivationPlan executable = AbilityActivationBridge.attach(
                     plan, target.target().orElseThrow());
             TransactionResult transaction = context.transactions().executeAndPersist(
                     player, executable.transaction(), context.definition());
+            DecisionTraceRuntime.record(player.getUUID(), "ability", abilityId.toString(),
+                    transaction.status().committed(), transaction.message(),
+                    context.transactions().service().snapshot(player.getUUID()).stateRevision());
+            HardeningRuntime.performance().record(
+                    "ability_activation", 5_000_000L, System.nanoTime() - started);
             return new ActivationResult(
                     transaction.status().committed(),
                     transaction.message(),
@@ -177,6 +189,11 @@ public final class AbilityRuntime {
                     Optional.of(transaction)
             );
         } catch (IllegalArgumentException | IllegalStateException | ArithmeticException exception) {
+            HardeningRuntime.performance().record(
+                    "ability_activation", 5_000_000L, System.nanoTime() - started);
+            DecisionTraceRuntime.record(player.getUUID(), "ability", "activation", false,
+                    safeMessage(exception), TransactionRuntime.context(player.getServer())
+                            .map(value -> value.service().snapshot(player.getUUID()).stateRevision()).orElse(0L));
             return new ActivationResult(false, safeMessage(exception), Optional.empty(), Optional.empty());
         }
     }
@@ -209,41 +226,47 @@ public final class AbilityRuntime {
 
     @SubscribeEvent
     static void onServerTick(ServerTickEvent.Post event) {
-        if (event.getServer().getTickCount() % 5 != 0) {
-            return;
+        long started = System.nanoTime();
+        try {
+            if (event.getServer().getTickCount() % 5 != 0) {
+                return;
+            }
+            TransactionRuntime.context(event.getServer()).ifPresent(transactions ->
+                    TransactionRuntime.currentDefinition().ifPresent(definition -> {
+                        Catalogs catalogs;
+                        try {
+                            catalogs = catalogs();
+                        } catch (RuntimeException exception) {
+                            LOGGER.error("ProgressiveSkills ability recharge catalog is unavailable", exception);
+                            return;
+                        }
+                            event.getServer().getPlayerList().getPlayers().forEach(player -> {
+                                if (!transactions.ready(player)) {
+                                    return;
+                                }
+                                try {
+                                    var snapshot = transactions.service().snapshot(player.getUUID());
+                                    long gameTick = gameTick(player);
+                                    AbilityProgression.recharge(
+                                            player.getUUID(), catalogs.abilities(), snapshot, definition, gameTick
+                                    ).ifPresent(plan -> {
+                                        TransactionResult result = transactions.executeAndPersist(
+                                                player, plan, definition);
+                                        if (!result.status().committed()) {
+                                            LOGGER.warn("ProgressiveSkills ability recharge was rejected for {} with {}",
+                                                    player.getUUID(), result.message());
+                                        }
+                                    });
+                                } catch (RuntimeException exception) {
+                                    LOGGER.error("ProgressiveSkills ability recharge failed for {}",
+                                            player.getUUID(), exception);
+                                }
+                            });
+                    }));
+        } finally {
+            HardeningRuntime.performance().record(
+                    "ability.recharge.tick", 2_000_000L, System.nanoTime() - started);
         }
-        TransactionRuntime.context(event.getServer()).ifPresent(transactions ->
-                TransactionRuntime.currentDefinition().ifPresent(definition -> {
-                    Catalogs catalogs;
-                    try {
-                        catalogs = catalogs();
-                    } catch (RuntimeException exception) {
-                        LOGGER.error("ProgressiveSkills ability recharge catalog is unavailable", exception);
-                        return;
-                    }
-                        event.getServer().getPlayerList().getPlayers().forEach(player -> {
-                            if (!transactions.ready(player)) {
-                                return;
-                            }
-                            try {
-                                var snapshot = transactions.service().snapshot(player.getUUID());
-                                long gameTick = gameTick(player);
-                                AbilityProgression.recharge(
-                                        player.getUUID(), catalogs.abilities(), snapshot, definition, gameTick
-                                ).ifPresent(plan -> {
-                                    TransactionResult result = transactions.executeAndPersist(
-                                            player, plan, definition);
-                                    if (!result.status().committed()) {
-                                        LOGGER.warn("ProgressiveSkills ability recharge was rejected for {} with {}",
-                                                player.getUUID(), result.message());
-                                    }
-                                });
-                            } catch (RuntimeException exception) {
-                                LOGGER.error("ProgressiveSkills ability recharge failed for {}",
-                                        player.getUUID(), exception);
-                            }
-                        });
-                }));
     }
 
     private static Context context(ServerPlayer player) {

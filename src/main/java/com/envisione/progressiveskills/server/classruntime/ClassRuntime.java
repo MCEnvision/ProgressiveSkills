@@ -14,6 +14,7 @@ import com.envisione.progressiveskills.common.transaction.ProgressionCause;
 import com.envisione.progressiveskills.common.transaction.TransactionResult;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
+import com.envisione.progressiveskills.server.hardening.DecisionTraceRuntime;
 import com.envisione.progressiveskills.server.transaction.TransactionRuntime;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -62,6 +63,7 @@ public final class ClassRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "class select", classId, transaction, context);
         return new ChangeResult(preview, transaction);
     }
 
@@ -95,6 +97,7 @@ public final class ClassRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "class respec", classId, transaction, context);
         return new ChangeResult(preview, transaction);
     }
 
@@ -132,6 +135,7 @@ public final class ClassRuntime {
         TransactionResult transaction = context.transactions().executeAndPersist(
                 player, plan, context.definition()
         );
+        trace(player, "class swap", replacementClassId, transaction, context);
         return new ChangeResult(preview, transaction);
     }
 
@@ -218,6 +222,19 @@ public final class ClassRuntime {
         if (!data.active()) {
             throw new IllegalStateException("Player progression data is quarantined");
         }
+    }
+
+    private static void trace(
+            ServerPlayer player,
+            String operation,
+            ResourceLocation subject,
+            TransactionResult result,
+            Context context
+    ) {
+        DecisionTraceRuntime.record(
+                player.getUUID(), "lock", operation + ". " + subject,
+                result.status().committed(), result.message(),
+                context.transactions().service().snapshot(player.getUUID()).stateRevision());
     }
 
     public record ChangeResult(
