@@ -39,6 +39,7 @@
   "screen.progressiveskills.tree.status.available": "Available",
   "screen.progressiveskills.tree.status.locked": "Locked",
   "screen.progressiveskills.tree.status.suspended": "Suspended",
+  "screen.progressiveskills.tree.zoom": "Zoom %s percent",
   "screen.progressiveskills.tree.cost": "Cost %s %s",
   "screen.progressiveskills.tree.currency_minimum": "Balance cannot fall below %s",
   "screen.progressiveskills.tree.requires": "Requires %s",

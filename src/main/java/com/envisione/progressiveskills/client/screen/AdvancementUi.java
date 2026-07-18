@@ -8,8 +8,8 @@ import net.minecraft.resources.ResourceLocation;
 final class AdvancementUi {
     static final int WINDOW_WIDTH = 252;
     static final int WINDOW_HEIGHT = 140;
-    static final int CONTENT_WIDTH = 234;
-    static final int CONTENT_HEIGHT = 113;
+    private static final int MAX_LARGE_WIDTH = 520;
+    private static final int MAX_LARGE_HEIGHT = 330;
 
     private static final ResourceLocation WINDOW = ResourceLocation.withDefaultNamespace(
             "textures/gui/advancements/window.png");
@@ -22,7 +22,15 @@ final class AdvancementUi {
     static Frame frame(int screenWidth, int screenHeight) {
         int x = (screenWidth - WINDOW_WIDTH) / 2;
         int y = Math.max(34, (screenHeight - WINDOW_HEIGHT - 28) / 2);
-        return new Frame(x, y);
+        return new Frame(x, y, WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
+
+    static Frame largeFrame(int screenWidth, int screenHeight) {
+        int frameWidth = Math.clamp(screenWidth - 56, WINDOW_WIDTH, MAX_LARGE_WIDTH);
+        int frameHeight = Math.clamp(screenHeight - 58, WINDOW_HEIGHT, MAX_LARGE_HEIGHT);
+        int x = (screenWidth - frameWidth) / 2;
+        int y = Math.max(30, (screenHeight - frameHeight - 24) / 2);
+        return new Frame(x, y, frameWidth, frameHeight);
     }
 
     static void renderInside(GuiGraphics graphics, Frame frame) {
@@ -38,8 +46,31 @@ final class AdvancementUi {
     }
 
     static void renderWindow(GuiGraphics graphics, Font font, Frame frame, Component title) {
-        graphics.blit(WINDOW, frame.x(), frame.y(), 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        if (frame.width() == WINDOW_WIDTH && frame.height() == WINDOW_HEIGHT) {
+            graphics.blit(WINDOW, frame.x(), frame.y(), 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        } else {
+            renderLargeFrame(graphics, frame);
+        }
         graphics.drawString(font, title, frame.x() + 8, frame.y() + 6, 0x404040, false);
+    }
+
+    private static void renderLargeFrame(GuiGraphics graphics, Frame frame) {
+        int left = frame.x();
+        int top = frame.y();
+        int right = frame.right();
+        int bottom = frame.bottom();
+        graphics.fill(left, top, right, top + 18, 0xFFC6C6C6);
+        graphics.fill(left, top + 18, left + 9, bottom, 0xFFC6C6C6);
+        graphics.fill(right - 9, top + 18, right, bottom, 0xFFC6C6C6);
+        graphics.fill(left + 9, bottom - 9, right - 9, bottom, 0xFFC6C6C6);
+        graphics.hLine(left, right - 1, top, 0xFFFFFFFF);
+        graphics.vLine(left, top, bottom - 1, 0xFFFFFFFF);
+        graphics.hLine(left, right - 1, bottom - 1, 0xFF202020);
+        graphics.vLine(right - 1, top, bottom - 1, 0xFF202020);
+        graphics.hLine(left + 5, right - 6, top + 16, 0xFF555555);
+        graphics.vLine(left + 7, top + 17, bottom - 7, 0xFF555555);
+        graphics.hLine(left + 7, right - 8, bottom - 7, 0xFFFFFFFF);
+        graphics.vLine(right - 8, top + 17, bottom - 7, 0xFFFFFFFF);
     }
 
     static void renderWorkbench(
@@ -109,7 +140,15 @@ final class AdvancementUi {
         }
     }
 
-    record Frame(int x, int y) {
+    record Frame(int x, int y, int width, int height) {
+        int right() {
+            return x + width;
+        }
+
+        int bottom() {
+            return y + height;
+        }
+
         int contentX() {
             return x + 9;
         }
@@ -119,15 +158,23 @@ final class AdvancementUi {
         }
 
         int contentRight() {
-            return contentX() + CONTENT_WIDTH;
+            return right() - 9;
         }
 
         int contentBottom() {
-            return contentY() + CONTENT_HEIGHT;
+            return bottom() - 9;
+        }
+
+        int contentWidth() {
+            return contentRight() - contentX();
+        }
+
+        int contentHeight() {
+            return contentBottom() - contentY();
         }
 
         int footerY() {
-            return y + WINDOW_HEIGHT + 4;
+            return bottom() + 4;
         }
     }
 }

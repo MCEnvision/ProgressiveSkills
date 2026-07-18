@@ -1,0 +1,23 @@
+{
+  "tab_icons": {
+    "skills": "minecraft:experience_bottle",
+    "trees": "minecraft:oak_sapling",
+    "classes": "minecraft:armor_stand",
+    "abilities": "minecraft:blaze_powder",
+    "claims": "minecraft:chest",
+    "guide": "minecraft:knowledge_book",
+    "compare": "minecraft:compass",
+    "tests": "minecraft:writable_book",
+    "sync": "minecraft:redstone",
+    "studio": "minecraft:crafting_table"
+  },
+  "tree_tooltip": {
+    "max_width": 220,
+    "lines": [
+      "&l&c{name}",
+      "&c{state}",
+      "Cost {cost} {currency}",
+      "{description}"
+    ]
+  }
+}

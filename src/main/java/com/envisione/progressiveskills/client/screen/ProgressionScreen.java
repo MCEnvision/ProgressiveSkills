@@ -1,6 +1,7 @@
 package com.envisione.progressiveskills.client.screen;
 
 import com.envisione.progressiveskills.client.ClientPreferences;
+import com.envisione.progressiveskills.client.ProjectionPresentation;
 import com.envisione.progressiveskills.client.SafeRetryTray;
 import com.envisione.progressiveskills.client.TestCenterState;
 import com.envisione.progressiveskills.common.id.DefinitionKey;
@@ -15,7 +16,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -37,8 +37,10 @@ public final class ProgressionScreen extends ProgressiveScreen {
     private ResourceLocation compareFirst;
     private ResourceLocation compareSecond;
     private List<Row> rows = List.of();
+    private final List<ProgressionCardButton> cards = new ArrayList<>();
     private String fingerprint = "";
     private String query = "";
+    private ProgressionUiTheme theme;
 
     public ProgressionScreen() {
         this(Tab.SKILLS);
@@ -56,9 +58,11 @@ public final class ProgressionScreen extends ProgressiveScreen {
     @Override
     protected void init() {
         var snapshot = PsNetworking.clientSnapshot();
+        theme = ProgressionUiTheme.load();
+        cards.clear();
         rows = rows(snapshot);
         selected = rows.isEmpty() ? 0 : Math.max(0, Math.min(selected, rows.size() - 1));
-        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
+        AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
         for (int index = 0; index < Tab.values().length; index++) {
             Tab value = Tab.values()[index];
             boolean above = index < 8;
@@ -77,7 +81,8 @@ public final class ProgressionScreen extends ProgressiveScreen {
                     side, position, () -> selectTab(value)));
         }
         if (searchableTab()) {
-            EditBox search = new EditBox(font, frame.contentX() + 3, frame.contentY() + 3, 105, 18,
+            int searchWidth = Math.min(180, cardAreaWidth(frame) - 8);
+            EditBox search = new EditBox(font, frame.contentX() + 4, frame.contentY() + 4, searchWidth, 18,
                     Component.literal("Search progression definitions"));
             search.setHint(Component.literal("Search"));
             search.setValue(query);
@@ -91,9 +96,11 @@ public final class ProgressionScreen extends ProgressiveScreen {
             });
             addRenderableWidget(search);
         }
-        int contentTop = frame.contentY() + (searchableTab() ? 24 : 3);
-        int rowStep = 18;
-        int rowHeight = 17;
+        int contentTop = frame.contentY() + (searchableTab() ? 27 : 5);
+        int columns = cardColumns(frame);
+        int cardGap = 4;
+        int cardHeight = 40;
+        int cardWidth = (cardAreaWidth(frame) - 8 - (columns - 1) * cardGap) / columns;
         int visibleRows = visibleRows(frame);
         int pages = Math.max(1, (rows.size() + visibleRows - 1) / visibleRows);
         page = Math.max(0, Math.min(page, pages - 1));
@@ -102,15 +109,24 @@ public final class ProgressionScreen extends ProgressiveScreen {
         for (int index = first; index < last; index++) {
             Row row = rows.get(index);
             int rowIndex = index;
-            Button button = addRenderableWidget(Button.builder(
-                    Component.literal((index == selected ? "> " : "") + row.label()),
-                    ignored -> {
+            int cell = index - first;
+            int column = cell % columns;
+            int localRow = cell / columns;
+            ProgressionCardButton button = addRenderableWidget(new ProgressionCardButton(
+                    frame.contentX() + 4 + column * (cardWidth + cardGap),
+                    contentTop + localRow * (cardHeight + cardGap),
+                    cardWidth,
+                    cardHeight,
+                    rowIndex,
+                    UiText.legacy(row.label()),
+                    Component.literal(cardSummary(row)),
+                    rowIcon(snapshot, row),
+                    index == selected,
+                    () -> {
                         selected = rowIndex;
                         rebuildWidgets();
-                    }).tooltip(Tooltip.create(Component.literal(row.detail())))
-                    .bounds(frame.contentX() + 3, contentTop + (index - first) * rowStep,
-                            105, rowHeight).build());
-            button.active = index != selected;
+                    }));
+            cards.add(button);
         }
         int bottom = frame.footerY();
         Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> changePage(-1))
@@ -121,7 +137,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
         next.active = page + 1 < pages;
         addActions(snapshot, bottom);
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), ignored -> onClose())
-                .bounds(frame.x() + 152, bottom, 100, 20).build());
+                .bounds(frame.right() - 100, bottom, 100, 20).build());
         fingerprint = fingerprint(snapshot);
     }
 
@@ -137,13 +153,14 @@ public final class ProgressionScreen extends ProgressiveScreen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
-        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
+        AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
         AdvancementUi.renderInside(graphics, frame);
+        int detailsLeft = detailLeft(frame);
         AdvancementUi.renderInset(graphics, frame.contentX() + 2, frame.contentY() + 2,
-                frame.contentX() + 110, frame.contentBottom() - 2);
-        AdvancementUi.renderInset(graphics, frame.contentX() + 113, frame.contentY() + 2,
+                detailsLeft - 3, frame.contentBottom() - 2);
+        AdvancementUi.renderInset(graphics, detailsLeft, frame.contentY() + 2,
                 frame.contentRight() - 2, frame.contentBottom() - 2);
-        graphics.enableScissor(frame.contentX() + 114, frame.contentY() + 3,
+        graphics.enableScissor(detailsLeft + 1, frame.contentY() + 3,
                 frame.contentRight() - 3, frame.contentBottom() - 3);
         renderDetails(graphics, PsNetworking.clientSnapshot());
         graphics.disableScissor();
@@ -152,7 +169,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
         super.render(graphics, mouseX, mouseY, partialTick);
         int pages = Math.max(1, (rows.size() + visibleRows(frame) - 1) / visibleRows(frame));
         graphics.drawCenteredString(font, Component.literal((page + 1) + " of " + pages),
-                frame.x() + 101, frame.footerY() + 6, 0xFFFFFF);
+                frame.contentX() + cardAreaWidth(frame) / 2, frame.footerY() + 6, 0xFFFFFF);
     }
 
     @Override
@@ -273,25 +290,26 @@ public final class ProgressionScreen extends ProgressiveScreen {
         }
     }
 
-    private void addAction(int x, int y, String label, Runnable operation) {
-        addRenderableWidget(Button.builder(Component.literal(label), ignored -> operation.run())
-                .bounds(x, y, 56, 18).build());
-    }
-
     private void addActionSlot(int index, int y, String label, Runnable operation) {
-        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
+        AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
         int column = Math.floorMod(index, 2);
         int row = index / 2;
-        addAction(frame.contentX() + 114 + column * 57,
-                frame.contentBottom() - 21 - row * 19, label, operation);
+        int buttonWidth = Math.max(48, (detailWidth(frame) - 9) / 2);
+        addAction(detailLeft(frame) + 3 + column * (buttonWidth + 2),
+                frame.contentBottom() - 21 - row * 19, label, operation, buttonWidth);
+    }
+
+    private void addAction(int x, int y, String label, Runnable operation, int buttonWidth) {
+        addRenderableWidget(Button.builder(Component.literal(label), ignored -> operation.run())
+                .bounds(x, y, buttonWidth, 18).build());
     }
 
     private void renderDetails(GuiGraphics graphics, ClientNetworkState.Snapshot snapshot) {
         float scale = ClientPreferences.textScale() / 100.0F;
-        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
-        int x = Math.round((frame.contentX() + 117) / scale);
+        AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
+        int x = Math.round((detailLeft(frame) + 6) / scale);
         int y = Math.round((frame.contentY() + 6) / scale);
-        int maxWidth = Math.max(40, Math.round(108 / scale));
+        int maxWidth = Math.max(40, Math.round((detailWidth(frame) - 12) / scale));
         graphics.pose().pushPose();
         graphics.pose().scale(scale, scale, 1.0F);
         if (rows.isEmpty()) {
@@ -299,7 +317,9 @@ public final class ProgressionScreen extends ProgressiveScreen {
             graphics.pose().popPose();
             return;
         }
-        for (var line : font.split(Component.literal(rows.get(selected).detail()), maxWidth)) {
+        int detailIndex = cards.stream().filter(ProgressionCardButton::isHovered)
+                .mapToInt(ProgressionCardButton::rowIndex).findFirst().orElse(selected);
+        for (var line : font.split(Component.literal(rows.get(detailIndex).detail()), maxWidth)) {
             graphics.drawString(font, line, x, y, 0xE0E0E0, false);
             y += font.lineHeight + 2;
         }
@@ -477,17 +497,58 @@ public final class ProgressionScreen extends ProgressiveScreen {
     private void changePage(int amount) {
         page += amount;
         selected = Math.min(rows.size() - 1,
-                Math.max(0, page * visibleRows(AdvancementUi.frame(width, height))));
+                Math.max(0, page * visibleRows(AdvancementUi.largeFrame(width, height))));
         rebuildWidgets();
     }
 
     private int visibleRows(AdvancementUi.Frame frame) {
-        int contentTop = frame.contentY() + (searchableTab() ? 24 : 3);
-        return Math.max(1, (frame.contentBottom() - contentTop - 3) / 18);
+        int contentTop = frame.contentY() + (searchableTab() ? 27 : 5);
+        int vertical = Math.max(1, (frame.contentBottom() - contentTop - 4) / 44);
+        return vertical * cardColumns(frame);
     }
 
-    private static ItemStack tabIcon(Tab tab) {
-        return new ItemStack(switch (tab) {
+    private static int detailWidth(AdvancementUi.Frame frame) {
+        return Math.clamp(frame.contentWidth() / 3, 106, 176);
+    }
+
+    private static int detailLeft(AdvancementUi.Frame frame) {
+        return frame.contentRight() - detailWidth(frame) - 2;
+    }
+
+    private static int cardAreaWidth(AdvancementUi.Frame frame) {
+        return detailLeft(frame) - frame.contentX();
+    }
+
+    private static int cardColumns(AdvancementUi.Frame frame) {
+        return cardAreaWidth(frame) >= 288 ? 2 : 1;
+    }
+
+    private ItemStack rowIcon(ClientNetworkState.Snapshot snapshot, Row row) {
+        ItemStack fallback = tabIcon(tab);
+        return row.id().flatMap(id -> snapshot.activeDefinitions().stream()
+                        .flatMap(value -> value.definitions().entrySet().stream())
+                        .filter(entry -> entry.getKey().id().equals(id))
+                        .map(Map.Entry::getValue).findFirst())
+                .map(entry -> ProjectionPresentation.icon(entry, fallback.getItem()))
+                .orElse(fallback);
+    }
+
+    private static String cardSummary(Row row) {
+        String detail = row.detail();
+        for (String marker : List.of("Level ", "Owned nodes ", "Selected.", "Not selected.",
+                "Owned.", "Not owned.", "Status ", "Charges ")) {
+            int index = detail.indexOf(marker);
+            if (index >= 0) {
+                int end = detail.indexOf('.', index);
+                return detail.substring(index, end < 0 ? detail.length() : end);
+            }
+        }
+        int end = detail.indexOf('.');
+        return end < 0 ? detail : detail.substring(0, end);
+    }
+
+    private ItemStack tabIcon(Tab tab) {
+        var fallback = switch (tab) {
             case SKILLS -> Items.EXPERIENCE_BOTTLE;
             case TREES -> Items.OAK_SAPLING;
             case CLASSES -> Items.ARMOR_STAND;
@@ -498,7 +559,8 @@ public final class ProgressionScreen extends ProgressiveScreen {
             case TESTS -> Items.WRITABLE_BOOK;
             case SYNC -> Items.REDSTONE;
             case STUDIO -> Items.CRAFTING_TABLE;
-        });
+        };
+        return theme.tabIcon(tab.name().toLowerCase(Locale.ROOT), fallback);
     }
 
     private Optional<Row> selectedRow() {

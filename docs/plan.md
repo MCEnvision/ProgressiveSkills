@@ -3056,11 +3056,28 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 - Safe Retry stores only actions that were valid when built and rebuilds them against the latest synchronized state. It never replays an invalid ability id, slot, revision, generation, or digest.
 - A regression test reproduces the Phase 19 crash where the Progression Ability page attempted to assign an unowned ability. Expected behavior is a disabled or absent action and a nonfatal player message.
 
+**Phase 20 Option B, expanded progression hub and tree workspace:**
+
+- Option B replaces the small fixed advancement window with a responsive advancement inspired workbench. The frame grows to the available GUI area while preserving room for tabs and footer controls at every supported GUI scale.
+- Skills, classes, abilities, trees, claims, guide entries, and diagnostic pages use original ProgressiveSkills card layouts informed by the dense overview pattern of RPG character menus. No third party source, texture, sprite, or other bundled asset is copied into ProgressiveSkills.
+- Definition cards show their configured item icon, display name, concise state summary, selected state, and a separate wrapped detail panel. Large windows show multiple card columns. Narrow windows reduce the column count before reducing readable content.
+- Every Progression root tab icon is resource pack configurable through `assets/progressiveskills/ui/progression.json`. The default file covers skills, trees, classes, abilities, claims, guide, compare, tests, sync, and Studio. A missing or invalid override falls back to the built in vanilla item for that page.
+- Definition and tree root icons remain definition driven. Resource packs may also replace the shared background and other declared ProgressiveSkills presentation resources without altering authoritative gameplay data.
+- The tree becomes a larger workspace with a graph canvas and a separate selected node panel. The selected icon, status, cost, and description never occupy graph space, so nodes cannot overlap the selected node text.
+- Tree movement uses click drag panning, mouse wheel zoom centered on the pointer, per tree remembered pan and zoom, and Space to recenter. Connections render below nodes and the canvas clips nodes and lines before the selected detail panel.
+- Tree node tooltips use a resource pack configurable ordered line template. The default template is `&l&c{name}`, `&c{state}`, `Cost {cost} {currency}`, and `{description}`. Templates support line breaks, placeholders, and legacy `&` color and style codes.
+- Tooltip currency and other stable ids use the synchronized definition display when available. Otherwise namespaces are removed, separators become spaces, and words are title cased, so `progressiveskills:global_points` displays as `Global Points`.
+- Every tooltip is wrapped to a configurable maximum width, positioned beside the pointer when possible, and clamped inside the current screen. Its opaque backing panel separates it from the graph without allowing text to extend beyond the screen.
+- The exact resource format, fallback behavior, examples, accessibility requirements, and player verification steps are maintained in `docs/guides/UI-CUSTOMIZATION.md` and `docs/verification/PHASE-20.md`.
+
 **Phase 20 gate:**
 
 - all ProgressiveSkills screens compile on the physical client boundary and open without a second blur pass;
 - progression and tree screens pass mouse, keyboard, narrator, resize, GUI scale, high contrast, compact layout, and reduced motion checks;
 - every live tree can be selected and panned without closing the screen;
+- every live tree can be zoomed, recentered, and revisited with its prior pan and zoom restored;
+- long localized and legacy formatted tooltips wrap and remain fully visible at every tested GUI scale;
+- all Progression tab icons can be replaced by a resource pack without changing the JAR or authoritative definitions;
 - the radial wheel appears only while held, movement remains active, release selects at most once, and the wheel never activates an ability implicitly;
 - owned, unowned, disabled, stale, cooling down, empty slot, and disconnected ability cases are nonfatal;
 - the supplied unowned ability click crash has an automated regression test;

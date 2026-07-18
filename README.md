@@ -26,8 +26,10 @@ bash .ci/smoke-client.sh
 bash .ci/verify-release-jar.sh releases/phase-19/progressiveskills-phase-19.jar
 ```
 
+The active Phase 20 beta branch uses `releases/phase-20/progressiveskills-phase-20.jar` and its matching verification record. It is not an approved `main` release until the player checklist passes.
+
 The client smoke requires `xvfb-run` on headless Linux. Test reports are written below `build/reports/`; runtime logs are isolated below `run/<configuration>/logs/`.
 
-See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and navigation, the [complete Phase 1 through Phase 19 guide](docs/guides/PHASES-1-19.md), the [detailed pack examples](docs/guides/PACK-AUTHORING.md), the [command reference](docs/guides/COMMANDS.md), the [Phase 19 verification and mass check](docs/verification/PHASE-19.md), the [generated schema reference](docs/reference/SCHEMA-V2.md), the [compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), and [PERF-001](docs/performance/PERF-001.md).
+See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and navigation, the [complete Phase 1 through Phase 19 guide](docs/guides/PHASES-1-19.md), the [detailed pack examples](docs/guides/PACK-AUTHORING.md), the [UI customization guide](docs/guides/UI-CUSTOMIZATION.md), the [command reference](docs/guides/COMMANDS.md), the [Phase 19 verification and mass check](docs/verification/PHASE-19.md), the [Phase 20 interface checklist](docs/verification/PHASE-20.md), the [generated schema reference](docs/reference/SCHEMA-V2.md), the [compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), and [PERF-001](docs/performance/PERF-001.md).
 
 In a cheats enabled test world, use `/pskills doctor`, `/pskills why latest`, and `/pskills check start`. The Progression screen opens with `P`, its Tests tab contains the visual Test Center, and the command palette opens with the grave accent key.
