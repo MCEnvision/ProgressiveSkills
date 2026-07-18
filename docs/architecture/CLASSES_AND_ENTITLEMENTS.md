@@ -1,6 +1,6 @@
 # Classes and Source Owned Entitlements
 
-Status: automated Phase 11 beta checkpoint complete. The integrated class panel remains Phase 14 work and practical player checks remain in the final mass test.
+Status: Phase 11 class authority is implemented. The cumulative Phase 19 beta also contains the Phase 14 integrated class panel, Phase 15 provider contracts, and Phase 17 advanced class ranks and loadouts. Practical player checks remain in the final mass test.
 
 ## Core boundary
 
@@ -21,7 +21,7 @@ The Core contract includes:
 - atomic select, respec, and swap transactions;
 - active or suspended retained class state after a safe reload reconciliation;
 - sanitized class, slot, synergy, starter kit, grant, and visible selection projection; and
-- keyboard and narrator friendly chat commands while the integrated class panel remains deferred.
+- keyboard and narrator friendly chat commands. The cumulative Phase 14 client adds the integrated class panel on top of the same intents.
 
 Ranks, evolution, roles, loadouts, class trees, formula costs, partial respec, percentage refunds, permanent spell learning, general conditions, and automatic capacity migration remain Creator features. Unsupported fields fail staging.
 
@@ -139,7 +139,7 @@ Phase 11 does not add a class screen. The command surface must remain sufficient
 | `/ps class swap <old> <new> <digest>` | Rebuilds and commits the exact current swap plan. |
 | `/ps class entitlements` | Lists effective class and synergy grant summaries without raw source internals. |
 
-Output uses stable line order, explicit Active, Suspended, Available, and Blocked words, short readable messages, and no color only meaning. Commands must be usable without a mouse. The Phase 14 class panel will call the same server intent and projection contracts rather than creating another authority path.
+Output uses stable line order, explicit Active, Suspended, Available, and Blocked words, short readable messages, and no color only meaning. Commands remain usable without a mouse. The Phase 14 class panel calls the same server intent and projection contracts rather than creating another authority path.
 
 ## Hard limits
 
@@ -158,4 +158,4 @@ Every limit is enforced during staging and again at the runtime authority bounda
 
 ## Deferred features
 
-Phase 11 does not claim a class panel, advanced class navigation, loadouts, ranks, evolution, roles, class specific trees, class XP, formula costs, flexible refund percentages, permanent spell learning, general conditional grants, external provider compatibility, or physical ability execution. Those features remain assigned to Phases 12, 14, 15, or 17.
+The historical Phase 11 checkpoint did not claim a class panel, loadouts, ranks, provider compatibility, or physical ability execution. The cumulative beta adds the Phase 12 ability runtime, Phase 14 panel, Phase 15 provider contracts, and Phase 17 class ranks and digest pinned loadouts. Unlisted advanced class behavior remains outside the Core class schema.

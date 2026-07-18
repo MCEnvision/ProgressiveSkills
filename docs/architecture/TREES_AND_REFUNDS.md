@@ -24,7 +24,7 @@ The Phase 10 Core contract is limited to:
 
 The tree engine is optional. A skill without a bound tree remains a linear skill, and a tree can coexist with linear level grants.
 
-Core does not expose ranked or repeatable nodes, cost formulas, exclusion groups, branch limits, sockets, runes, secret discovery, timed nodes, auto layout, generated layouts, shortest path purchasing, loadouts, cross tree synergy, or the general predicate and formula language. Those features remain Creator work. A Core file that uses a Creator field must fail staging instead of receiving placeholder behavior.
+Core tree files do not expose ranked or repeatable nodes, cost formulas, exclusion groups, branch limits, sockets, runes, secret discovery, timed nodes, auto layout, generated layouts, shortest path purchasing, loadouts, cross tree synergy, or the general predicate and formula language. Phase 17 provides separate Creator rank, predicate, formula, and loadout systems. A Core tree file that uses a Creator field still fails staging instead of receiving placeholder behavior.
 
 ## Stable identity and compiled graph
 
@@ -218,4 +218,4 @@ Phase 10 does not claim:
 - generated layout, minimap, rich theme, or visual editor behavior; or
 - client authority over costs, grants, requirements, or refunds.
 
-Those forms must remain rejected or unavailable until their assigned phase supplies schema, migrations, lifecycle rules, bounds, tests, documentation, and an accessible UI.
+The cumulative Phase 19 beta supplies selected advanced behavior through separate Creator definitions and loadout transactions. Any form that is still absent from those documented surfaces remains rejected rather than inferred.

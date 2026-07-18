@@ -1,6 +1,6 @@
 # Requirements and Expression Foundation
 
-Status: Phase 9 architecture contract. Automated verification is tracked in [PHASE-9.md](../verification/PHASE-9.md).
+Status: Phase 9 Core architecture contract implemented. Phase 17 adds a separate bounded Creator formula parser and reusable predicate catalog without widening the deliberately flat Core rule requirement syntax.
 
 ## Scope
 
@@ -14,7 +14,7 @@ Core exposes a deliberately small rule-authoring surface:
 - one rule-level `rounding` choice; and
 - the literal base amounts and literal multiplier groups already supported by the rule compiler.
 
-Reusable definitions in `predicates/` or `requirements/`, nested predicate syntax, named predicate references, condition leaves for world or entity context, and general formula text remain gated until Creator. A Core pack that attempts to use those deferred surfaces is rejected instead of receiving placeholder behavior.
+Reusable predicates and general formula text are available through the Phase 17 Creator definition and command surfaces. They do not become implicit Core rule syntax. A Core rule that attempts to use those fields is still rejected instead of receiving placeholder behavior.
 
 ## Typed requirement tree
 
@@ -125,4 +125,4 @@ Preview is read-only and uses an immutable actor snapshot. It cannot reserve, sp
 
 ## Phase boundary
 
-Phase 9 proves the safe internal composition model, deterministic dependencies, exact numeric evaluation, and inspectable runtime results. It does not expose the general formula parser, reusable named predicates or requirements, contextual world and entity leaves, conditional persistent grants, arbitrary subjects, or a visual expression editor. Those authoring surfaces remain gated until Creator even though later Core phases can construct the internal AST directly.
+Phase 9 proves the safe internal composition model, deterministic dependencies, exact numeric evaluation, and inspectable runtime results. The Phase 17 Creator catalog now exposes bounded formulas and reusable `all`, `any`, `not`, `flag`, and `value` predicates through separate definition kinds. Core rules remain limited to their flat disclosed actor requirements.

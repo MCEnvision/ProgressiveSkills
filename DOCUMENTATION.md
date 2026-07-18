@@ -1,145 +1,226 @@
-# ProgressiveSkills Documentation
+# ProgressiveSkills documentation
 
-## Current scope
+ProgressiveSkills is a server authoritative progression platform for Minecraft 1.21.1 on NeoForge 21.1.236. The cumulative Phase 19 beta contains the complete Phase 1 through Phase 19 delivery train. It includes content packs, deterministic transactions, persistent skills, rules, trees, classes, abilities, carrier items, native screens, provider capabilities, diagnostics, Creator progression, multiplayer systems, and Studio authoring.
 
-This documentation covers the Phase 1 scaffold, Phase 2 schema/IR foundation, Phase 3 staged content-pack loader, Phase 4 transaction/lifecycle runtime, Phase 5 persistence/migration boundary, and Phase 6 server-authoritative networking/client projection. ProgressiveSkills does not yet provide skills or XP content. The base JAR persists bounded revision-pinned transactions and exposes only a digest-bound sanitized definition/visible-state projection to the owning client.
+The Phase 19 checkpoint remains a beta until its in game mass check is approved. `main` remains the approved release line.
 
-## Prerequisites
+## Choose a starting point
 
-- A 64-bit Java 21 toolchain. Gradle may download one through the pinned Foojay resolver convention when necessary.
-- Internet access for the first dependency and Minecraft-asset resolution.
-- `xvfb-run` only for an automated client smoke on a headless Linux host.
+| Goal | Read this |
+| --- | --- |
+| Understand what every phase added | [Complete Phase 1 through Phase 19 guide](docs/guides/PHASES-1-19.md) |
+| Build a content pack from scratch | [Detailed pack authoring examples](docs/guides/PACK-AUTHORING.md) |
+| Find a command and see a complete workflow | [Command reference](docs/guides/COMMANDS.md) |
+| Look up every Core schema field and diagnostic | [Generated Schema v2 reference](docs/reference/SCHEMA-V2.md) |
+| Integrate with another mod safely | [Compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md) |
+| Run the final player test | [Phase 19 verification and mass check](docs/verification/PHASE-19.md) |
+| Understand an internal subsystem | [Architecture index](#architecture-index) |
+| Compare implementation with the original design | [Master plan](docs/plan.md) |
 
-The checked-in wrapper downloads Gradle 8.8 and verifies its official SHA-256 before execution.
+## Supported runtime
 
-## Three-minute setup
+| Component | Locked value |
+| --- | --- |
+| Minecraft | `1.21.1` |
+| NeoForge | `21.1.236` |
+| Java | `21` |
+| Gradle | `8.8` |
+| ModDevGradle | `2.0.141` |
+| Parchment | `1.21.1:2024.11.17` |
+| Mod id | `progressiveskills` |
+| Root Java package | `com.envisione.progressiveskills` |
+| Authoring schema | `2` |
+| Application protocol | `7` |
 
-1. Open the repository as a Gradle project.
-2. Run `./gradlew clean build`.
-3. Run `./gradlew verifySchemaArtifacts` to prove the checked-in reference and editor catalog match the registry.
-4. Run `./gradlew runGameTestServer`.
-5. Run `bash .ci/smoke-server.sh` to prove dedicated-server startup without optional mods.
-6. On a desktop, run `./gradlew runClient`; on headless Linux, run `bash .ci/smoke-client.sh`.
-7. Run `.ci/verify-release-jar.sh` to compare the release archive against all compiled test outputs and verify its locked metadata.
+## Player quick start
 
-The release JAR is created at `build/libs/progressiveskills-1.0-SNAPSHOT.jar`.
+1. Install the Phase 19 JAR on both the server and every client.
+2. Remove every older ProgressiveSkills JAR. Two versions must never be loaded together.
+3. Start a new cheats enabled test world. The dependency free starter pack is installed once on first launch.
+4. Run `/ps status`. A healthy result reports a live generation, pack count, definition count, and content digest.
+5. Run `/ps network status`. A fully synchronized player reports `Protocol 7 session ACTIVE`.
+6. Press `P` to open the Progression screen.
+7. Break one natural stone block. Run `/ps explain xp last` to see why the rule did or did not award XP.
+8. Run `/ps skill get progressiveskills:physique` to inspect level, XP, banked XP, and Global Points.
+9. Use the Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio tabs from the same screen.
+10. Run `/ps check start` when ready to begin the persistent final mass test.
 
-## Test layers
+The starter stone rule awards XP only for natural blocks and blocks placed by a creative player. Survival placed protected blocks are excluded, so silk touch placement loops cannot farm XP. Its cooldown and repeat decay are pack configuration. A pack can set both to their disabled values when full XP without a timeout is desired. See the [anti exploit examples](docs/guides/PACK-AUTHORING.md#block-origin-and-repeat-protection).
 
-| Layer | Command | Purpose |
-|---|---|---|
-| JUnit | `./gradlew test` | Identity, schemas/IR, pack compilation/recovery, transaction/lifecycle invariants, persistence, networking codecs/state machines, starter installation, Java toolchain, and architecture rules |
-| Property | included in `test`; discovery gate included in `build` | Exercises strict IDs/path derivation, source-digest determinism, SemVer, transaction resolution order, player-data decode, malformed network buffers, and requires at least 1,000 jqwik tries |
-| Compilation | `./gradlew build` | Compiles main, GameTest, and test sources with all warnings treated as errors |
-| Schema artifacts | `./gradlew verifySchemaArtifacts` | Regenerates schema outputs in `build/` and compares them byte-for-byte with the checked-in reference/editor catalog |
-| GameTest | `./gradlew runGameTestServer` | Boots NeoForge and exercises pack commands, lifecycle persistence/replay, offline-operation recovery, snapshot/export, and death/non-death attachment copying |
-| Dedicated server | `bash .ci/smoke-server.sh` | Requires an empty mods folder and production-only classpath, boots to `Done`, then shuts down |
-| Client | `bash .ci/smoke-client.sh` | Boots the production-only classpath under Xvfb and waits for the real title screen |
-| Release archive | `.ci/verify-release-jar.sh` | Rejects compiled test output, test libraries, retired identities, or unlocked metadata in the shipping JAR |
+## Pack developer quick start
 
-Gradle fails if test sources disappear, if the JUnit Platform discovers zero tests, or if the GameTest log lacks a passing result. The GameTest source set and generated NBT fixture are bound only to the dedicated GameTest run and are excluded from ordinary client/server runs and the release JAR.
-
-## Package policy
-
-The canonical root is `com.envisione.progressiveskills`. Code is divided into `api`, `common`, `server`, `client`, `compat`, and `mixin` boundaries. The executable architecture tests enforce side direction and optional-mod isolation. See [PACKAGE_BOUNDARIES.md](docs/architecture/PACKAGE_BOUNDARIES.md).
-
-## Phase 2 schema and IR
-
-Phase 2 provides strict namespaced definition IDs and path derivation, direct same-kind aliases, portable half-open source spans, immutable field source maps, safe localized text/icon descriptors, a closed canonical value vocabulary, adapter-neutral semantic projections, stable diagnostics, and a frozen metadata registry.
-
-The checked-in [schema reference](docs/reference/SCHEMA-V2.md) and [editor catalog](docs/reference/schema-v2-editor.json) are generated from that registry. After changing schema metadata, regenerate them with `./gradlew generateSchemaArtifacts`; CI fails if the generated bytes differ.
-
-At its original delivery boundary, Phase 2 did not parse TOML, discover packs, publish live registries, register commands, or add gameplay. Phase 3 now consumes that foundation for the pack workflow below. See [SCHEMA_AND_IR.md](docs/architecture/SCHEMA_AND_IR.md) for the boundary and extension contract.
-
-## Phase 3 content packs
-
-The server loads global packs from `config/progressiveskills/packs/` and higher-precedence world overlays from `<world>/serverconfig/progressiveskills/packs/`. First launch seeds `progressiveskills-core` once. Existing pack files remain operator-owned.
-
-The supported operator flow is:
+Global packs live in:
 
 ```text
-/ps status
+config/progressiveskills/packs/<pack-directory>/
+```
+
+World overlays live in:
+
+```text
+<world>/serverconfig/progressiveskills/packs/<pack-directory>/
+```
+
+Minimum pack layout:
+
+```text
+my-training-pack/
+├── pack.toml
+├── skills/
+│   └── endurance.toml
+├── currencies/
+│   └── talent_points.toml
+└── rules/
+    └── endurance_sprinting.toml
+```
+
+Safe publication workflow:
+
+```text
 /ps validate
 /ps reload --dry-run
 /ps diff
 /ps reload --publish
-/ps info progressiveskills:component_spec progressiveskills:engine_name --provenance
+/ps status
 ```
 
-Validation does not arm publication. Dry-run stores an exact reviewed candidate; publish re-reads the disk sources and refuses any post-review source or semantic change. See [CONTENT_PACKS.md](docs/architecture/CONTENT_PACKS.md) for manifests, roots, layering, commands, limits, recovery, and the manual test checklist.
+`validate` compiles without arming publication. `reload --dry-run` records the exact reviewed candidate. `reload --publish` rereads the files and refuses publication if either source bytes or the semantic digest changed after review.
 
-Only shared `component_spec` and `icon_spec` definitions have typed compilers at this milestone. Planned gameplay kinds fail closed until their feature phases.
+## Operator quick start
 
-## Phase 4 transactions and lifecycles
-
-The server now has a side-neutral bounded transaction core with checked balances, definition/state revision pinning, exact idempotency, source-aware persistent ownership, transition receipts, deterministic child cascades, audit records, and a narrow rollback boundary. Recompute resolves only persistent ownership and structurally cannot replay transition actions.
-
-The first visible checkpoint remains an operator fixture and is now backed by the Phase 5 player attachment:
+Run these in order after a new install, pack change, or upgrade:
 
 ```text
-/ps lifecycle status
-/ps lifecycle demo
-/ps lifecycle recompute
-/ps lifecycle coowner
-/ps lifecycle revoke primary
-/ps lifecycle revoke secondary
-/ps lifecycle audit
-/ps lifecycle selftest
-```
-
-It awards one checked demo point, delivers one receipt-protected gold ingot, and projects a +4 max-health value through two separately revocable owners. It is not pack content or a final command API. Its exact transaction state now survives clean unload/restart and death replacement. See [TRANSACTIONS_AND_LIFECYCLES.md](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md) for the transaction contracts.
-
-## Phase 5 persistence and migrations
-
-Player progression is stored in a versioned `progressiveskills:player_data` attachment with death copying. Raw NBT limits and migrations run before typed decode; corrupt, future, oversized, or wrong-owner data fails closed into quarantine. Definition state records retain lineage so missing or incompatible content becomes inert/orphaned and can later restore safely.
-
-The overworld pending-operation store queues checked work for unloaded players and applies it only on login through a two-save receipt protocol. It does not rewrite offline player NBT. Loaded operators can inspect and export their state with:
-
-```text
-/ps persistence status
-/ps persistence snapshot
-/ps persistence export
-```
-
-See [PERSISTENCE_AND_MIGRATIONS.md](docs/architecture/PERSISTENCE_AND_MIGRATIONS.md) for limits, failure behavior, file locations, and the exact restart/death checkpoint.
-
-## Phase 6 networking and client projection
-
-NeoForge negotiates the non-optional payload registrar version, then ProgressiveSkills exchanges a protocol/features hello pinned to a persistent server identity, ephemeral session, gameplay definition generation/digest, and independent presentation revision/digest. A client receives only typed identity/presentation fields, never gameplay costs/rules/commands/provenance. Cache misses use bounded compressed chunks; cache hits still wait for a full owner-visible state snapshot and ACK before mutation state becomes active.
-
-Transactions normally send a continuity/hash-checked delta. Gaps, stale generation/state, malformed data, or a digest mismatch trigger a bounded full resync. Serverbound intent messages stay under 16 KiB, carry session/request/definition/state guards, and are protected by a bounded exact replay cache plus per-player token bucket.
-
-Loaded operators can inspect or deliberately restart the session with:
-
-```text
+/ps doctor
+/ps status
+/ps validate
 /ps network status
-/ps network resync
+/ps persistence status
+/ps item archive verify
+/ps compatibility status
 ```
 
-See [NETWORKING.md](docs/architecture/NETWORKING.md) for the protocol flow, hard ceilings, redaction boundary, lifecycle behavior, and current manual checkpoint.
+Expected healthy state:
 
-## Optional integrations
+- pack and transaction runtimes are available;
+- the carrier archive verifies every retained behavior snapshot;
+- the player attachment is active rather than quarantined;
+- the network session is active with matching sent and acknowledged revisions;
+- native providers are healthy;
+- unavailable optional providers are reported honestly instead of being silently assumed.
 
-No optional integration is currently compiled or loaded. Each adapter stays blocked until its exact target version, technical spike, absent-mod load test, and compatibility profile are green. See [COMPATIBILITY_MATRIX.md](docs/compatibility/COMPATIBILITY_MATRIX.md).
+## Phase coverage
+
+| Phase | Delivered system | Primary example |
+| --- | --- | --- |
+| 1 | Reproducible build, side boundaries, CI, GameTest, server and client smoke, release archive checks | Run the complete verification command set. |
+| 2 | Schema registry, stable ids, source spans, canonical IR, generated references | Regenerate Schema v2 and compare byte for byte. |
+| 3 | Layered TOML and JSON packs, manifests, dependencies, dry run, diff, atomic publication and recovery | Create a pack and publish only its reviewed digest. |
+| 4 | Revision checked transactions, ownership, receipts, idempotency, cascades, audits | Run the lifecycle co owner demonstration. |
+| 5 | Versioned player attachments, migration, quarantine, death copy, offline operations, snapshots | Export a readable player snapshot before an upgrade. |
+| 6 | Protocol handshake, sanitized projection, chunking, deltas, replay guards and resync | Inspect an active Protocol 7 session. |
+| 7 | Fixed point skills, curves, levels, attributes, custom XP and highest level currency awards | Progress the starter Physique skill. |
+| 8 | Routed event rules, matchers, multipliers, caps, cooldowns, first time memory and block provenance | Compare natural, creative placed, and survival placed stone. |
+| 9 | Typed requirements, fixed point formulas, deterministic rounding, dependency indexes, preview and explanation | Add a minimum skill and currency requirement to an XP rule. |
+| 10 | Acyclic trees, exact historical costs, purchases, cascade refunds and respec previews | Buy Conditioning, buy Resilience, then cascade refund Conditioning. |
+| 11 | Weighted class slots, selection, swap, respec, source owned grants, synergies and starter receipts | Select Warrior and Scholar to activate Student of War. |
+| 12 | Passive, toggle and active abilities, fixed slots, costs, targets, cooldowns, charges and native actions | Assign and activate Second Wind. |
+| 13 | Pinned carrier behaviors, behavior archive, delivery, claims, replay protection and explicit migration | Give and consume a Tome of Physique with a full inventory fallback. |
+| 14 | Integrated screens, search, guide, compare, test center, sync doctor, HUD editor, command palette and accessibility | Open every tab and complete the Test Center using only the keyboard. |
+| 15 | Capability profiles, native providers, absent provider safety, health probes and circuit breakers | Preview strict, preferred, and fallback capability behavior. |
+| 16 | Doctor, why traces, reproduction bundles, performance guard, synthetic workloads and persistent mass testing | Export and replay a captured decision bundle. |
+| 17 | Templates, predicates, formulas, resources, conversions, prestige, ranks, stances, challenges, contracts, combos, loadouts and build codes | Create a deterministic training contract and share a build code. |
+| 18 | Parties, teams, shared progress, contribution receipts, assists, mentoring, consent transfers, seasons, privacy and PvP anti boosting | Form a two player party and inspect a shared award receipt. |
+| 19 | Revision checked Studio drafts, forms, graph and curve previews, lint, history, rebase, publish, rollback, JSON and signed pspack import and export | Author a draft, lint it, publish its confirmed digest, then roll it back. |
+
+Every phase has a full description, commands, expected results, failure behavior, and a hands on example in the [complete phase guide](docs/guides/PHASES-1-19.md).
+
+## UI and key mappings
+
+| Action | Default key | Notes |
+| --- | --- | --- |
+| Open Progression | `P` | Available after synchronization becomes active. |
+| Open tree screen | `K` | Opens the focused tree view. |
+| Ability wheel | Left Alt | Displays assigned slots. |
+| Previous ability | Left bracket | Selects the previous assigned slot. |
+| Next ability | Right bracket | Selects the next assigned slot. |
+| Use selected ability | `R` | Activates an active ability or changes a toggle. |
+| Command palette | Grave accent | Opens keyboard first navigation and safe command actions. |
+| Direct ability slots one through eight | Unbound | Bind only the slots you want in Minecraft Controls. |
+
+The Progression screen has ten tabs: Skills, Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio. High contrast, reduced motion, compact layout, text scaling, HUD position, HUD scale, and HUD opacity are local client preferences. They are stored in `config/progressiveskills-client.properties` and never alter server authority.
+
+## Authority and safety model
+
+- Pack files describe content. They do not directly mutate players.
+- The server validates all requirements, balances, targets, costs, cooldowns, revisions, and provider readiness.
+- A successful mutation commits through one bounded transaction and then persists before synchronization.
+- Idempotency keys and receipts prevent duplicate physical rewards and repeated carrier use.
+- Definitions are published as an atomic generation. A failed reload leaves the last known good generation active.
+- Clients receive sanitized presentation and owner visible state. They do not receive raw ownership maps, hidden requirements, receipts, audit bodies, provider secrets, or Studio signing identities.
+- Stale sessions, definitions, player revisions, preview digests, and draft revisions fail closed.
+- Safe Retry remembers only an action that can be rebuilt against synchronized current state. It never resends arbitrary client supplied economics.
+- Unknown, corrupt, oversized, or future persistence data is quarantined rather than guessed into a current model.
+- External adapters are unavailable until their exact artifacts and supported ranges pass present mod tests. The base mod remains safe without them.
+
+## Build and verification
+
+```text
+./gradlew clean build verifySchemaArtifacts --no-daemon --stacktrace
+./gradlew runGameTestServer --no-daemon --stacktrace
+bash .ci/smoke-server.sh
+bash .ci/smoke-client.sh
+bash .ci/verify-release-jar.sh releases/phase-19/progressiveskills-phase-19.jar
+```
+
+The full gate covers Java compilation, architecture boundaries, unit tests, property tests, schema freshness, real rule performance fixtures, NeoForge GameTests, dedicated server startup, headless client startup, and runtime JAR contents.
+
+The release JAR is:
+
+```text
+releases/phase-19/progressiveskills-phase-19.jar
+```
+
+Its recorded SHA 256 is:
+
+```text
+a4dc3435359774f2aeec2d121cd040feb810804957fea88312d15f911255d67a
+```
 
 ## Troubleshooting
 
-| Problem | Likely cause | Fix |
-|---|---|---|
-| Gradle cannot find Java 21 | Toolchain download is unavailable or blocked | Install a 64-bit Java 21 JDK or restore network access to the configured resolver |
-| `runGameTestServer` reports no tests | The `gameTest` source-set binding or generated fixture was changed | Run `./gradlew clean gameTestClasses` and inspect `build/generated/gameTestResources` |
-| Server stops for EULA | A raw `runServer` invocation has no accepted development EULA | Use `.ci/smoke-server.sh` or place `eula=true` in that run configuration's directory |
-| Client smoke cannot start | Xvfb is absent | Install `xvfb` or run `./gradlew runClient` in a graphical session |
-| Architecture test fails | A shared class references client or optional-mod code | Move the implementation behind the appropriate `client` or `compat` boundary and expose only neutral contracts |
-| `/ps` says the registry is unavailable | Primary packs and every verified recovery generation failed | Inspect the `[ProgressiveSkills]` startup diagnostics, restore valid pack sources, then restart |
-| Publish says sources changed | A file changed after the reviewed dry-run | Run `/ps reload --dry-run` again, inspect `/ps diff`, then publish |
-| `/ps lifecycle demo` rejects before commit | The inventory is full, no player is targeted, or the session runtime/definitions are unavailable | Free one inventory slot, use the command in game as an operator, and confirm `/ps status` has a live generation |
-| Lifecycle state is quarantined after login | Stored data is malformed, future-version, oversized, or belongs to another player | Run `/ps persistence status`, preserve the reported digest/export evidence, and restore a compatible verified save rather than forcing projection |
-| Snapshot/export command fails | The attachment exceeds a ceiling or the world path cannot be written/verified | Check the command error, storage access, and free space; the source attachment remains unchanged |
-| `/ps network status` is not `ACTIVE` | The join/reload transfer is still awaiting an ACK, timed out, or was rejected | Wait one moment; if it does not activate, reconnect and inspect the disconnect/log message for `PS-NET-*` evidence |
-| Definition cache never hits after reconnect | Server identity, address, protocol, semantic digest, or presentation digest changed | This is safe invalidation; let the bounded projection transfer complete and confirm the next unchanged reconnect |
-| A mutation reports stale network state | Definitions or player revision changed after the client formed its intent | Allow the targeted full resync to finish, then submit the action once against the current screen |
+| Symptom | Meaning | Next action |
+| --- | --- | --- |
+| `/ps status` says unavailable | No valid primary or recovery generation loaded | Inspect server diagnostics, repair the pack, validate, dry run, and publish. |
+| Publish says sources changed | Files changed after dry run | Repeat dry run and review the new diff. |
+| A mutation reports stale state | The client built it against an older session, definition, or player revision | Wait for Sync to become active, then use Safe Retry or submit it again. |
+| `/ps network status` is not active | Handshake, transfer, state snapshot, or acknowledgement is incomplete | Reconnect or use `/ps network resync`, then inspect `/ps doctor`. |
+| Player data is quarantined | Input was malformed, oversized, corrupt, foreign, or from a future data version | Preserve the digest and export, restore a compatible backup, and never force the data into gameplay. |
+| A carrier is inert | Its definition or pinned behavior digest is unavailable, invalid, or deliberately invalidated | Run `/ps item held` and `/ps item archive verify`, then use explicit migration if offered. |
+| A carrier delivery is missing | Inventory delivery could not complete | Run `/ps claim list`, free slots, then `/ps claim take all`. |
+| A compatibility profile is unusable | A required capability has no healthy provider | Install an exact supported adapter or change the pack profile intentionally. |
+| Studio rejects a write | Draft revision is stale or the path or contents violate bounds | Run draft status, rebase if appropriate, and retry with the current revision. |
+| Studio refuses publish | Lint digest, revision, permissions, or live base changed | Lint again, inspect the diff, rebase, and confirm the new digest. |
+| Shared data is hidden | The other player disabled that privacy category | Treat the redaction as authoritative. Do not infer hidden values. |
+| Client smoke cannot start | Headless Linux lacks Xvfb | Install `xvfb-run` or run `./gradlew runClient` in a graphical session. |
 
-## Next milestone
+## Architecture index
 
-After the Phase 6 real-client checkpoint is accepted, Phase 7 adds the fixed-point skill XP vertical slice and proves Physique end to end.
+- [Schema and immutable IR](docs/architecture/SCHEMA_AND_IR.md)
+- [Content packs and atomic publication](docs/architecture/CONTENT_PACKS.md)
+- [Transactions and lifecycles](docs/architecture/TRANSACTIONS_AND_LIFECYCLES.md)
+- [Persistence and migrations](docs/architecture/PERSISTENCE_AND_MIGRATIONS.md)
+- [Networking and client projection](docs/architecture/NETWORKING.md)
+- [Skill XP](docs/architecture/SKILL_XP.md)
+- [Rule engine and anti exploit behavior](docs/architecture/RULE_ENGINE.md)
+- [Requirements and expressions](docs/architecture/REQUIREMENTS_AND_EXPRESSIONS.md)
+- [Trees and exact refunds](docs/architecture/TREES_AND_REFUNDS.md)
+- [Classes and entitlements](docs/architecture/CLASSES_AND_ENTITLEMENTS.md)
+- [Abilities and actions](docs/architecture/ABILITIES_AND_ACTIONS.md)
+- [Carrier items and claims](docs/architecture/CARRIER_ITEMS_AND_CLAIMS.md)
+- [Package and physical side boundaries](docs/architecture/PACKAGE_BOUNDARIES.md)
+- [Performance fixture PERF 001](docs/performance/PERF-001.md)
+
+## Evidence index
+
+Historical evidence for Phases 1 through 12 remains in `docs/verification/PHASE-N.md`. Phases 13 through 18 have explicit cumulative implementation records in the same directory, and their combined automated evidence, exact JAR, checksum, and player checklist are in [PHASE-19.md](docs/verification/PHASE-19.md). Historical records describe the boundary at that checkpoint; the complete guide describes current cumulative behavior.

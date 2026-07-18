@@ -28,6 +28,6 @@ bash .ci/verify-release-jar.sh releases/phase-19/progressiveskills-phase-19.jar
 
 The client smoke requires `xvfb-run` on headless Linux. Test reports are written below `build/reports/`; runtime logs are isolated below `run/<configuration>/logs/`.
 
-See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and testing, the [Phase 9 through Phase 19 delivery record](docs/roadmap/PHASE-9-19-DELIVERY.md), the [Phase 19 verification and mass check](docs/verification/PHASE-19.md), the [generated schema reference](docs/reference/SCHEMA-V2.md), the [compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), and [PERF-001](docs/performance/PERF-001.md).
+See [DOCUMENTATION.md](DOCUMENTATION.md) for setup and navigation, the [complete Phase 1 through Phase 19 guide](docs/guides/PHASES-1-19.md), the [detailed pack examples](docs/guides/PACK-AUTHORING.md), the [command reference](docs/guides/COMMANDS.md), the [Phase 19 verification and mass check](docs/verification/PHASE-19.md), the [generated schema reference](docs/reference/SCHEMA-V2.md), the [compatibility matrix](docs/compatibility/COMPATIBILITY_MATRIX.md), and [PERF-001](docs/performance/PERF-001.md).
 
 In a cheats enabled test world, use `/ps doctor`, `/ps why latest`, and `/ps check start`. The Progression screen opens with `P`, its Tests tab contains the visual Test Center, and the command palette opens with the grave accent key.

@@ -1,6 +1,6 @@
 # Abilities and actions
 
-Phase 12 adds the first complete Core ability lifecycle. It keeps content reloadable while respecting Minecraft startup boundaries. Packs define abilities. The client registers a fixed set of controls at startup. The server owns every assignment, toggle, target, cost, cooldown, charge, and action decision.
+Phase 12 adds the first complete Core ability lifecycle. The cumulative Phase 19 beta also contains the Phase 14 screen, wheel and HUD, Phase 15 provider boundaries, and Phase 17 reactive Creator systems. Content remains reloadable while respecting Minecraft startup boundaries. Packs define abilities. The client registers a fixed set of controls at startup. The server owns every assignment, toggle, target, cost, cooldown, charge, and action decision.
 
 ## Core ability dialect
 
@@ -12,7 +12,7 @@ Core accepts three kinds.
 | Toggle | Only while toggled on | Optional | No |
 | Active | No | Yes | Yes |
 
-Persistent effects are limited to source owned attributes and boolean flags. Active costs are limited to named currencies, vanilla hunger, and vanilla experience. Targeting is limited to self, entity, and block targets. Native actions are limited to messages, healing, and vanilla effects. These limits keep Core behavior deterministic and auditable. Reactive triggers, channels, combo graphs, custom resource meters, and provider backed actions remain deferred.
+Persistent Core effects are limited to source owned attributes and boolean flags. Core active costs are limited to named currencies, vanilla hunger, and vanilla experience. Targeting is limited to self, entity, and block targets. Native actions are limited to messages, healing, and vanilla effects. These limits keep Core behavior deterministic and auditable. Phase 17 implements reactive procs, combo mastery, and custom resources as separate Creator systems rather than silently widening Core action lists.
 
 An ability id is owned through the shared source aware entitlement system. Removing one class, tree, or other owner cannot revoke an ability that still has another owner. Missing or disabled definitions stop active behavior without silently deleting the retained ownership identity.
 
@@ -53,13 +53,13 @@ Cooldown groups share one ready tick. Charges replenish on bounded server tick r
 
 Protocol version 4 requires the Core abilities feature. The definition projection contains bounded presentation plus kind, slot policy, persistent effect summaries, cost summaries, target policy, cooldown group, timing, charges, and ordered native action summaries. It excludes raw ownership sources, internal balance ids, executors, receipts, audits, and provenance.
 
-Visible state contains only owned ability ids with toggle, charge, and remaining cooldown state, fixed assignments, and selected slot. Full snapshots and semantic deltas use version 4 codecs with collection ceilings and continuity digests.
+Visible state contains only owned ability ids with toggle, charge, and remaining cooldown state, fixed assignments, and selected slot. Ability support was introduced in protocol 4. The cumulative protocol 7 snapshots and semantic deltas retain the same collection ceilings, redaction rules, and continuity digests.
 
 The closed client intent family is assign, unassign, select, toggle, and activate. Each request carries the negotiated session, monotonic request id, definition generation and digest, and state revision. Canonical payload shape, replay cache, future jump, stale state, rate, quarantine, and server target guards run before mutation.
 
 ## Keyboard and chat access
 
-Phase 12 does not add the Phase 14 ability screen, wheel renderer, or HUD. The fixed controls route through synchronized visible state and bounded intents. Previous, Next, and Ability Wheel cycle assigned slots. Use Selected activates the selected slot. A direct slot activates its assigned active ability or changes its assigned toggle.
+At the historical Phase 12 checkpoint, fixed controls provided the complete nonvisual fallback. The cumulative Phase 14 UI now adds the ability screen, wheel renderer, HUD, command palette, and accessibility controls. Previous, Next, and Ability Wheel cycle assigned slots. Use Selected activates the selected slot. A direct slot activates its assigned active ability or changes its assigned toggle.
 
 The complete chat fallback is available under `/ps ability`.
 
@@ -78,4 +78,4 @@ Unknown owned ability and assignment ids remain retained but inert progression i
 
 ## Deferred scope
 
-The integrated ability panel, rendered wheel, HUD cooldowns, targeting preview, guide pages, and broader accessibility UI ship in Phase 14. Provider actions and optional mod capabilities ship in Phase 15. Reactive proc graphs, channels, custom resources, formulas, loadouts, and advanced action composition remain Creator features.
+The cumulative beta includes the Phase 14 ability panel, rendered wheel, HUD, guide pages, and accessibility UI, Phase 15 provider capability contracts, and Phase 17 reactive procs, custom resources, formulas, combos, and digest pinned loadouts. Optional physical mod actions still require a tested adapter from the compatibility matrix.

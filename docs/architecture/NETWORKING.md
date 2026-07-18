@@ -1,10 +1,10 @@
 # Networking and Client Projection
 
-Status: Phase 12 protocol version 4 beta. Phase 6 remains accepted; tree, class, and ability extensions remain on the cumulative beta train until the final mass check.
+Status: cumulative Phase 19 protocol version 7 beta. The Phase 6 authority and redaction contract now carries tree, class, ability, carrier, Studio, Safe Retry, and diagnostic extensions.
 
 ## Authority and handshake
 
-The server remains the only progression authority. NeoForge first negotiates non-optional registrar version `4`, then ProgressiveSkills performs a play-phase application handshake with protocol version `4` and a required feature bitset. The required features are sanitized definition projection, full state, semantic deltas, bounded intents, Core trees, Core classes, and Core abilities. The server hello includes:
+The server remains the only progression authority. NeoForge first negotiates non-optional registrar version `7`, then ProgressiveSkills performs a play-phase application handshake with protocol version `7` and a required feature bitset. The required features are sanitized definition projection, full state, semantic deltas, bounded intents, Core trees, Core classes, Core abilities, Core carriers, and Studio authoring. The server hello includes:
 
 - a persistent random world/server UUID plus an ephemeral connection session UUID;
 - gameplay definition generation and semantic SHA-256;
@@ -76,7 +76,7 @@ After activation, an attachment revision increase normally produces one semantic
 
 ## Serverbound intent safety
 
-Protocol version 4 has a closed intent family for the nonmutating protocol test, tree purchase and refund, class select, respec preview and confirmation, class swap preview and confirmation, plus ability assign, unassign, select, toggle, and activate. Every intent carries the active session, monotonic request ID, definition generation/digest, and authoritative state revision. The server:
+Protocol version 7 has a closed intent family for the nonmutating protocol test, tree purchase and refund, class select, respec preview and confirmation, class swap preview and confirmation, ability assign, unassign, select, toggle, and activate, carrier inspect, claim recovery, carrier migration preview and confirmation, and revision checked Studio file operations. Every gameplay intent carries the active session, monotonic request ID, definition generation and digest, and authoritative state revision. The server:
 
 - returns the exact cached result/result UUID for a retained duplicate;
 - rejects an uncached request at or below the highest request ID;
@@ -107,7 +107,7 @@ Reconnect-safe value delivery uses durable transaction receipts and the bounded 
 
 Use the same cheats-enabled client/world used for Phase 5:
 
-1. Join and run `/ps network status`. Expect `Protocol 4 session ACTIVE`, matching sent/acknowledged storage revisions, and no timeout/rejection.
+1. Join and run `/ps network status`. Expect `Protocol 7 session ACTIVE`, matching sent and acknowledged storage revisions, and no timeout or rejection.
 2. Run `/ps lifecycle demo`, then `/ps network status`. If this world's stable demo transaction was already used, use the existing lifecycle commands to create one fresh committed mutation (for example co-owner/revoke). Expect the delta count to increase and sent/acknowledged storage revisions to match.
 3. Save and quit to the title screen, reopen the same world, and run `/ps network status`. Expect `ACTIVE` and `Definition cache hit true`; no player authority should have crossed the disconnect.
 4. Run `/ps reload --dry-run`, review `/ps diff`, then `/ps reload --publish`. Run `/ps network status` after the ACK. Expect the new definition generation in an `ACTIVE` session with matching sent/acknowledged revisions.

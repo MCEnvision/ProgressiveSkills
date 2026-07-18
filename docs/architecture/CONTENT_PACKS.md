@@ -1,6 +1,6 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 staging implemented, with Phase 12 skill, currency, rule, requirement, rounding, tree, class slot, class, and ability support in the TOML adapter.
+Status: Phase 3 staging implemented and extended through the cumulative Phase 19 beta. TOML and bounded JSON now cover Core gameplay, carriers, capability profiles, Creator definitions, multiplayer profiles, and Studio draft publication through one canonical IR.
 
 Phase 10 tree authoring is implemented as a beta checkpoint. The supported boundary is documented in [TREES_AND_REFUNDS.md](TREES_AND_REFUNDS.md), with automated evidence in [PHASE-10.md](../verification/PHASE-10.md).
 
@@ -8,7 +8,7 @@ Phase 10 tree authoring is implemented as a beta checkpoint. The supported bound
 
 ProgressiveSkills now discovers real content-pack directories, validates their manifests and dependencies, compiles supported TOML definitions into immutable canonical IR, and publishes a whole registry generation. A first launch seeds one dependency-free starter pack without overwriting later operator edits.
 
-The current typed compiler accepts `component_specs/`, `icon_specs/`, `skills/`, `currencies/`, `rules/`, and `trees/`. A rule may contain the bounded direct requirements described below. Other planned gameplay directories, including standalone `predicates/` and `requirements/`, remain discoverable identities, but a file in one of those directories fails with `PS-SCHEMA-007` until its implementation phase supplies a concrete schema and compiler.
+The current compiler has strict typed adapters for Core component, icon, skill, currency, rule, tree, class slot, class, ability, carrier item, and compatibility profile definitions. Creator and multiplayer definition directories compile bounded generic values into the same immutable IR and then pass their runtime catalog validators. The complete directory catalog is generated in `schema-v2-editor.json`. A file in an unknown directory or a definition that has no implemented compiler fails rather than receiving placeholder behavior.
 
 ## Server roots
 
@@ -210,6 +210,8 @@ The implementation currently enforces, among the lower per-record bounds inherit
 - at most 10,000 diagnostics and 10,000 replacement aliases; and
 - bounded lock, dependency, component, icon, source-map, and canonical-value collections.
 
-## Deferred boundaries
+## Cumulative Phase 19 boundary
 
-The Phase 7 skill and character-currency schemas, Phase 8 XP route schema, Phase 9 direct rule requirements and rounding, Phase 10 Core tree lifecycle, Phase 11 Core class slot, class, grant, and synergy schemas, and Phase 12 Core passive, toggle, and active ability schemas are implemented on the cumulative beta train. Phase 12 remains a beta checkpoint until the final player mass test is approved. Standalone reusable requirement and predicate definitions, nested predicate authoring, general formula strings, advanced classes and abilities, locale tables, datapack JSON, physical external providers, Studio overlays, optional-integration branches and capabilities, `.pspack` import/export, and resource-pack deployment remain assigned to later phases. Unknown content never receives placeholder runtime behavior.
+The cumulative beta implements skills, currencies, rules, direct requirements, rounding, trees, classes, abilities, carriers, compatibility profiles, Creator generic definitions, multiplayer profiles, bounded datapack JSON, Studio drafts, and signed pspack import and export. Unknown content never receives placeholder runtime behavior.
+
+External physical provider adapters remain unavailable until their exact target artifacts, supported version ranges, absent mod boots, and present mod tests pass. The native provider contracts and fallbacks work without those mods. Resource pack deployment and a remote editor protocol are not claimed by this checkpoint.

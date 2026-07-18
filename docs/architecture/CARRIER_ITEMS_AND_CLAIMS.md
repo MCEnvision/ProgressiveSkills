@@ -78,7 +78,7 @@ When configured delivery is `pending_claim`, inventory overflow becomes a durabl
 
 Claim ids are stable UUIDs. Claims have exact count and encoded size ceilings, deterministic ordering, and no age eviction. Capacity is reserved before a value bearing acquisition completes. Taking a claim removes it only after successful inventory insertion. `take all` processes a deterministic prefix and leaves every undelivered claim intact.
 
-Phase 14 adds the visual claim panel. Phase 13 remains completely usable through `/ps claim list`, `/ps claim take <id>`, and `/ps claim take all`.
+The cumulative Phase 14 client adds the visual claim panel. The complete chat fallback remains `/ps claim list`, `/ps claim take <id>`, and `/ps claim take all`.
 
 ## Migration and diagnostics
 
@@ -94,6 +94,6 @@ Protocol version 5 adds sanitized held carrier and pending claim summaries plus 
 
 ## Explicit Phase 13 limits
 
-Phase 13 does not claim a Curios, JEI, EMI, quest, mail, trade, station, or recipe integration without an exact pinned provider artifact and a passing present mod test. The generic carriers, safe command acquisition, durable native claims, and absent provider startup work without those mods. Provider contracts and honest fallbacks belong to Phase 15.
+The cumulative Phase 15 provider contracts and honest fallbacks are implemented. Curios, JEI, EMI, quest, mail, trade, station, and recipe integrations remain unavailable without an exact pinned provider artifact and a passing present mod test. Generic carriers, safe command acquisition, and durable native claims work without those mods.
 
 Phase 13 also defers HMAC world secrets, signed unique carriers, automatic archive pruning, upgrades, salvage, arbitrary action graphs, generated datapacks, and station blocks. The exact issuance ledger is a Core replay guard, not a claim that ordinary item components are cheat proof.

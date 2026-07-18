@@ -1,6 +1,6 @@
 # Schema Registry and Canonical IR
 
-Status: Phase 2 foundation implemented, consumed by the Phase 3 TOML compiler, and extended with Phase 4 transaction, Phase 5 persistence, and Phase 6 networking metadata. No gameplay definition schemas are included.
+Status: Phase 2 foundation implemented and extended through the cumulative Phase 19 beta. The registry now documents Core gameplay, carrier, transaction, persistence, networking, and visible state contracts while Creator generic definitions use the same canonical IR.
 
 ## Boundary
 
@@ -14,7 +14,7 @@ authoring source (Phase 3 TOML; later adapters follow)
   -> semanticProjection() without provenance
 ```
 
-The historical Phase 2 boundary excluded TOML discovery/parsing, pack manifests, merge/patch, staging/live publication, and `/ps` commands. Phase 3 supplies those consumers in `common.pack` and `server.pack` without changing the immutable IR contract. Phase 4 registers internal metadata for transaction plans, transition actions, entitlement contributions, and audit records while keeping execution in `common.transaction`. Phase 5 adds internal metadata for the player attachment, stored definition state, durable operation receipts, pending offline operations, and snapshot envelopes. Phase 6 adds handshake, sanitized projection, transfer, full/delta state, and intent contracts; executable codecs/state machines remain in `common.network` and orchestration in `server.network`. Gameplay definitions remain outside this document; concrete `Skill`, `Tree`, `Class`, and other records arrive with their feature phases.
+The historical Phase 2 boundary excluded TOML discovery and parsing, pack manifests, merge and patch, staged publication, and `/ps` commands. Phase 3 supplies those consumers without changing the immutable IR contract. Later phases register transaction, persistence, networking, skill, rule, tree, class, ability, and carrier metadata. Creator and multiplayer definitions normalize generic bounded values into the same IR, and Studio TOML or JSON sources must compile to the same semantic representation before publication.
 
 ## Delivery boundary against plan §§33.4–33.5
 

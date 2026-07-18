@@ -81,4 +81,4 @@ Committed awards show an action-bar XP summary. Level changes send one bounded c
 
 ## Phase boundary
 
-Phase 8 adds one ordinary block-break provider with persistent block-origin policy plus first-time, cooldown, repeat, and fixed rate-cap memory. Its rule XP and memory deltas use the same atomic award transaction described above. General predicates and formulas, arbitrary modded mover provenance, combat, movement, crafting, negative XP and delevel, advanced overflow destinations, tree spending, and general transition rewards remain assigned to later phases. See [RULE_ENGINE.md](RULE_ENGINE.md).
+Phase 8 adds one ordinary block break provider with persistent block origin policy plus first time, cooldown, repeat, and fixed rate cap memory. Its rule XP and memory deltas use the same atomic award transaction described above. Later cumulative phases add trees, classes, abilities, carriers, Creator formulas, challenges, assists, and shared contribution paths while continuing to use the same award and transaction authority. Arbitrary modded mover provenance still requires a tested provider. See [RULE_ENGINE.md](RULE_ENGINE.md).

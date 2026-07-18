@@ -22,7 +22,7 @@ This delivery train is cumulative. Each phase checkpoint contains every earlier 
 
 ## Phase 19 cumulative checkpoint
 
-Status: automated cumulative Phase 19 beta checkpoint complete. Phases 13 through 19 were implemented as one uninterrupted delivery and passed the consolidated automated gate. The exact test JAR, checksum, evidence, and final mass checklist are recorded in [PHASE-19.md](../verification/PHASE-19.md).
+Status: automated cumulative Phase 19 beta checkpoint complete. Phases 13 through 19 were implemented as one uninterrupted delivery and passed the consolidated automated gate. The exact test JAR, checksum, evidence, and final mass checklist are recorded in [PHASE-19.md](../verification/PHASE-19.md). Phase scope records are also available for [Phase 13](../verification/PHASE-13.md), [Phase 14](../verification/PHASE-14.md), [Phase 15](../verification/PHASE-15.md), [Phase 16](../verification/PHASE-16.md), [Phase 17](../verification/PHASE-17.md), and [Phase 18](../verification/PHASE-18.md).
 
 The checkpoint remains off `main` until the user approves the exported in game mass check. No Phase 13 through Phase 18 tag is created because those phases were not released as separate approved checkpoints.
 

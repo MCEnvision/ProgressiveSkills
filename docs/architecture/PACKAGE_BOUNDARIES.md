@@ -1,6 +1,6 @@
 # Package Boundary Policy
 
-Status: locked through Phase 6.
+Status: locked and architecture tested through the cumulative Phase 19 beta.
 
 The canonical root package is `com.envisione.progressiveskills`.
 

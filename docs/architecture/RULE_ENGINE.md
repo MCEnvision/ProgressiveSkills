@@ -25,7 +25,7 @@ The NeoForge provider currently binds only `progressiveskills:block_break`. The 
 
 The trigger, matcher, and provider registries are frozen after construction and reject duplicate identities. Phase 8 registers the block subject and the canonical `id`, `tag`, `mod`, and `translation_key` block matchers. `custom_name` remains opt-in and is not supported by this binding. `school` exists in matcher metadata but is rejected for a block subject.
 
-Every rule has one stable resource ID, one registered trigger, actor credit, bounded lists of matchers, direct requirements, and multipliers, one stack group and policy, and exactly one XP output referencing an existing skill. Phase 9 keeps positive fixed-point literals as the Core authoring surface while compiling them through the internal exact numeric evaluator. General formula authoring remains gated until Creator.
+Every rule has one stable resource ID, one registered trigger, actor credit, bounded lists of matchers, direct requirements, and multipliers, one stack group and policy, and exactly one XP output referencing an existing skill. Phase 9 keeps positive fixed point literals as the Core rule surface while compiling them through the internal exact numeric evaluator. Phase 17 provides general bounded formulas through its separate Creator surface.
 
 Positive matchers in one rule use OR semantics. A matching negated entry excludes the rule. Exact IDs, namespaces, translation keys, and tag keys are compiled at publication time. The event path returns immediately when no route is enabled or no index can match.
 
@@ -159,4 +159,4 @@ The explanation is intentionally bounded. Core shows direct requirement and fina
 
 ## Phase boundary
 
-Phase 9 adds the typed internal requirement tree, deterministic dependency index, exact numeric AST, one final rounding policy, and shared preview and explanation hooks to the Phase 8 route. Core authoring intentionally exposes only flat actor skill-level and named-currency gates plus literal bounded amounts. It does not expose nested or reusable predicates, named requirement definitions, general formula text, target/assist/team credit, arbitrary modded mover adapters, combat/crafting/movement providers, fractional carry, full reference-hardware soak evidence, or the complete Creator surface.
+Phase 9 adds the typed internal requirement tree, deterministic dependency index, exact numeric AST, one final rounding policy, and shared preview and explanation hooks to the Phase 8 route. Core rule authoring intentionally remains flat. Phase 16 adds the locked reference workload, Phase 17 adds separate reusable predicates and formulas, and Phase 18 adds assist and party contribution paths without changing the original block rule contract.
