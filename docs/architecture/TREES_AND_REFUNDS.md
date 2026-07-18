@@ -218,4 +218,4 @@ Phase 10 does not claim:
 - generated layout, minimap, rich theme, or visual editor behavior; or
 - client authority over costs, grants, requirements, or refunds.
 
-The cumulative Phase 19 beta supplies selected advanced behavior through separate Creator definitions and loadout transactions. Any form that is still absent from those documented surfaces remains rejected rather than inferred.
+The approved Phase 19 release supplies selected advanced behavior through separate Creator definitions and loadout transactions. Any form that is still absent from those documented surfaces remains rejected rather than inferred.

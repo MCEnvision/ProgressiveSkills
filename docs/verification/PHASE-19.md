@@ -1,6 +1,6 @@
 # Phase 13 through Phase 19 verification record
 
-Status: automated cumulative Phase 19 beta checkpoint complete. The branch remains off `main` until the player mass check is approved.
+Status: approved cumulative Phase 19 release. Automated verification is complete and the user approved promotion to `main`.
 
 This checkpoint contains the cumulative carrier, baseline UI, compatibility provider, hardening, Creator, multiplayer, and Studio implementation from Phases 13 through 19. External optional mod adapters remain unavailable unless an exact supported artifact is present and tested. Native and absent provider behavior stays functional without those mods.
 
@@ -35,4 +35,4 @@ Use only `releases/phase-19/progressiveskills-phase-19.jar` for this test. Back 
 6. Run `/pskills check finish` after the final check, then `/pskills check export`.
 7. Send the exported report and the latest client and server logs for every failed row.
 
-Do not move this checkpoint to `main` or create its phase tag until the exported mass check is approved.
+This checkpoint is the current approved `main` release and is preserved by the lightweight `phase-19` tag.

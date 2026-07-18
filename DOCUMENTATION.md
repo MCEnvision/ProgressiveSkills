@@ -1,8 +1,8 @@
 # ProgressiveSkills documentation
 
-ProgressiveSkills is a server authoritative progression platform for Minecraft 1.21.1 on NeoForge 21.1.236. The cumulative Phase 19 beta contains the complete Phase 1 through Phase 19 delivery train. It includes content packs, deterministic transactions, persistent skills, rules, trees, classes, abilities, carrier items, native screens, provider capabilities, diagnostics, Creator progression, multiplayer systems, and Studio authoring.
+ProgressiveSkills is a server authoritative progression platform for Minecraft 1.21.1 on NeoForge 21.1.236. The approved Phase 19 release contains the complete Phase 1 through Phase 19 delivery train. It includes content packs, deterministic transactions, persistent skills, rules, trees, classes, abilities, carrier items, native screens, provider capabilities, diagnostics, Creator progression, multiplayer systems, and Studio authoring.
 
-The Phase 19 checkpoint remains a beta until its in game mass check is approved. `main` remains the approved release line.
+Phase 19 is the current approved release on `main`.
 
 ## Choose a starting point
 

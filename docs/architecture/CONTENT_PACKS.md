@@ -1,6 +1,6 @@
 # Content Packs and Staged Loading
 
-Status: Phase 3 staging implemented and extended through the cumulative Phase 19 beta. TOML and bounded JSON now cover Core gameplay, carriers, capability profiles, Creator definitions, multiplayer profiles, and Studio draft publication through one canonical IR.
+Status: Phase 3 staging implemented and extended through the approved Phase 19 release. TOML and bounded JSON now cover Core gameplay, carriers, capability profiles, Creator definitions, multiplayer profiles, and Studio draft publication through one canonical IR.
 
 Phase 10 tree authoring is implemented as a beta checkpoint. The supported boundary is documented in [TREES_AND_REFUNDS.md](TREES_AND_REFUNDS.md), with automated evidence in [PHASE-10.md](../verification/PHASE-10.md).
 
@@ -212,6 +212,6 @@ The implementation currently enforces, among the lower per-record bounds inherit
 
 ## Cumulative Phase 19 boundary
 
-The cumulative beta implements skills, currencies, rules, direct requirements, rounding, trees, classes, abilities, carriers, compatibility profiles, Creator generic definitions, multiplayer profiles, bounded datapack JSON, Studio drafts, and signed pspack import and export. Unknown content never receives placeholder runtime behavior.
+The approved Phase 19 release implements skills, currencies, rules, direct requirements, rounding, trees, classes, abilities, carriers, compatibility profiles, Creator generic definitions, multiplayer profiles, bounded datapack JSON, Studio drafts, and signed pspack import and export. Unknown content never receives placeholder runtime behavior.
 
 External physical provider adapters remain unavailable until their exact target artifacts, supported version ranges, absent mod boots, and present mod tests pass. The native provider contracts and fallbacks work without those mods. Resource pack deployment and a remote editor protocol are not claimed by this checkpoint.

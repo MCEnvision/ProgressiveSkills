@@ -1,6 +1,6 @@
 # Phase 16 cumulative implementation record
 
-Status: implemented and verified inside the cumulative Phase 19 beta. Phase 16 was not released as a separate JAR, commit, tag, or approved checkpoint.
+Status: implemented and verified inside the approved Phase 19 release. Phase 16 was not released as a separate JAR, commit, tag, or approved checkpoint.
 
 ## Delivered scope
 

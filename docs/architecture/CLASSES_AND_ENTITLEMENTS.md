@@ -1,6 +1,6 @@
 # Classes and Source Owned Entitlements
 
-Status: Phase 11 class authority is implemented. The cumulative Phase 19 beta also contains the Phase 14 integrated class panel, Phase 15 provider contracts, and Phase 17 advanced class ranks and loadouts. Practical player checks remain in the final mass test.
+Status: Phase 11 class authority is implemented. The approved Phase 19 release also contains the Phase 14 integrated class panel, Phase 15 provider contracts, and Phase 17 advanced class ranks and loadouts.
 
 ## Core boundary
 
@@ -158,4 +158,4 @@ Every limit is enforced during staging and again at the runtime authority bounda
 
 ## Deferred features
 
-The historical Phase 11 checkpoint did not claim a class panel, loadouts, ranks, provider compatibility, or physical ability execution. The cumulative beta adds the Phase 12 ability runtime, Phase 14 panel, Phase 15 provider contracts, and Phase 17 class ranks and digest pinned loadouts. Unlisted advanced class behavior remains outside the Core class schema.
+The historical Phase 11 checkpoint did not claim a class panel, loadouts, ranks, provider compatibility, or physical ability execution. The approved Phase 19 release adds the Phase 12 ability runtime, Phase 14 panel, Phase 15 provider contracts, and Phase 17 class ranks and digest pinned loadouts. Unlisted advanced class behavior remains outside the Core class schema.

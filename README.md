@@ -1,6 +1,6 @@
 # ProgressiveSkills
 
-ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. The cumulative Phase 19 beta implements the full planned train from schema and pack loading through server authoritative skills, rules, trees, classes, abilities, carriers, UI, compatibility providers, Creator systems, multiplayer progression, and Studio authoring. The beta stays off `main` until its final in game mass check is approved.
+ProgressiveSkills is a data-driven progression engine for Minecraft 1.21.1 on NeoForge. The approved Phase 19 release implements the full planned train from schema and pack loading through server authoritative skills, rules, trees, classes, abilities, carriers, UI, compatibility providers, Creator systems, multiplayer progression, and Studio authoring. Phase 19 is the current release on `main`.
 
 ## Locked baseline
 

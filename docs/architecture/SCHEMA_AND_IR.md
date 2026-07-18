@@ -1,6 +1,6 @@
 # Schema Registry and Canonical IR
 
-Status: Phase 2 foundation implemented and extended through the cumulative Phase 19 beta. The registry now documents Core gameplay, carrier, transaction, persistence, networking, and visible state contracts while Creator generic definitions use the same canonical IR.
+Status: Phase 2 foundation implemented and extended through the approved Phase 19 release. The registry now documents Core gameplay, carrier, transaction, persistence, networking, and visible state contracts while Creator generic definitions use the same canonical IR.
 
 ## Boundary
 

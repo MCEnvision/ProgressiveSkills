@@ -1,6 +1,6 @@
 # Phase 15 cumulative implementation record
 
-Status: provider contracts and native fallbacks are implemented and verified inside the cumulative Phase 19 beta. Phase 15 was not released as a separate JAR, commit, tag, or approved checkpoint.
+Status: provider contracts and native fallbacks are implemented and verified inside the approved Phase 19 release. Phase 15 was not released as a separate JAR, commit, tag, or approved checkpoint.
 
 ## Delivered scope
 

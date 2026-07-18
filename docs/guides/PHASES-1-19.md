@@ -1,6 +1,6 @@
 # Complete Phase 1 through Phase 19 guide
 
-This guide explains the current cumulative Phase 19 beta in implementation order. Each section answers four questions: what the phase added, how it is used, what a successful example looks like, and how it fails safely.
+This guide explains the approved Phase 19 release in implementation order. Each section answers four questions: what the phase added, how it is used, what a successful example looks like, and how it fails safely.
 
 For exact Core field metadata, use the [generated Schema v2 reference](../reference/SCHEMA-V2.md). For every command syntax, use the [command reference](COMMANDS.md). For larger pack files, use the [pack authoring guide](PACK-AUTHORING.md).
 

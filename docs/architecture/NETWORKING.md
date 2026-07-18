@@ -1,6 +1,6 @@
 # Networking and Client Projection
 
-Status: cumulative Phase 19 protocol version 7 beta. The Phase 6 authority and redaction contract now carries tree, class, ability, carrier, Studio, Safe Retry, and diagnostic extensions.
+Status: approved Phase 19 protocol version 7 release. The Phase 6 authority and redaction contract now carries tree, class, ability, carrier, Studio, Safe Retry, and diagnostic extensions.
 
 ## Authority and handshake
 

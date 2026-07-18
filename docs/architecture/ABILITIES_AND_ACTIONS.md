@@ -1,6 +1,6 @@
 # Abilities and actions
 
-Phase 12 adds the first complete Core ability lifecycle. The cumulative Phase 19 beta also contains the Phase 14 screen, wheel and HUD, Phase 15 provider boundaries, and Phase 17 reactive Creator systems. Content remains reloadable while respecting Minecraft startup boundaries. Packs define abilities. The client registers a fixed set of controls at startup. The server owns every assignment, toggle, target, cost, cooldown, charge, and action decision.
+Phase 12 adds the first complete Core ability lifecycle. The approved Phase 19 release also contains the Phase 14 screen, wheel and HUD, Phase 15 provider boundaries, and Phase 17 reactive Creator systems. Content remains reloadable while respecting Minecraft startup boundaries. Packs define abilities. The client registers a fixed set of controls at startup. The server owns every assignment, toggle, target, cost, cooldown, charge, and action decision.
 
 ## Core ability dialect
 
@@ -78,4 +78,4 @@ Unknown owned ability and assignment ids remain retained but inert progression i
 
 ## Deferred scope
 
-The cumulative beta includes the Phase 14 ability panel, rendered wheel, HUD, guide pages, and accessibility UI, Phase 15 provider capability contracts, and Phase 17 reactive procs, custom resources, formulas, combos, and digest pinned loadouts. Optional physical mod actions still require a tested adapter from the compatibility matrix.
+The approved Phase 19 release includes the Phase 14 ability panel, rendered wheel, HUD, guide pages, and accessibility UI, Phase 15 provider capability contracts, and Phase 17 reactive procs, custom resources, formulas, combos, and digest pinned loadouts. Optional physical mod actions still require a tested adapter from the compatibility matrix.

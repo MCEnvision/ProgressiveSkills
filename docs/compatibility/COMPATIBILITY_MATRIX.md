@@ -1,6 +1,6 @@
 # Living Compatibility Matrix
 
-Status: Phase 15 provider contracts, native fallbacks, capability profiles, health probes, isolation, and circuit breakers are implemented in the cumulative Phase 19 beta. `TBD pinned` blocks only that external adapter. It does not block the dependency free native runtime.
+Status: Phase 15 provider contracts, native fallbacks, capability profiles, health probes, isolation, and circuit breakers are implemented in the approved Phase 19 release. `TBD pinned` blocks only that external adapter. It does not block the dependency free native runtime.
 
 | Integration | Tested versions | Required capabilities | Missing / unsupported behavior | CI profile | Status |
 |---|---|---|---|---|---|
