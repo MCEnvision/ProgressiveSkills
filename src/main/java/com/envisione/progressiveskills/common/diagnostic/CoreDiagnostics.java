@@ -193,11 +193,11 @@ public final class CoreDiagnostics {
                 .register(descriptor(RELOAD_NOT_STAGED, DiagnosticSeverity.ERROR,
                         "No validated reload is staged",
                         "Publishing must use the exact snapshot that was reviewed during dry-run.",
-                        "Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.", false))
+                        "Run /pskills reload --dry-run, resolve errors, then publish that staged snapshot.", false))
                 .register(descriptor(RELOAD_BLOCKED, DiagnosticSeverity.ERROR,
                         "Staged reload is blocked",
                         "A snapshot containing structural errors cannot replace the live last-known-good registry.",
-                        "Run /ps validate, correct every error, and stage again.", false))
+                        "Run /pskills validate, correct every error, and stage again.", false))
                 .register(descriptor(LAST_KNOWN_GOOD_FAILED, DiagnosticSeverity.ERROR,
                         "Last-known-good recovery failed",
                         "Neither current content nor a verified recovery bundle could produce a safe live snapshot.",

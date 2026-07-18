@@ -24,7 +24,7 @@ public final class TeamCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("team")
                         .then(Commands.literal("create")
                                 .then(Commands.argument("team", ResourceLocationArgument.id())
@@ -39,7 +39,7 @@ public final class TeamCommands {
                                             data(context.getSource()).invite(player.getUUID(), target.getUUID());
                                             success(context.getSource(), "Team invitation sent.");
                                             target.sendSystemMessage(Component.literal(PREFIX
-                                                    + "Team invitation received. Run ps team accept."));
+                                                    + "Team invitation received. Run pskills team accept."));
                                         }))))
                         .then(Commands.literal("accept").executes(context -> run(context.getSource(), player ->
                                 success(context.getSource(), "Joined team "

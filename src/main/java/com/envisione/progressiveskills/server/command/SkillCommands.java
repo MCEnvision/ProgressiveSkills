@@ -30,7 +30,7 @@ public final class SkillCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("xp").requires(source -> source.hasPermission(2))
                         .then(Commands.literal("source")
                                 .then(Commands.argument("player", EntityArgument.player())

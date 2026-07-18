@@ -29,7 +29,7 @@ bash .ci/verify-release-jar.sh releases/phase-12/progressiveskills-phase-12.jar
 | Physical action bridge | pass | Hunger, experience, message, heal, and vanilla effect paths preflight and execute through the transaction action boundary. |
 | Projection and visible state | pass | Protocol version 4 definitions, ownership, toggles, charges, cooldowns, assignments, and selection round trip without raw owners, provenance, receipts, executors, or internal balances. |
 | Intent guards and dispatcher | pass | Every assign, unassign, select, toggle, and activate intent uses canonical payloads behind session, replay, revision, rate, and quarantine guards. |
-| Client controls and commands | pass | Wheel, previous, next, use selected, eight direct mappings, and all `/ps ability` chat fallbacks route synchronized authoritative state. |
+| Client controls and commands | pass | Wheel, previous, next, use selected, eight direct mappings, and all `/pskills ability` chat fallbacks route synchronized authoritative state. |
 | Full unit and property suite | pass | 300 tests and 6300 property tries completed with zero failures, errors, or skips. |
 | Schema artifacts | pass | The 50 schema editor entries and generated Markdown match the committed Core registry byte for byte. |
 | NeoForge GameTest | pass | One cumulative required test passed with 12 live starter definitions, two server players, chat commands, ownership, toggles, active costs and effects, cooldown rejection, plus entity and block target validation. |
@@ -41,10 +41,10 @@ bash .ci/verify-release-jar.sh releases/phase-12/progressiveskills-phase-12.jar
 Use the exact committed Phase 12 checkpoint JAR only if the final cumulative build fails or ability behavior needs isolation. Back up the world and pack directory first.
 
 1. Start a cheats enabled temporary world with the Phase 12 starter pack.
-2. Confirm `/ps ability list` shows the starter passive, toggle, and active abilities with readable kind and ownership state.
+2. Confirm `/pskills ability list` shows the starter passive, toggle, and active abilities with readable kind and ownership state.
 3. Select the Warrior class and confirm Warrior Guard and Second Wind become owned. Select Scholar and confirm the Warrior plus Scholar synergy adds Combat Insight without losing either direct grant.
-4. Run `/ps ability info progressiveskills:second_wind`. Verify target, cooldown, charges, costs, and ordered actions match the starter TOML.
-5. Assign Second Wind to slot one, select slot one, and confirm `/ps ability status` reports both assignment and selection.
+4. Run `/pskills ability info progressiveskills:second_wind`. Verify target, cooldown, charges, costs, and ordered actions match the starter TOML.
+5. Assign Second Wind to slot one, select slot one, and confirm `/pskills ability status` reports both assignment and selection.
 6. Activate slot one. Verify its message, heal, speed effect, hunger cost, one consumed charge, and cooldown.
 7. Activate again during cooldown and verify rejection does not spend another cost or charge.
 8. Wait for recharge and verify the charge and cooldown status recover on the server.
@@ -55,6 +55,6 @@ Use the exact committed Phase 12 checkpoint JAR only if the final cumulative bui
 13. Reload after disabling an owned ability. Verify ownership and retained assignment remain diagnosable while activation stops and spends nothing.
 14. Fill an entity and block target scenario. Verify out of range and line of sight failures spend nothing.
 15. Join with two clients. Verify one player cannot activate, assign, or observe private ability state for the other player.
-16. Use narration with `/ps ability status` and verify every slot, toggle, charge, and cooldown result is understandable without color.
+16. Use narration with `/pskills ability status` and verify every slot, toggle, charge, and cooldown result is understandable without color.
 
 Record the exact command, expected result, observed result, relevant log excerpt, and whether a relog or restart changes the result for every failure.

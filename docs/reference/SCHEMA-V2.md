@@ -1637,7 +1637,7 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Default severity: `error`
 - Suppressible: `false`
 - Why it matters: Publishing must use the exact snapshot that was reviewed during dry-run.
-- Suggested fix: Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.
+- Suggested fix: Run /pskills reload --dry-run, resolve errors, then publish that staged snapshot.
 
 <a id="ps-reload-002"></a>
 
@@ -1646,7 +1646,7 @@ Owner-only authoritative state projection without durable ledgers, provenance, o
 - Default severity: `error`
 - Suppressible: `false`
 - Why it matters: A snapshot containing structural errors cannot replace the live last-known-good registry.
-- Suggested fix: Run /ps validate, correct every error, and stage again.
+- Suggested fix: Run /pskills validate, correct every error, and stage again.
 
 <a id="ps-reload-003"></a>
 

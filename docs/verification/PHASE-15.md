@@ -20,12 +20,12 @@ External adapters are not claimed until the exact artifacts and supported ranges
 See [Phase 15 in the complete guide](../guides/PHASES-1-19.md#phase-15-provider-capabilities-and-compatibility) and the [compatibility profile example](../guides/PACK-AUTHORING.md#compatibility-profile).
 
 ```text
-/ps compatibility status
-/ps compatibility profile list
-/ps compatibility profile active
-/ps compatibility profile strict
-/ps compatibility profile preferred
-/ps compatibility profile fallback
+/pskills compatibility status
+/pskills compatibility profile list
+/pskills compatibility profile active
+/pskills compatibility profile strict
+/pskills compatibility profile preferred
+/pskills compatibility profile fallback
 ```
 
 Automated provider registry, isolation, dedicated server, and cumulative evidence are recorded in [PHASE-19.md](PHASE-19.md).

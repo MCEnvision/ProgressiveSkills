@@ -101,16 +101,16 @@ Reconnect-safe value delivery uses durable transaction receipts and the bounded 
 | Published reload | Reconcile every online player and replace all old sessions/digests. |
 | Logout/server stop | Remove server session; client clears all authority on disconnect. |
 
-`/ps network status` reports handshake phase, protocol, digest prefixes, definition-cache hit, sent/ACKed revisions, delta/resync counts, and replay-cache size. `/ps network resync` (permission 4) deliberately starts a fresh session without mutating progression.
+`/pskills network status` reports handshake phase, protocol, digest prefixes, definition-cache hit, sent/ACKed revisions, delta/resync counts, and replay-cache size. `/pskills network resync` (permission 4) deliberately starts a fresh session without mutating progression.
 
 ## Manual in-game checkpoint
 
 Use the same cheats-enabled client/world used for Phase 5:
 
-1. Join and run `/ps network status`. Expect `Protocol 7 session ACTIVE`, matching sent and acknowledged storage revisions, and no timeout or rejection.
-2. Run `/ps lifecycle demo`, then `/ps network status`. If this world's stable demo transaction was already used, use the existing lifecycle commands to create one fresh committed mutation (for example co-owner/revoke). Expect the delta count to increase and sent/acknowledged storage revisions to match.
-3. Save and quit to the title screen, reopen the same world, and run `/ps network status`. Expect `ACTIVE` and `Definition cache hit true`; no player authority should have crossed the disconnect.
-4. Run `/ps reload --dry-run`, review `/ps diff`, then `/ps reload --publish`. Run `/ps network status` after the ACK. Expect the new definition generation in an `ACTIVE` session with matching sent/acknowledged revisions.
-5. Run `/ps network resync`, wait one moment, and run `/ps network status`. Expect a fresh `ACTIVE` session rather than duplicated progression, inventory, or health changes.
+1. Join and run `/pskills network status`. Expect `Protocol 7 session ACTIVE`, matching sent and acknowledged storage revisions, and no timeout or rejection.
+2. Run `/pskills lifecycle demo`, then `/pskills network status`. If this world's stable demo transaction was already used, use the existing lifecycle commands to create one fresh committed mutation (for example co-owner/revoke). Expect the delta count to increase and sent/acknowledged storage revisions to match.
+3. Save and quit to the title screen, reopen the same world, and run `/pskills network status`. Expect `ACTIVE` and `Definition cache hit true`; no player authority should have crossed the disconnect.
+4. Run `/pskills reload --dry-run`, review `/pskills diff`, then `/pskills reload --publish`. Run `/pskills network status` after the ACK. Expect the new definition generation in an `ACTIVE` session with matching sent/acknowledged revisions.
+5. Run `/pskills network resync`, wait one moment, and run `/pskills network status`. Expect a fresh `ACTIVE` session rather than duplicated progression, inventory, or health changes.
 
 Packet corruption, oversized lengths, unknown enum ordinals, decompression bombs, stale/future/old/rate-limited intents, chunk reordering/conflicts, digest mismatches, replay identity, and delta gaps are automated because manually forging them would require an unsafe custom client.

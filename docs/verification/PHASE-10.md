@@ -97,7 +97,7 @@ bash .ci/verify-release-jar.sh releases/phase-10/progressiveskills-phase-10.jar
 
 Use only the exact committed Phase 10 checkpoint JAR after its checksum and automated rows are recorded. Back up the world and pack directory. Use a cheats enabled temporary test world and a copy of the starter pack.
 
-1. Run `/ps validate`, `/ps status`, `/ps network status`, `/ps tree list`, and `/ps skill get progressiveskills:physique`. Record the live generation, state revision, Physique level, global points, owned nodes, and relevant attributes.
+1. Run `/pskills validate`, `/pskills status`, `/pskills network status`, `/pskills tree list`, and `/pskills skill get progressiveskills:physique`. Record the live generation, state revision, Physique level, global points, owned nodes, and relevant attributes.
 2. Open the tree screen with its registered key. Without using the mouse, select every tree and node, open the detail area, return to the first node, and close and reopen the screen. Confirm visible focus, logical order, readable text at the smallest supported window, and Owned, Available, or Locked text independent of color.
 3. Enable the narrator. Focus a locked node, an available node, the purchase action, and the refund action. Confirm each narration includes the node name, state, cost, requirement summary, and action. Record any missing, repeated, or misleading narration.
 4. With insufficient points, attempt the first node through the screen and its command. Both must reject without changing currency, ownership, attributes, state revision through a committed mutation, or paid cost count.
@@ -112,6 +112,6 @@ Use only the exact committed Phase 10 checkpoint JAR after its checksum and auto
 13. Restart the full game and server process. Run the status and tree commands again, reopen the screen, and confirm owned nodes, historical refund behavior, attributes, focus, and narrator output remain correct.
 14. In separate dry runs, attempt a cycle, duplicate node ID, dangling prerequisite, zero or negative cost, formula cost, multiple ranks, exclusion group, and oversized cascade. Each must fail staging without changing the live generation.
 15. Refund all remaining temporary nodes through reviewed previews. Confirm the ending currency equals the expected starting balance plus legitimate earned points, all temporary node sources are gone, and no refund can be repeated.
-16. Restore the starter pack, publish the cleanup through the reviewed reload flow, run `/ps validate`, and attach the complete game log plus command, screen, narrator, stale preview, and before and after balance evidence.
+16. Restore the starter pack, publish the cleanup through the reviewed reload flow, run `/pskills validate`, and attach the complete game log plus command, screen, narrator, stale preview, and before and after balance evidence.
 
 Automated tests remain required for exact CAS races, malformed codecs, deterministic map ordering, transaction rollback, large closure bounds, and property based no creation invariants. The fallback checklist does not replace those rows.

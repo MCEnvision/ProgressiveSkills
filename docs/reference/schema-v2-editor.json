@@ -10645,7 +10645,7 @@
       "severity": "error",
       "title": "No validated reload is staged",
       "why": "Publishing must use the exact snapshot that was reviewed during dry-run.",
-      "fix": "Run /ps reload --dry-run, resolve errors, then publish that staged snapshot.",
+      "fix": "Run /pskills reload --dry-run, resolve errors, then publish that staged snapshot.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-reload-001",
       "suppressible": false
     },
@@ -10654,7 +10654,7 @@
       "severity": "error",
       "title": "Staged reload is blocked",
       "why": "A snapshot containing structural errors cannot replace the live last-known-good registry.",
-      "fix": "Run /ps validate, correct every error, and stage again.",
+      "fix": "Run /pskills validate, correct every error, and stage again.",
       "docs": "docs/reference/SCHEMA-V2.md#ps-reload-002",
       "suppressible": false
     },

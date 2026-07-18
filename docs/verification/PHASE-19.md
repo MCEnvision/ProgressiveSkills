@@ -4,6 +4,8 @@ Status: automated cumulative Phase 19 beta checkpoint complete. The branch remai
 
 This checkpoint contains the cumulative carrier, baseline UI, compatibility provider, hardening, Creator, multiplayer, and Studio implementation from Phases 13 through 19. External optional mod adapters remain unavailable unless an exact supported artifact is present and tested. Native and absent provider behavior stays functional without those mods.
 
+The command root is `/pskills`. ProgressiveSkills does not register `/ps`, so another installed mod can own that shorter command without a collision.
+
 ## Automated gate
 
 | Check | Status | Evidence |
@@ -17,18 +19,18 @@ This checkpoint contains the cumulative carrier, baseline UI, compatibility prov
 | NeoForge GameTest | pass | Both required cumulative GameTests passed. |
 | Dedicated server | pass | Dedicated server startup and forbidden error scan passed. |
 | Client | pass | Headless client reached the title screen and passed the forbidden error scan. |
-| Release JAR | pass | `progressiveskills-phase-19.jar`, 2075876 bytes, SHA 256 `a4dc3435359774f2aeec2d121cd040feb810804957fea88312d15f911255d67a`. Archive verification passed. |
+| Release JAR | pass | `progressiveskills-phase-19.jar`, 2075906 bytes, SHA 256 `a01ce657d4ae0a0ca4d593ba3006c174bf47b72eabc1e53ba693641afed654a2`. Archive verification passed. |
 
 ## Player mass check
 
 Use only `releases/phase-19/progressiveskills-phase-19.jar` for this test. Back up existing worlds and remove every older ProgressiveSkills JAR before starting.
 
-1. Create or open a cheats enabled test world and run `/ps check start`.
-2. Perform the check shown in chat. Use `/ps check pass <note>` when it works or `/ps check fail <note>` when it does not.
-3. Use `/ps check status` at any time to resume or confirm progress. The checklist persists with the world.
+1. Create or open a cheats enabled test world and run `/pskills check start`.
+2. Perform the check shown in chat. Use `/pskills check pass <note>` when it works or `/pskills check fail <note>` when it does not.
+3. Use `/pskills check status` at any time to resume or confirm progress. The checklist persists with the world.
 4. Open the Progression screen with `P`, choose Tests, and complete the shorter visual and input Test Center checklist too.
 5. Test once with a second client for party privacy, shared credit, stale requests, and replay protection.
-6. Run `/ps check finish` after the final check, then `/ps check export`.
+6. Run `/pskills check finish` after the final check, then `/pskills check export`.
 7. Send the exported report and the latest client and server logs for every failed row.
 
 Do not move this checkpoint to `main` or create its phase tag until the exported mass check is approved.

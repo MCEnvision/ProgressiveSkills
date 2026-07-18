@@ -37,13 +37,13 @@ The Phase 19 checkpoint remains a beta until its in game mass check is approved.
 1. Install the Phase 19 JAR on both the server and every client.
 2. Remove every older ProgressiveSkills JAR. Two versions must never be loaded together.
 3. Start a new cheats enabled test world. The dependency free starter pack is installed once on first launch.
-4. Run `/ps status`. A healthy result reports a live generation, pack count, definition count, and content digest.
-5. Run `/ps network status`. A fully synchronized player reports `Protocol 7 session ACTIVE`.
+4. Run `/pskills status`. A healthy result reports a live generation, pack count, definition count, and content digest.
+5. Run `/pskills network status`. A fully synchronized player reports `Protocol 7 session ACTIVE`.
 6. Press `P` to open the Progression screen.
-7. Break one natural stone block. Run `/ps explain xp last` to see why the rule did or did not award XP.
-8. Run `/ps skill get progressiveskills:physique` to inspect level, XP, banked XP, and Global Points.
+7. Break one natural stone block. Run `/pskills explain xp last` to see why the rule did or did not award XP.
+8. Run `/pskills skill get progressiveskills:physique` to inspect level, XP, banked XP, and Global Points.
 9. Use the Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio tabs from the same screen.
-10. Run `/ps check start` when ready to begin the persistent final mass test.
+10. Run `/pskills check start` when ready to begin the persistent final mass test.
 
 The starter stone rule awards XP only for natural blocks and blocks placed by a creative player. Survival placed protected blocks are excluded, so silk touch placement loops cannot farm XP. Its cooldown and repeat decay are pack configuration. A pack can set both to their disabled values when full XP without a timeout is desired. See the [anti exploit examples](docs/guides/PACK-AUTHORING.md#block-origin-and-repeat-protection).
 
@@ -77,11 +77,11 @@ my-training-pack/
 Safe publication workflow:
 
 ```text
-/ps validate
-/ps reload --dry-run
-/ps diff
-/ps reload --publish
-/ps status
+/pskills validate
+/pskills reload --dry-run
+/pskills diff
+/pskills reload --publish
+/pskills status
 ```
 
 `validate` compiles without arming publication. `reload --dry-run` records the exact reviewed candidate. `reload --publish` rereads the files and refuses publication if either source bytes or the semantic digest changed after review.
@@ -91,13 +91,13 @@ Safe publication workflow:
 Run these in order after a new install, pack change, or upgrade:
 
 ```text
-/ps doctor
-/ps status
-/ps validate
-/ps network status
-/ps persistence status
-/ps item archive verify
-/ps compatibility status
+/pskills doctor
+/pskills status
+/pskills validate
+/pskills network status
+/pskills persistence status
+/pskills item archive verify
+/pskills compatibility status
 ```
 
 Expected healthy state:
@@ -191,13 +191,13 @@ a4dc3435359774f2aeec2d121cd040feb810804957fea88312d15f911255d67a
 
 | Symptom | Meaning | Next action |
 | --- | --- | --- |
-| `/ps status` says unavailable | No valid primary or recovery generation loaded | Inspect server diagnostics, repair the pack, validate, dry run, and publish. |
+| `/pskills status` says unavailable | No valid primary or recovery generation loaded | Inspect server diagnostics, repair the pack, validate, dry run, and publish. |
 | Publish says sources changed | Files changed after dry run | Repeat dry run and review the new diff. |
 | A mutation reports stale state | The client built it against an older session, definition, or player revision | Wait for Sync to become active, then use Safe Retry or submit it again. |
-| `/ps network status` is not active | Handshake, transfer, state snapshot, or acknowledgement is incomplete | Reconnect or use `/ps network resync`, then inspect `/ps doctor`. |
+| `/pskills network status` is not active | Handshake, transfer, state snapshot, or acknowledgement is incomplete | Reconnect or use `/pskills network resync`, then inspect `/pskills doctor`. |
 | Player data is quarantined | Input was malformed, oversized, corrupt, foreign, or from a future data version | Preserve the digest and export, restore a compatible backup, and never force the data into gameplay. |
-| A carrier is inert | Its definition or pinned behavior digest is unavailable, invalid, or deliberately invalidated | Run `/ps item held` and `/ps item archive verify`, then use explicit migration if offered. |
-| A carrier delivery is missing | Inventory delivery could not complete | Run `/ps claim list`, free slots, then `/ps claim take all`. |
+| A carrier is inert | Its definition or pinned behavior digest is unavailable, invalid, or deliberately invalidated | Run `/pskills item held` and `/pskills item archive verify`, then use explicit migration if offered. |
+| A carrier delivery is missing | Inventory delivery could not complete | Run `/pskills claim list`, free slots, then `/pskills claim take all`. |
 | A compatibility profile is unusable | A required capability has no healthy provider | Install an exact supported adapter or change the pack profile intentionally. |
 | Studio rejects a write | Draft revision is stale or the path or contents violate bounds | Run draft status, rebase if appropriate, and retry with the current revision. |
 | Studio refuses publish | Lint digest, revision, permissions, or live base changed | Lint again, inspect the diff, rebase, and confirm the new digest. |

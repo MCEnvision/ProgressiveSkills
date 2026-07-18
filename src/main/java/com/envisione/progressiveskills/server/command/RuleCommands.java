@@ -23,7 +23,7 @@ public final class RuleCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("rule")
                         .then(Commands.literal("status")
                                 .executes(context -> status(context.getSource())))

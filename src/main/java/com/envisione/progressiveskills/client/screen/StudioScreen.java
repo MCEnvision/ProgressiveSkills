@@ -101,7 +101,7 @@ public final class StudioScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Rebase"), ignored -> rebase())
                 .bounds(buttonX, buttonY, buttonWidth, 20).build());
 
-        command = field(12, height - 28, Math.max(40, width - 316), "Studio command", "ps studio ");
+        command = field(12, height - 28, Math.max(40, width - 316), "Studio command", "pskills studio ");
         command.setMaxLength(8192);
         addRenderableWidget(Button.builder(Component.literal("Pack"), ignored -> draftCommand("export"))
                 .bounds(width - 298, height - 28, 46, 20).build());
@@ -223,7 +223,7 @@ public final class StudioScreen extends Screen {
     private void draftCommand(String operation) {
         String draftId = draft.getValue().strip();
         if (!draftId.isEmpty()) {
-            send("ps studio " + operation + " " + draftId);
+            send("pskills studio " + operation + " " + draftId);
         }
     }
 
@@ -231,7 +231,7 @@ public final class StudioScreen extends Screen {
         String draftId = draft.getValue().strip();
         String draftRevision = revision.getValue().strip();
         if (!draftId.isEmpty() && !draftRevision.isEmpty()) {
-            send("ps studio rebase " + draftId + " " + draftRevision);
+            send("pskills studio rebase " + draftId + " " + draftRevision);
         }
     }
 
@@ -239,7 +239,7 @@ public final class StudioScreen extends Screen {
         String value = command.getValue().strip();
         if (!value.isEmpty()) {
             send(value);
-            command.setValue("ps studio ");
+            command.setValue("pskills studio ");
         }
     }
 

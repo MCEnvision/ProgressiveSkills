@@ -26,7 +26,7 @@ public final class AdvancedCreatorCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("rank")
                         .then(Commands.literal("tree")
                                 .then(Commands.argument("rank", ResourceLocationArgument.id())

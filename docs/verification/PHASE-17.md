@@ -21,12 +21,12 @@ Status: implemented and verified inside the cumulative Phase 19 beta. Phase 17 w
 See [Phase 17 in the complete guide](../guides/PHASES-1-19.md#phase-17-creator-progression) and the Creator sections in the [pack authoring guide](../guides/PACK-AUTHORING.md#creator-variable-resource-and-conversion).
 
 ```text
-/ps creator catalog
-/ps creator simulate max(10,mypack:server_bonus*2)
-/ps contract assign mypack:daily_endurance
-/ps loadout save mypack:boss_build
-/ps build code
-/ps build inspect <code>
+/pskills creator catalog
+/pskills creator simulate max(10,mypack:server_bonus*2)
+/pskills contract assign mypack:daily_endurance
+/pskills loadout save mypack:boss_build
+/pskills build code
+/pskills build inspect <code>
 ```
 
 Formula, template, economy, persistence, replay, and build atomicity evidence is included in [PHASE-19.md](PHASE-19.md).

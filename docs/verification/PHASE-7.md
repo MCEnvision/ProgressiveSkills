@@ -17,7 +17,7 @@ This record covers the skill XP vertical slice. It does not claim the Phase 8 ge
 - source-owned additive attribute projection for all three vanilla operations
 - login, respawn, publish, removal, persistence, and physical re-projection reconciliation
 - bounded action-bar, chat, sound, bank, and currency feedback
-- `/ps xp`, `/ps xp source`, and `/ps skill get`
+- `/pskills xp`, `/pskills xp source`, and `/pskills skill get`
 - generated skill/currency schema metadata and six stable Phase 7 diagnostics
 - bundled `progressiveskills:physique` and `progressiveskills:global_points`
 
@@ -63,15 +63,15 @@ bash .ci/smoke-client.sh
 
 Use a cheats-enabled development world. The installer adds the missing starter currency and skill files on launch without replacing existing files.
 
-1. Run `/ps validate` and `/ps status`. Expect a valid live pack with at least the three Core starter definitions.
-2. Run `/ps skill get progressiveskills:physique`. On a player who has not used Phase 7, expect level 0, highest 0, active XP 0, bank 0, and global points 0.
+1. Run `/pskills validate` and `/pskills status`. Expect a valid live pack with at least the three Core starter definitions.
+2. Run `/pskills skill get progressiveskills:physique`. On a player who has not used Phase 7, expect level 0, highest 0, active XP 0, bank 0, and global points 0.
 3. Record max health and jump strength with `/attribute @s minecraft:generic.max_health get` and `/attribute @s minecraft:generic.jump_strength get`.
-4. Run `/ps xp @s progressiveskills:physique 100`. Expect level 1, one global point, one level-up sound/message, and max health exactly 2 above the recorded baseline.
-5. Run `/ps xp source @s progressiveskills:physique_training`, then `/ps skill get progressiveskills:physique`. Expect active XP 125, level 1, 25 XP into the 125-XP level, and still one point.
-6. Run `/ps xp @s progressiveskills:physique 850`. Expect active XP 975, level/highest 6, six global points, max health exactly 10 above baseline, and jump strength 15 percent above its vanilla base.
-7. Run `/ps xp @s progressiveskills:physique -1`. Expect rejection with no XP, level, point, health, or jump change.
-8. Save and quit completely, reopen the same world, and repeat `/ps skill get` plus both `/attribute` commands. Expect the exact 975 XP, level 6, six points, +10 max health, and level-6 jump value with no duplicate rewards.
-9. In the generated `skills/physique.toml`, change the scaling `per_level` from `2.0` to `1.0`. Run `/ps reload --dry-run`, review `/ps diff`, then `/ps reload --publish`. Expect XP/level/points unchanged and max health to become exactly 6 above the original baseline.
+4. Run `/pskills xp @s progressiveskills:physique 100`. Expect level 1, one global point, one level-up sound/message, and max health exactly 2 above the recorded baseline.
+5. Run `/pskills xp source @s progressiveskills:physique_training`, then `/pskills skill get progressiveskills:physique`. Expect active XP 125, level 1, 25 XP into the 125-XP level, and still one point.
+6. Run `/pskills xp @s progressiveskills:physique 850`. Expect active XP 975, level/highest 6, six global points, max health exactly 10 above baseline, and jump strength 15 percent above its vanilla base.
+7. Run `/pskills xp @s progressiveskills:physique -1`. Expect rejection with no XP, level, point, health, or jump change.
+8. Save and quit completely, reopen the same world, and repeat `/pskills skill get` plus both `/attribute` commands. Expect the exact 975 XP, level 6, six points, +10 max health, and level-6 jump value with no duplicate rewards.
+9. In the generated `skills/physique.toml`, change the scaling `per_level` from `2.0` to `1.0`. Run `/pskills reload --dry-run`, review `/pskills diff`, then `/pskills reload --publish`. Expect XP/level/points unchanged and max health to become exactly 6 above the original baseline.
 10. Restore `per_level = 2.0` through the same reviewed publish flow. Expect max health to return to exactly 10 above baseline with XP and points still unchanged.
 
 The manual checkpoint is complete when the command feedback, hearts, jump, relog, and both hot-reload projections match without duplicate XP or points.

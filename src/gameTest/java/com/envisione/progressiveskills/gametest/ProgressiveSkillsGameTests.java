@@ -88,32 +88,40 @@ public final class ProgressiveSkillsGameTests {
         try {
             var server = helper.getLevel().getServer();
             var source = server.createCommandSourceStack().withPermission(4);
-            int status = server.getCommands().getDispatcher().execute("ps status", source);
-            int validate = server.getCommands().getDispatcher().execute("ps validate", source);
-            int dryRun = server.getCommands().getDispatcher().execute("ps reload --dry-run", source);
-            int diff = server.getCommands().getDispatcher().execute("ps diff", source);
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().getRoot().getChild("pskills") != null,
+                    "/pskills must be the registered ProgressiveSkills command root"
+            );
+            helper.assertTrue(
+                    server.getCommands().getDispatcher().getRoot().getChild("ps") == null,
+                    "/ps must remain available for other mods"
+            );
+            int status = server.getCommands().getDispatcher().execute("pskills status", source);
+            int validate = server.getCommands().getDispatcher().execute("pskills validate", source);
+            int dryRun = server.getCommands().getDispatcher().execute("pskills reload --dry-run", source);
+            int diff = server.getCommands().getDispatcher().execute("pskills diff", source);
             int info = server.getCommands().getDispatcher().execute(
-                    "ps info progressiveskills:component_spec progressiveskills:engine_name --provenance",
+                    "pskills info progressiveskills:component_spec progressiveskills:engine_name --provenance",
                     source
             );
-            int lifecycle = server.getCommands().getDispatcher().execute("ps lifecycle selftest", source);
-            helper.assertTrue(status == 1, "/ps status must report a live Phase 3 generation");
-            helper.assertTrue(validate == 1, "/ps validate must accept the generated Core starter pack");
-            helper.assertTrue(dryRun == 1, "/ps reload --dry-run must stage without mutating live content");
-            helper.assertTrue(diff == 1, "/ps diff must report the reviewed staged snapshot");
-            helper.assertTrue(info == 1, "/ps info must inspect the starter definition and provenance");
-            helper.assertTrue(lifecycle == 1, "/ps lifecycle selftest must prove Phase 4 transaction invariants");
+            int lifecycle = server.getCommands().getDispatcher().execute("pskills lifecycle selftest", source);
+            helper.assertTrue(status == 1, "/pskills status must report a live Phase 3 generation");
+            helper.assertTrue(validate == 1, "/pskills validate must accept the generated Core starter pack");
+            helper.assertTrue(dryRun == 1, "/pskills reload --dry-run must stage without mutating live content");
+            helper.assertTrue(diff == 1, "/pskills diff must report the reviewed staged snapshot");
+            helper.assertTrue(info == 1, "/pskills info must inspect the starter definition and provenance");
+            helper.assertTrue(lifecycle == 1, "/pskills lifecycle selftest must prove Phase 4 transaction invariants");
 
             var player = makeMockPlayer(helper);
             var playerSource = player.createCommandSourceStack().withPermission(4);
             int initialGold = player.getInventory().countItem(Items.GOLD_INGOT);
             float initialMaxHealth = player.getMaxHealth();
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle status", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle status", playerSource) == 1,
                     "Lifecycle status must be available to an in-game operator"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle demo", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle demo", playerSource) == 1,
                     "The visible lifecycle transaction must commit"
             );
             helper.assertTrue(
@@ -137,7 +145,7 @@ public final class ProgressiveSkillsGameTests {
             context.service().unloadAccount(player.getUUID());
             context.service().restoreAccount(player.getUUID(), decoded.transactionState());
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle demo", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle demo", playerSource) == 1,
                     "An exact lifecycle replay must survive attachment serialization and cache restoration"
             );
             helper.assertTrue(
@@ -145,7 +153,7 @@ public final class ProgressiveSkillsGameTests {
                     "An idempotent replay must not deliver another item"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle recompute", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle recompute", playerSource) == 1,
                     "Persistent recompute must succeed"
             );
             helper.assertTrue(
@@ -153,7 +161,7 @@ public final class ProgressiveSkillsGameTests {
                     "Persistent recompute must not replay transition delivery"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle coowner", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle coowner", playerSource) == 1,
                     "A second source must be able to co-own the persistent value"
             );
             helper.assertTrue(
@@ -161,7 +169,7 @@ public final class ProgressiveSkillsGameTests {
                     "The highest resolver must not stack two equal owners"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle revoke primary", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle revoke primary", playerSource) == 1,
                     "Primary source revocation must commit"
             );
             helper.assertTrue(
@@ -169,7 +177,7 @@ public final class ProgressiveSkillsGameTests {
                     "Revoking one source must preserve the co-owner's value"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle revoke secondary", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle revoke secondary", playerSource) == 1,
                     "Secondary source revocation must commit"
             );
             helper.assertTrue(
@@ -177,19 +185,19 @@ public final class ProgressiveSkillsGameTests {
                     "Revoking the final source must remove only the owned modifier"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps lifecycle audit", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills lifecycle audit", playerSource) == 1,
                     "The in-game lifecycle audit must remain inspectable"
             );
             float initialJumpStrength = (float) player.getAttributeValue(Attributes.JUMP_STRENGTH);
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps skill get progressiveskills:physique", playerSource
+                            "pskills skill get progressiveskills:physique", playerSource
                     ) == 1,
                     "The starter Physique skill must be inspectable"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps xp @s progressiveskills:physique 100", playerSource
+                            "pskills xp @s progressiveskills:physique 100", playerSource
                     ) == 1,
                     "A manual fixed point XP award must commit"
             );
@@ -199,13 +207,13 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps xp source @s progressiveskills:physique_training", playerSource
+                            "pskills xp source @s progressiveskills:physique_training", playerSource
                     ) == 1,
                     "The stable custom Physique XP source must commit"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps xp @s progressiveskills:physique 850", playerSource
+                            "pskills xp @s progressiveskills:physique 850", playerSource
                     ) == 1,
                     "A level jump must commit all crossed highest level rewards"
             );
@@ -236,7 +244,7 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps xp @s progressiveskills:physique -1", playerSource
+                            "pskills xp @s progressiveskills:physique -1", playerSource
                     ) == 0,
                     "Negative XP must fail closed"
             );
@@ -258,12 +266,12 @@ public final class ProgressiveSkillsGameTests {
                     "Physique jump grants must survive exact state restoration"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps rule status", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills rule status", playerSource) == 1,
                     "The compiled Phase 9 rule table must be inspectable"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps rule preview progressiveskills:physique_stone_training", playerSource
+                            "pskills rule preview progressiveskills:physique_stone_training", playerSource
                     ) == 1,
                     "The direct Phase 9 requirements and rounded amount must be previewable"
             );
@@ -320,7 +328,7 @@ public final class ProgressiveSkillsGameTests {
                     "The compiled stone rule must award its multiplied ten XP"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps explain xp last", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills explain xp last", playerSource) == 1,
                     "The last committed rule trace must be explainable"
             );
             var awardedTrace = RuleRuntime.lastTrace(player.getUUID()).orElseThrow();
@@ -443,24 +451,24 @@ public final class ProgressiveSkillsGameTests {
             double treeHealthBefore = player.getAttributeValue(Attributes.MAX_HEALTH);
             double treeArmorBefore = player.getAttributeValue(Attributes.ARMOR);
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps tree list", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills tree list", playerSource) == 1,
                     "The live Core tree catalog must be listed"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree info " + treeId, playerSource
+                            "pskills tree info " + treeId, playerSource
                     ) == 1,
                     "The starter Physique tree must be inspectable"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree preview buy " + treeId + " " + conditioningId, playerSource
+                            "pskills tree preview buy " + treeId + " " + conditioningId, playerSource
                     ) == 1,
                     "The first tree node must preview from authoritative state"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree buy " + treeId + " " + conditioningId, playerSource
+                            "pskills tree buy " + treeId + " " + conditioningId, playerSource
                     ) == 1,
                     "The first tree node purchase must commit"
             );
@@ -475,13 +483,13 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree buy " + treeId + " " + conditioningId, playerSource
+                            "pskills tree buy " + treeId + " " + conditioningId, playerSource
                     ) == 0,
                     "A purchased node must not charge or grant twice"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree buy " + treeId + " " + resilienceId, playerSource
+                            "pskills tree buy " + treeId + " " + resilienceId, playerSource
                     ) == 1,
                     "A dependent tree node purchase must commit"
             );
@@ -508,7 +516,7 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps tree refund " + treeId + " " + conditioningId + " "
+                            "pskills tree refund " + treeId + " " + conditioningId + " "
                                     + treeRefundPreview.digest(),
                             playerSource
                     ) == 1,
@@ -553,24 +561,24 @@ public final class ProgressiveSkillsGameTests {
             int initialBooks = player.getInventory().countItem(Items.BOOK);
             double classAttackBefore = player.getAttributeValue(Attributes.ATTACK_DAMAGE);
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps class list", playerSource) == 2,
+                    server.getCommands().getDispatcher().execute("pskills class list", playerSource) == 2,
                     "The live Core class catalog must list both starter classes"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class info " + warriorId, playerSource
+                            "pskills class info " + warriorId, playerSource
                     ) == 1,
                     "The starter Warrior class must be inspectable"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class preview select " + warriorId, playerSource
+                            "pskills class preview select " + warriorId, playerSource
                     ) == 1,
                     "Warrior selection must preview from authoritative state"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class select " + warriorId, playerSource
+                            "pskills class select " + warriorId, playerSource
                     ) == 1,
                     "Warrior selection must commit through the class command route"
             );
@@ -603,13 +611,13 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class preview select " + scholarId, playerSource
+                            "pskills class preview select " + scholarId, playerSource
                     ) == 1,
                     "Scholar selection must fit the remaining weighted capacity"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class select " + scholarId, playerSource
+                            "pskills class select " + scholarId, playerSource
                     ) == 1,
                     "Scholar selection must commit through the class command route"
             );
@@ -646,7 +654,7 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class entitlements", playerSource
+                            "pskills class entitlements", playerSource
                     ) == 1,
                     "Class ownership must be inspectable through the command route"
             );
@@ -672,13 +680,13 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class preview respec " + scholarId, playerSource
+                            "pskills class preview respec " + scholarId, playerSource
                     ) == 1,
                     "Scholar respec must be previewable through the class command route"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class respec " + scholarId + " " + classRespecPreview.digest(),
+                            "pskills class respec " + scholarId + " " + classRespecPreview.digest(),
                             playerSource
                     ) == 1,
                     "The reviewed Scholar respec must commit through the class command route"
@@ -712,7 +720,7 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps class select " + scholarId, playerSource
+                            "pskills class select " + scholarId, playerSource
                     ) == 1,
                     "Scholar must be selectable again after respec"
             );
@@ -748,12 +756,12 @@ public final class ProgressiveSkillsGameTests {
                     "Class and synergy sources must expose all three starter abilities"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps ability list", playerSource) == 3,
+                    server.getCommands().getDispatcher().execute("pskills ability list", playerSource) == 3,
                     "The live Core ability catalog must list all three starter abilities"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability info " + secondWind, playerSource) == 1,
+                            "pskills ability info " + secondWind, playerSource) == 1,
                     "Second Wind must be inspectable through the ability command route"
             );
             helper.assertTrue(
@@ -764,12 +772,12 @@ public final class ProgressiveSkillsGameTests {
             double armorBeforeGuard = player.getAttributeValue(Attributes.ARMOR);
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability assign " + warriorGuard.targetId() + " 1", playerSource) == 1,
+                            "pskills ability assign " + warriorGuard.targetId() + " 1", playerSource) == 1,
                     "Warrior Guard must assign to the first fixed ability slot"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability toggle " + warriorGuard.targetId(), playerSource) == 1,
+                            "pskills ability toggle " + warriorGuard.targetId(), playerSource) == 1,
                     "Warrior Guard must toggle on through the authoritative planner"
             );
             helper.assertTrue(
@@ -779,7 +787,7 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability toggle " + warriorGuard.targetId(), playerSource) == 1,
+                            "pskills ability toggle " + warriorGuard.targetId(), playerSource) == 1,
                     "Warrior Guard must toggle off through the same planner"
             );
             helper.assertTrue(
@@ -788,19 +796,19 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability assign " + secondWind + " 2", playerSource) == 1,
+                            "pskills ability assign " + secondWind + " 2", playerSource) == 1,
                     "Second Wind must assign to the second fixed ability slot"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability select 2", playerSource) == 1,
+                            "pskills ability select 2", playerSource) == 1,
                     "The second fixed ability slot must become selected"
             );
             player.getFoodData().setFoodLevel(20);
             player.setHealth(Math.max(1.0F, player.getMaxHealth() - 8.0F));
             float healthBeforeAbility = player.getHealth();
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps ability activate 2", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills ability activate 2", playerSource) == 1,
                     "Second Wind must activate on a valid self target"
             );
             helper.assertTrue(
@@ -826,12 +834,12 @@ public final class ProgressiveSkillsGameTests {
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(
-                            "ps ability activate 2", playerSource) == 0
+                            "pskills ability activate 2", playerSource) == 0
                             && player.getFoodData().getFoodLevel() == 16,
                     "Cooldown rejection must happen before another vanilla cost is consumed"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps ability status", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills ability status", playerSource) == 1,
                     "Ability slots and runtime state must remain inspectable through chat"
             );
             player.setYRot(0.0F);
@@ -865,7 +873,7 @@ public final class ProgressiveSkillsGameTests {
                     "Targets outside the configured range must fail before activation"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps persistence status", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills persistence status", playerSource) == 1,
                     "The in-game persistence status must inspect the active attachment"
             );
 
@@ -921,11 +929,11 @@ public final class ProgressiveSkillsGameTests {
             );
 
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps persistence snapshot", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills persistence snapshot", playerSource) == 1,
                     "The binary persistence snapshot must write and verify"
             );
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("ps persistence export", playerSource) == 1,
+                    server.getCommands().getDispatcher().execute("pskills persistence export", playerSource) == 1,
                     "The readable persistence export must write within its bound"
             );
 
@@ -981,9 +989,9 @@ public final class ProgressiveSkillsGameTests {
             helper.assertTrue(ProviderRuntime.registry().isPresent(),
                     "The provider registry must be active without optional mods");
             var source = server.createCommandSourceStack().withPermission(4);
-            helper.assertTrue(server.getCommands().getDispatcher().execute("ps doctor", source) == 1,
+            helper.assertTrue(server.getCommands().getDispatcher().execute("pskills doctor", source) == 1,
                     "The consolidated doctor must report healthy late phase services");
-            helper.assertTrue(server.getCommands().getDispatcher().execute("ps diagnose", source) == 1,
+            helper.assertTrue(server.getCommands().getDispatcher().execute("pskills diagnose", source) == 1,
                     "Provider diagnostics must remain available through chat");
 
             UUID partyOwner = UUID.randomUUID();

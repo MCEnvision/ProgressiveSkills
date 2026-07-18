@@ -39,7 +39,7 @@ public final class SocialCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("party")
                         .then(Commands.literal("create")
                                 .then(Commands.argument("name", StringArgumentType.greedyString())
@@ -167,7 +167,7 @@ public final class SocialCommands {
             parties(source).invite(player.getUUID(), target.getUUID());
             success(source, "Party invitation sent to " + target.getGameProfile().getName() + ".");
             target.sendSystemMessage(Component.literal(PREFIX + player.getGameProfile().getName()
-                    + " invited you. Run ps party accept."));
+                    + " invited you. Run pskills party accept."));
         });
     }
 
@@ -286,7 +286,7 @@ public final class SocialCommands {
         return run(source, player -> {
             data(source).offerMentor(player.getUUID(), target.getUUID());
             success(source, "Mentor offer sent.");
-            target.sendSystemMessage(Component.literal(PREFIX + "Mentor offer received. Run ps mentor accept."));
+            target.sendSystemMessage(Component.literal(PREFIX + "Mentor offer received. Run pskills mentor accept."));
         });
     }
 
@@ -318,7 +318,7 @@ public final class SocialCommands {
         return run(source, player -> {
             ProgressionCurrencyTransferService.offer(player, target, currency, amount);
             success(source, "Transfer offer sent.");
-            target.sendSystemMessage(Component.literal(PREFIX + "Transfer offer received. Run ps transfer accept."));
+            target.sendSystemMessage(Component.literal(PREFIX + "Transfer offer received. Run pskills transfer accept."));
         });
     }
 

@@ -32,7 +32,7 @@ public final class TreeCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("tree")
                         .then(Commands.literal("list")
                                 .executes(context -> list(context.getSource())))

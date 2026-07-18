@@ -209,9 +209,9 @@ At level zero the next cost is 100 XP. Each following level adds 20. Reaching a 
 Test commands:
 
 ```text
-/ps xp @s mypack:endurance 100
-/ps skill get mypack:endurance
-/ps xp source @s mypack:endurance_training
+/pskills xp @s mypack:endurance 100
+/pskills skill get mypack:endurance
+/pskills xp source @s mypack:endurance_training
 ```
 
 ## Block origin and repeat protection
@@ -298,7 +298,7 @@ Test matrix:
 | Repeat during a ten tick cooldown | Reject without changing XP. |
 | Repeat inside the decay window after cooldown | Award at the configured decayed multiplier. |
 
-Use `/ps explain xp last` after every row.
+Use `/pskills explain xp last` after every row.
 
 ## Tree with exact historical refunds
 
@@ -459,11 +459,11 @@ value = 0.02
 Test the complete chain:
 
 ```text
-/ps class preview select mypack:athlete
-/ps class select mypack:athlete
-/ps ability assign mypack:steady_breath 1
-/ps ability select 1
-/ps ability activate 1
+/pskills class preview select mypack:athlete
+/pskills class select mypack:athlete
+/pskills ability assign mypack:steady_breath 1
+/pskills ability select 1
+/pskills ability activate 1
 ```
 
 ## Carrier item
@@ -561,10 +561,10 @@ maximum_input = 100
 Converting five Talent Points begins with one Mastery Mark, then applies the five percent fee using checked integer arithmetic. If the output rounds below one, the conversion rejects rather than consuming input.
 
 ```text
-/ps creator simulate mypack:server_bonus*10
-/ps resource get mypack:focus
-/ps resource add mypack:focus 10
-/ps convert mypack:points_to_marks 10
+/pskills creator simulate mypack:server_bonus*10
+/pskills resource get mypack:focus
+/pskills resource add mypack:focus 10
+/pskills convert mypack:points_to_marks 10
 ```
 
 ## Grant bundles and milestone choices
@@ -611,7 +611,7 @@ respec_policy = "replace_without_reward"
 With `replace_without_reward`, the first selection grants its bundle. A later allowed choice change updates the selection but cannot farm another reward.
 
 ```text
-/ps milestone choose mypack:endurance_five mypack:endurance_five/talent
+/pskills milestone choose mypack:endurance_five mypack:endurance_five/talent
 ```
 
 ## Training contract and combo mastery
@@ -690,9 +690,9 @@ resource_amount = 2
 Predicate graphs can use `all`, `any`, `not`, `flag`, and `value`. Graph cycles and empty composite predicates fail publication. Reactive proc rolls combine the supplied event seed, player identity, and proc identity deterministically.
 
 ```text
-/ps predicate mypack:has_focus
-/ps context mypack:focused_recovery
-/ps proc mypack:recovery_proc progressiveskills:block_break 12345
+/pskills predicate mypack:has_focus
+/pskills context mypack:focused_recovery
+/pskills proc mypack:recovery_proc progressiveskills:block_break 12345
 ```
 
 ## Ranks, stances, challenges, and prestige
@@ -881,13 +881,13 @@ Equivalent TOML and JSON produce the same semantic definition when their normali
 Use Studio for revision checked visual or text authoring, not as a way to skip validation.
 
 ```text
-/ps studio draft create mypack Training Update
-/ps studio draft status <draft_id>
-/ps studio file put <draft_id> 0 variables/server_bonus.json {"schema_version":2,"variable":{"id":"mypack:server_bonus","value":3}}
-/ps studio lint <draft_id>
-/ps studio diff <draft_id>
-/ps studio history <draft_id>
-/ps studio publish <draft_id> 1 <lint_digest>
+/pskills studio draft create mypack Training Update
+/pskills studio draft status <draft_id>
+/pskills studio file put <draft_id> 0 variables/server_bonus.json {"schema_version":2,"variable":{"id":"mypack:server_bonus","value":3}}
+/pskills studio lint <draft_id>
+/pskills studio diff <draft_id>
+/pskills studio history <draft_id>
+/pskills studio publish <draft_id> 1 <lint_digest>
 ```
 
 Create returns a random stable id such as `mypack:studio/<uuid>`. Copy the complete returned value as `<draft_id>`. If live content changes before publish, rebase the current draft revision, lint again, and use the new digest.
@@ -908,11 +908,11 @@ Before publication:
 10. Run validate, dry run, diff, publish, doctor, and the relevant command preview.
 
 ```text
-/ps validate
-/ps reload --dry-run
-/ps diff
-/ps reload --publish
-/ps doctor
+/pskills validate
+/pskills reload --dry-run
+/pskills diff
+/pskills reload --publish
+/pskills doctor
 ```
 
 After publication, test relog, death, dimension change, server restart, two client privacy, and a definition reload while the affected state is owned.

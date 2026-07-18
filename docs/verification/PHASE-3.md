@@ -16,7 +16,7 @@ This record covers “Content packs + staged loader.” It does not claim skill,
 - source-aware time-of-check/time-of-use protection between dry-run and publish
 - checksummed two-generation source journal and environment-locked last-known-good recovery
 - first-launch dependency-free Core starter pack that preserves operator edits
-- `/ps status`, `validate`, safe reload/diff/publish, pack info, and definition/provenance commands
+- `/pskills status`, `validate`, safe reload/diff/publish, pack info, and definition/provenance commands
 - fail-closed rejection for every planned definition kind whose typed feature compiler is not implemented yet
 
 ## Required commands
@@ -67,12 +67,12 @@ Verification is running 2026-07-16 on Linux `6.12.63+deb13-amd64` x86-64 with th
 ## Manual in-game checkpoint
 
 1. Launch a development client and enter a cheats-enabled single-player world (or use an operator account on a development server).
-2. Run `/ps status`, `/ps validate`, and `/ps reload --dry-run`. Expect one `progressiveskills:core` pack, one definition, and no errors.
+2. Run `/pskills status`, `/pskills validate`, and `/pskills reload --dry-run`. Expect one `progressiveskills:core` pack, one definition, and no errors.
 3. While the world stays open, edit `config/progressiveskills/packs/progressiveskills-core/component_specs/engine_name.toml` in that run directory. Change `fallback = "ProgressiveSkills"` to `fallback = "ProgressiveSkills Phase 3 Test"`.
-4. Run `/ps validate`. It should pass but must not create a publishable candidate by itself.
-5. Run `/ps reload --dry-run`, then `/ps diff`. Expect one modified definition and an unchanged live generation.
-6. Run `/ps reload --publish`. Expect the generation to increment exactly once.
-7. Run `/ps info progressiveskills:component_spec progressiveskills:engine_name --provenance`. Expect the new fallback text and its pack/file/line provenance.
+4. Run `/pskills validate`. It should pass but must not create a publishable candidate by itself.
+5. Run `/pskills reload --dry-run`, then `/pskills diff`. Expect one modified definition and an unchanged live generation.
+6. Run `/pskills reload --publish`. Expect the generation to increment exactly once.
+7. Run `/pskills info progressiveskills:component_spec progressiveskills:engine_name --provenance`. Expect the new fallback text and its pack/file/line provenance.
 8. Optionally make a second edit after dry-run but before publish. Publication must reject it and ask for a fresh review; after restoring or reviewing the new edit, publish normally.
 
 The visible feature at this checkpoint is the safe authoring/operator workflow. Skills and XP remain intentionally absent until their typed implementation phases.

@@ -37,7 +37,7 @@ public final class AbilityCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("ability")
                         .then(Commands.literal("list")
                                 .executes(context -> list(context.getSource())))

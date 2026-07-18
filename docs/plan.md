@@ -42,7 +42,7 @@
 5. **Gameplay/content is toggleable & tunable.** Enforcement policies, attribute mappings, XP sources, items, and presentation expose pack controls within immutable server-authority, security, persistence, and hard resource-ceiling invariants. Packet/import bounds and anti-corruption guarantees are not disable switches.
 6. **Maximum compatibility, soft dependencies only.** The base mod runs without Iron's Spells, ProgressiveStages, KubeJS, Curios, FTB, JEI/EMI, Jade, Patchouli, or attribute addons. Each shipped bridge is version-pinned, isolated behind a capability interface, and follows the pack's explicit missing-integration policy; reflection is used only for unstable gaps, not as a blanket promise.
 7. **Server-authoritative, client-mirrored.** All progression state on the server (SavedData + attachment). Client gets sync payloads for GUI/HUD only. No client-trusted XP.
-8. **Deterministic & inspectable.** `/ps validate` catches every malformed def at load; `/ps info` dumps any resolved definition; debug logging is a toggle.
+8. **Deterministic & inspectable.** `/pskills validate` catches every malformed def at load; `/pskills info` dumps any resolved definition; debug logging is a toggle.
 9. **📖 DOCUMENTATION IS A DELIVERABLE — KISS.** Every feature ships with schema-generated reference docs, copy-paste examples, troubleshooting, and native in-game encyclopedia coverage in the same change. Patchouli is an optional renderer/export. **Code without docs/schema/editor/guide metadata is a bug.**
 10. **Stable identity everywhere.** Every definition, grant, XP source, rule, node rank, synergy, receipt, and migration target has a stable `ResourceLocation` id. Array order is presentation only and is never persistence identity.
 11. **Effects have explicit lifecycles.** Durable/reversible outputs are recomputed; transition outputs run only on a validated edge; repeatable actions run only inside a transaction. Reconciliation never executes transition actions; crash guarantees follow each action's documented delivery contract (§35).
@@ -176,9 +176,9 @@ config/
         layouts/ compact.toml
         tests/ mypack_cases.toml
 ```
-For a dedicated world, global modpack packs live under `config/progressiveskills/packs/`; world files under `world/serverconfig/progressiveskills/` are **overlays**, not a second silently copied full catalog. `defaultconfigs` may seed only a small world manifest/overlay on world creation. Existing worlds never automatically inherit a newly changed seed: `/ps pack rebase --dry-run` compares the recorded base digest to the new base, performs a three-way merge, reports conflicts/migrations/player impact, and requires an explicit publish. Client-only preferences remain local and are never forced over the network except for server disclosure/policy limits.
+For a dedicated world, global modpack packs live under `config/progressiveskills/packs/`; world files under `world/serverconfig/progressiveskills/` are **overlays**, not a second silently copied full catalog. `defaultconfigs` may seed only a small world manifest/overlay on world creation. Existing worlds never automatically inherit a newly changed seed: `/pskills pack rebase --dry-run` compares the recorded base digest to the new base, performs a three-way merge, reports conflicts/migrations/player impact, and requires an explicit publish. Client-only preferences remain local and are never forced over the network except for server disclosure/policy limits.
 
-First launch generates config plus one enabled, dependency-free **Core starter pack**. Other small presets (hybrid RPG, ISS magic, hardcore/decay, accessibility) are exported as manifest-disabled examples and cannot enter the live registry until deliberately enabled with satisfied dependencies. Stage safe definition changes with `/ps reload --dry-run`, inspect them, then commit with `/ps reload --publish`; keys marked `restart_required` are validated but not hot-applied. See §32 for exact root precedence, pack manifests, JSON/datapack adapters, and merge semantics.
+First launch generates config plus one enabled, dependency-free **Core starter pack**. Other small presets (hybrid RPG, ISS magic, hardcore/decay, accessibility) are exported as manifest-disabled examples and cannot enter the live registry until deliberately enabled with satisfied dependencies. Stage safe definition changes with `/pskills reload --dry-run`, inspect them, then commit with `/pskills reload --publish`; keys marked `restart_required` are validated but not hot-applied. See §32 for exact root precedence, pack manifests, JSON/datapack adapters, and merge semantics.
 
 Every definition starts with `schema_version` and normally derives its id from `<pack namespace>:<relative path>`. Writing an explicit `id` is allowed for readability, but a mismatch with the derived id is an error. This prevents accidental rename/fork identity bugs.
 
@@ -560,7 +560,7 @@ Compile against `io.redspace.ironsspellbooks.api.**` (stable). Anything outside 
 
 **Compat discipline:** a common-code factory checks mod id + version before classloading an isolated `IronsSpellsCompat` implementation. Use direct compile-only calls to pinned public APIs where stable; reserve reflection/mixins for gaps, capability-test them, and trip a circuit breaker after repeated failures. Absent/unsupported ISS follows the definition/pack's declared `missing_policy` (`reject_pack`, `disable_def`, `skip_declared_branch`, `hide`, or `warn`).
 
-**`/ps diagnose ironsspells`** dumps: loaded/version/supported range; capabilities for cast event, selection injection, learned requirement, attributes, active cast; circuit-breaker status; and referencing defs. Required tests cover learned-required spells, independently learned overlap, client/server selection, instant/channelled spells, mana, both cooldown systems, invalid targets, respec, and relog.
+**`/pskills diagnose ironsspells`** dumps: loaded/version/supported range; capabilities for cast event, selection injection, learned requirement, attributes, active cast; circuit-breaker status; and referencing defs. Required tests cover learned-required spells, independently learned overlap, client/server selection, instant/channelled spells, mana, both cooldown systems, invalid targets, respec, and relog.
 
 
 ---
@@ -683,7 +683,7 @@ Settings are split deliberately:
 - **Client:** HUD position/layout, scale, theme preference, notification density, accessibility, and key mappings. Accessibility controls cannot be server-locked.
 - **Definition packs:** almost all actual skills/classes/rules/content. These use the staged definition loader, not `ModConfigSpec` as a fake dynamic registry.
 
-Every setting is annotated `hot_reloadable`, `next_login`, `next_world_load`, or `restart_required`; `/ps reload --dry-run` reports requested changes that cannot be applied live.
+Every setting is annotated `hot_reloadable`, `next_login`, `next_world_load`, or `restart_required`; `/pskills reload --dry-run` reports requested changes that cannot be applied live.
 
 - `[general]` — `debug_logging`, starting profile/entitlements, respec policy, command-output safety, disclosure policy, active global-level definition, death-loss profile, and pack roots. Point pools are ordinary named currencies (§37), not a special `global|per_skill` mode.
 - `[classes]` — default class-slot preset/capacity, `allow_class_swap`, default respec cost, synergy enable, starter-kit-once enforcement. Version-1 `max_classes` is accepted only when no explicit class slots exist.
@@ -705,51 +705,51 @@ Every setting is annotated `hot_reloadable`, `next_login`, `next_world_load`, or
 - **XP floaties** — small "+5 Mining" near crosshair, toggleable.
 - **Global level** — active named aggregate definition (run-accounted XP curve by shipped default, or pack formula); usable as a gate and shown in UI/HUD (§37.3).
 - **Cross-skill requirements** — v2 shorthand uses full ids, e.g. `min_level = { "mypack:arcana" = 20, "mypack:physique" = 10 }`, and compiles to the shared requirement AST.
-- **`/ps top`** — simple per-skill server leaderboard.
+- **`/pskills top`** — simple per-skill server leaderboard.
 - **Death penalty** — optional configurable XP loss on death.
 
 ---
 
-## 13. Commands (`/ps`, mirrors `/stage`)
+## 13. Commands (`/pskills`)
 
-Command availability is release-tagged: **[Core]** 1.0, **[Creator]** 1.1, **[Multiplayer]** 1.2, **[Studio]** 2.0. A generated `/ps help` hides commands not present in the running build/capability set.
+Command availability is release-tagged: **[Core]** 1.0, **[Creator]** 1.1, **[Multiplayer]** 1.2, **[Studio]** 2.0. A generated `/pskills help` hides commands not present in the running build/capability set.
 
 | Command | Perm | Description |
 |---|---|---|
-| `/ps skill get\|set <player> <skill> [level]` | OP | Read/set level |
-| `/ps xp <player> <skill> <amount>` | OP | Award/remove XP (command API) |
-| `/ps currency get\|add\|set <player> <currency> [amount]` | OP | Inspect/mutate a named currency (`/ps points` is a deprecated v1 alias) |
-| `/ps convert skill <player> <from> <to> <amount>` | OP/self-policy | **[Creator]** Preview/execute a defined conversion edge; never accepts a client-calculated rate |
-| `/ps sacrifice <player> <conversion> <amount>` | OP/self-policy | **[Creator]** Execute a defined sacrifice/sink transaction with explicit confirmation |
-| `/ps transfer request\|accept\|deny <player> <currency> <amount>` | any/policy | **[Multiplayer]** Consent-based player transfer with tax/caps/cooldown |
-| `/ps class add\|remove\|list <player> [class]` | OP | Manage classes (respects cap) |
-| `/ps node unlock\|lock <player> <tree> <node>` | OP | Force node state |
-| `/ps ability toggle\|grant <player> <ability>` | OP | Manage abilities |
-| `/ps spell grant\|revoke <player> <spell>` | OP | Manage PS-owned virtual spell entitlements/policies |
-| `/ps give <player> <item_def> [count]` | OP | Spawn a validated carrier/item-behavior definition with a pinned behavior digest |
-| `/ps respec <player> [tree\|class\|all]` | OP | Refund & reset |
-| `/ps info <definition_kind> <id> [--provenance]` | OP | Dump any schema-registered definition kind; suggestions are generated from the registry |
-| `/ps tree` | OP | Print prereq/tree graph |
-| `/ps top <skill>` | any | Leaderboard |
-| `/ps validate` | OP | Validate every TOML |
-| `/ps reload --dry-run` | OP | Parse, stage, validate, diff, and report only; bare `/ps reload` aliases this safe mode |
-| `/ps diagnose <integration_id\|all>` | OP | Generated capability/version/classloading status for built-in and provider-registered integrations |
-| `/ps explain <player> <lock\|stat\|xp\|output> <id>` | self/OP | **[Core]** Human-readable “why?” trace; secret logic uses redacted server explanations |
-| `/ps trace <player> <xp\|rules\|conditions\|outputs> [seconds]` | OP | **[Creator]** Bounded live trace with source ids |
-| `/ps simulate <profile|player> <action> ...` | OP | **[Creator]** Dry-run transaction; no state mutation |
-| `/ps reload --publish` | OP | Publish the already validated staged snapshot through the generation barrier |
-| `/ps diff <live\|draft\|digest>` | OP | Definition/config semantic diff |
-| `/ps snapshot definitions create\|list\|restore` | OP | **[Creator]** Definition/lockfile snapshots; no player value rollback |
-| `/ps snapshot players-online create\|restore` | OP | **[Creator]** Freeze-required online attachment snapshot; preserves monotonic claim tombstones |
-| `/ps backup maintenance status\|verify` | OP | **[Creator]** Coordinate/verify an operator-owned full world backup; PS does not fake one |
-| `/ps audit [player|transaction]` | OP | Mutation audit history |
-| `/ps undo <transaction_id>` | OP | Undo a reversible admin transaction |
-| `/ps freeze [on|off]` | OP | Pause progression mutations for maintenance |
-| `/ps reconcile <player|all> [--dry-run]` | OP | Rebuild derived state and repair drift/orphans |
-| `/ps export <pack|schema|docs|diagnostics>` | OP | **[Creator]** Export portable, sanitized artifacts |
-| `/ps import <bundle> --preview\|overlay\|replace\|remap <namespace>` | OP | **[Creator]** Sanitize and stage a `.pspack`; never publishes implicitly |
-| `/ps pack rebase --dry-run\|--publish` | OP | **[Creator]** Three-way rebase a world overlay against a changed base pack |
-| `/ps studio` | OP | **[Studio]** Open the staged Authoring Studio (§44.8) |
+| `/pskills skill get\|set <player> <skill> [level]` | OP | Read/set level |
+| `/pskills xp <player> <skill> <amount>` | OP | Award/remove XP (command API) |
+| `/pskills currency get\|add\|set <player> <currency> [amount]` | OP | Inspect/mutate a named currency (`/pskills points` is a deprecated v1 alias) |
+| `/pskills convert skill <player> <from> <to> <amount>` | OP/self-policy | **[Creator]** Preview/execute a defined conversion edge; never accepts a client-calculated rate |
+| `/pskills sacrifice <player> <conversion> <amount>` | OP/self-policy | **[Creator]** Execute a defined sacrifice/sink transaction with explicit confirmation |
+| `/pskills transfer request\|accept\|deny <player> <currency> <amount>` | any/policy | **[Multiplayer]** Consent-based player transfer with tax/caps/cooldown |
+| `/pskills class add\|remove\|list <player> [class]` | OP | Manage classes (respects cap) |
+| `/pskills node unlock\|lock <player> <tree> <node>` | OP | Force node state |
+| `/pskills ability toggle\|grant <player> <ability>` | OP | Manage abilities |
+| `/pskills spell grant\|revoke <player> <spell>` | OP | Manage PS-owned virtual spell entitlements/policies |
+| `/pskills give <player> <item_def> [count]` | OP | Spawn a validated carrier/item-behavior definition with a pinned behavior digest |
+| `/pskills respec <player> [tree\|class\|all]` | OP | Refund & reset |
+| `/pskills info <definition_kind> <id> [--provenance]` | OP | Dump any schema-registered definition kind; suggestions are generated from the registry |
+| `/pskills tree` | OP | Print prereq/tree graph |
+| `/pskills top <skill>` | any | Leaderboard |
+| `/pskills validate` | OP | Validate every TOML |
+| `/pskills reload --dry-run` | OP | Parse, stage, validate, diff, and report only; bare `/pskills reload` aliases this safe mode |
+| `/pskills diagnose <integration_id\|all>` | OP | Generated capability/version/classloading status for built-in and provider-registered integrations |
+| `/pskills explain <player> <lock\|stat\|xp\|output> <id>` | self/OP | **[Core]** Human-readable “why?” trace; secret logic uses redacted server explanations |
+| `/pskills trace <player> <xp\|rules\|conditions\|outputs> [seconds]` | OP | **[Creator]** Bounded live trace with source ids |
+| `/pskills simulate <profile|player> <action> ...` | OP | **[Creator]** Dry-run transaction; no state mutation |
+| `/pskills reload --publish` | OP | Publish the already validated staged snapshot through the generation barrier |
+| `/pskills diff <live\|draft\|digest>` | OP | Definition/config semantic diff |
+| `/pskills snapshot definitions create\|list\|restore` | OP | **[Creator]** Definition/lockfile snapshots; no player value rollback |
+| `/pskills snapshot players-online create\|restore` | OP | **[Creator]** Freeze-required online attachment snapshot; preserves monotonic claim tombstones |
+| `/pskills backup maintenance status\|verify` | OP | **[Creator]** Coordinate/verify an operator-owned full world backup; PS does not fake one |
+| `/pskills audit [player|transaction]` | OP | Mutation audit history |
+| `/pskills undo <transaction_id>` | OP | Undo a reversible admin transaction |
+| `/pskills freeze [on|off]` | OP | Pause progression mutations for maintenance |
+| `/pskills reconcile <player|all> [--dry-run]` | OP | Rebuild derived state and repair drift/orphans |
+| `/pskills export <pack|schema|docs|diagnostics>` | OP | **[Creator]** Export portable, sanitized artifacts |
+| `/pskills import <bundle> --preview\|overlay\|replace\|remap <namespace>` | OP | **[Creator]** Sanitize and stage a `.pspack`; never publishes implicitly |
+| `/pskills pack rebase --dry-run\|--publish` | OP | **[Creator]** Three-way rebase a world overlay against a changed base pack |
+| `/pskills studio` | OP | **[Studio]** Open the staged Authoring Studio (§44.8) |
 
 Every mutating command accepts a structured `--reason`, supports `--silent` where safe, emits a transaction id, and can target selectors when the operation is atomic across all selected players. Destructive bulk operations require dry-run/confirmation. Console/RCON gets stable machine-readable JSON output; players get localized Components. Every output line is generated from schema/diagnostic metadata rather than an ever-drifting hand list.
 
@@ -790,7 +790,7 @@ common/
   def/PrefixEntry                  — typed id:/mod:/tag:/translation_key:/custom_name: resolver
   def/{SkillDef,TreeDef,ClassDef,AbilityDef,ItemDef,NodeDef,Output,LevelGrant,ScalingGrant,Synergy}
   def/CurveFn                      — flat|linear|poly|exp|table
-  registry/DefinitionRegistry      — parsed defs + validation + /ps info/validate backing
+  registry/DefinitionRegistry      — parsed defs + validation + /pskills info/validate backing
   output/{OutputCompiler,PersistentOutputProjector,TransitionOutputExecutor}
   transaction/{ProgressionTransaction,TransactionPlan,ReceiptLedger,AuditRecord}
   attribute/ModifierManager        — deterministic-id apply/refresh/remove + clamps/diminishing
@@ -815,7 +815,7 @@ server/
   social/{PartyAdapter,TeamProgressionManager,MentorManager}
   audit/{AuditService,SnapshotService,UndoService}
   command/PsCommand                — §13
-  leaderboard/TopService           — /ps top
+  leaderboard/TopService           — /pskills top
 
 client/
   gui/PsScreenHost                 — tabbed shell (§17)
@@ -861,8 +861,8 @@ Zero → working custom system without touching Java:
    - *Pure tree:* no per-level effects; add `[[level_currency_awards]]` and bind a tree.
    - *Both:* per-level effects **and** a named-currency award **and** a tree—guaranteed power + optional spec.
 4. **Author abilities** (passive/toggle/active), **trees** (graph + requirements + grants), **classes** (prereqs, cost, slots, optional integration branches, synergy), and carrier items. Creator 1.1 adds templates, richer formulas, and tier generation.
-5. **`/ps validate`** — reports every bad id, cycle, unknown attribute/spell, dangling ref, with file+line and a plain-English fix. *This makes "anyone can author" real.*
-6. **`/ps reload --dry-run`** → inspect the semantic/player-impact diff → **`/ps reload --publish`** → test live; iterate.
+5. **`/pskills validate`** — reports every bad id, cycle, unknown attribute/spell, dangling ref, with file+line and a plain-English fix. *This makes "anyone can author" real.*
+6. **`/pskills reload --dry-run`** → inspect the semantic/player-impact diff → **`/pskills reload --publish`** → test live; iterate.
 7. **Ship** the pack folder plus any declared client resource pack. The native encyclopedia renders from the synced projection; optional Patchouli output follows its documented export/resource-reload workflow.
 
 **Guarantees:** no recompilation for pack content; reference validated registry/provider targets with an available entity capability/`AttributeInstance`; one Output vocabulary everywhere; fail-loud validation; full per-field docs (§18).
@@ -967,7 +967,7 @@ Zero → working custom system without touching Java:
 - **Full tabbed Character GUI** (§17) — Skills / Trees / Classes, showing *resolved* grants so players see exactly what everything does.
 - **Compact HUD** — pinned skill XP bar, level toasts, cooldown pips.
 - **Native generated encyclopedia** — an in-game manual built from the synced client projection; Patchouli is an optional alternate renderer/export.
-- **`/ps top`** leaderboards per skill.
+- **`/pskills top`** leaderboards per skill.
 
 ### I. Full theming & localization
 - **Localized `ComponentSpec`s** with runtime pack-locale fallback, typed placeholders, plural/select variants, and optional `&` shorthand.
@@ -986,10 +986,10 @@ Zero → working custom system without touching Java:
 - **EMI/JEI** — XP-item info panels.
 
 ### K. Admin & authoring safety
-- **`/ps validate`** — catches every malformed def at load (bad ids, cycles, unknown attributes/spells, dangling refs) with file+line and a plain-English fix.
-- **`/ps reload --dry-run` / `--publish`** — stage and inspect first; publish only fields classified reloadable through the proper barrier, reject restart-required changes, and preserve last-known-good state.
-- **`/ps info <definition_kind> <id> [--provenance]`** — dump any schema-registered resolved definition and its source/merge lineage.
-- **Full `/ps` command tree** (§13) for granting/removing/inspecting everything.
+- **`/pskills validate`** — catches every malformed def at load (bad ids, cycles, unknown attributes/spells, dangling refs) with file+line and a plain-English fix.
+- **`/pskills reload --dry-run` / `--publish`** — stage and inspect first; publish only fields classified reloadable through the proper barrier, reject restart-required changes, and preserve last-known-good state.
+- **`/pskills info <definition_kind> <id> [--provenance]`** — dump any schema-registered resolved definition and its source/merge lineage.
+- **Full `/pskills` command tree** (§13) for granting/removing/inspecting everything.
 - **Deterministic, drift-resistant** — dirty persistent projections are diffed from authoritative state; transition actions never run during reconcile; respec/de-level uses source-aware revoke.
 
 
@@ -1085,7 +1085,7 @@ Extends ordinary client `Screen` because this character viewer has no inventory/
 9. Class files — fields, cap system, prereqs/cost/respec, **ISS features (spell/mana/school/active)**, synergy, starter kits.
 10. **XP item files** — tomes/orbs, multiplier potions, Curios rings, respec/level tokens, tier templates.
 11. Output vocabulary — every registered type and its supported lifecycle/rollback matrix (generated, never a hand-counted total).
-12. Commands — every `/ps` with example invocation + output.
+12. Commands — every `/pskills` with example invocation + output.
 13. Messages & theming — every `messages.*` key, placeholders, `&`-code table.
 14. UI guide — annotated per tab.
 15. KubeJS + Java API — every binding/event with snippets.
@@ -1108,7 +1108,7 @@ Every reference field uses: `| Key | Type | Allowed values | Default | Descripti
 - [ ] New command/GUI element in §13/§17/§44 as applicable.
 - [ ] Troubleshooting entry if it has a common failure mode.
 - [ ] Native encyclopedia, generated reference, Studio form, and optional Patchouli adapter cover the new def type.
-- [ ] `/ps validate` emits a clear message for every misconfiguration path.
+- [ ] `/pskills validate` emits a clear message for every misconfiguration path.
 
 ---
 
@@ -1116,11 +1116,11 @@ Every reference field uses: `| Key | Type | Allowed values | Default | Descripti
 
 1. **Scaffold, CI, and evidence lock** — fix deprecations; pin NeoForge/MC mappings and an optional-mod compatibility matrix; build client/server/GameTest runs; JUnit/property-test harness; package boundaries and no-client-on-server classloading test.
 2. **Schema registry + canonical IR** — source spans, schema versions, stable ids, aliases, typed Components/icons, immutable definitions, generated docs/diagnostics/editor metadata. No gameplay yet.
-3. **Content packs + staged loader** — manifests, namespaces, roots/precedence, deterministic merges, dependency policies, staging registry, semantic diff, last-known-good persistence, `/ps validate`, `/ps reload --dry-run`.
+3. **Content packs + staged loader** — manifests, namespaces, roots/precedence, deterministic merges, dependency policies, staging registry, semantic diff, last-known-good persistence, `/pskills validate`, `/pskills reload --dry-run`.
 4. **Transaction and lifecycle core** — progression transaction, state revision, plans/costs, persistent projector, transition executor, receipt/idempotency ledger, audit record, rollback boundary, cascade queue. This phase must prove a recompute never duplicates an item/command/point.
 5. **Persistence and migrations** — versioned attachment with `copyOnDeath`, quarantine, aliases/replacements, embedded migration shadow, pending offline operation SavedData, snapshot/export primitives, fuzzed codecs and size ceilings.
 6. **Networking handshake + definition projection** — Core 1.0 requirement: protocol negotiation, digest, sanitized presentation DTO, bounded/chunked payloads, full + delta state sync, stale revision rejection, reload invalidation, malformed-packet tests.
-7. **Skill XP vertical slice** — fixed-point XP, curves, one named currency, manual/custom XP rule, highest-level point entitlement, linear levels/scaling, attributes, feedback, `/ps xp`, exact drift tests. Prove Physique end to end.
+7. **Skill XP vertical slice** — fixed-point XP, curves, one named currency, manual/custom XP rule, highest-level point entitlement, linear levels/scaling, attributes, feedback, `/pskills xp`, exact drift tests. Prove Physique end to end.
 8. **Rule engine and anti-exploit foundation** — trigger/matcher/provider registries, stable rule ids, compiled route tables, multiplier order/stack groups, caps, first-time, cooldown, source memory, fake-player policy, event dedupe. Add bindings incrementally with tests.
 9. **Requirement/expression foundation** — implement the typed internal evaluator, dependency index, fixed-point rounding, preview/explain hooks, and performance budgets needed by Core. Core authoring exposes only selected direct requirements and literal/simple bounded amounts; reusable predicate definitions and the general formula DSL remain feature-gated until Creator.
 10. **Trees and exact refunds** — single-rank acyclic Core nodes, dependency policy, historical-cost ledger, cascade preview, transactions, and tree UI. Prove level loss/respec cannot create currency. Ranked nodes, exclusion groups, generated layouts, and formula costs remain Creator features.
@@ -1163,10 +1163,10 @@ Every reference field uses: `| Key | Type | Allowed values | Default | Descripti
 **The orphaned-state rule: QUARANTINE, never silently drop.** When the config no longer defines something a player owns (a deleted skill, class, node, ability), the mod:
 1. **Keeps the raw data** in the attachment (does not delete it).
 2. **Stops applying its effects** (the orphaned class grants no attributes, the orphaned skill grants nothing) so a removed def has no live effect.
-3. **Marks it orphaned** and lists it under `/ps debug <player>` and on reload logs ("player X holds 3 orphaned defs: …").
+3. **Marks it orphaned** and lists it under `/pskills debug <player>` and on reload logs ("player X holds 3 orphaned defs: …").
 4. **Restores only with compatible lineage** — same recorded definition lineage/fingerprint or an explicit replacement/restore declaration. Reusing an old id for unrelated content stays quarantined for operator review.
 
-Rationale: pack devs rename/refactor constantly; losing progress on a typo is unacceptable. Quarantine makes config edits reversible. A pack dev who *wants* to purge orphans runs `/ps prune <player|all>` (explicit, op-only, confirmed).
+Rationale: pack devs rename/refactor constantly; losing progress on a typo is unacceptable. Quarantine makes config edits reversible. A pack dev who *wants* to purge orphans runs `/pskills prune <player|all>` (explicit, op-only, confirmed).
 
 **Specific migration cases (each with a defined behavior):**
 
@@ -1181,7 +1181,7 @@ Rationale: pack devs rename/refactor constantly; losing progress on a typo is un
 | **Change a referenced target to an invalid id** | Structural validation rejects the owning definition (or the pack, by manifest atomicity) in staging. Only an explicitly declared optional integration branch may skip/fallback. Live state keeps the last-known-good registry. |
 | **Mod version upgrade (schema bump)** | `dataVersion` drives the bounded raw-tag migration chain before current-model decode. Each migration is a pure function; **a world backup reminder** is logged on first load of a new schema. Downgrade/future data is quarantined with a clear message, not decoded as current state. |
 
-**Backup discipline.** A schema bump cannot truthfully snapshot every unloaded attachment without walking and rewriting arbitrary player files. Instead: (1) log a world-backup requirement before startup migration; (2) migrate each player lazily when their attachment loads; (3) retain a bounded embedded `preMigrationShadow` + old data version until that player completes a clean save/login cycle; (4) provide explicit `/ps snapshot`/export for planned maintenance; and (5) retain the last-known-good definition set and content digest. Never claim a bulk `.psbak` exists unless the implementation has actually enumerated and verified every target.
+**Backup discipline.** A schema bump cannot truthfully snapshot every unloaded attachment without walking and rewriting arbitrary player files. Instead: (1) log a world-backup requirement before startup migration; (2) migrate each player lazily when their attachment loads; (3) retain a bounded embedded `preMigrationShadow` + old data version until that player completes a clean save/login cycle; (4) provide explicit `/pskills snapshot`/export for planned maintenance; and (5) retain the last-known-good definition set and content digest. Never claim a bulk `.psbak` exists unless the implementation has actually enumerated and verified every target.
 
 **KubeJS/command-granted state** is stored identically and quarantined the same way if the referenced def disappears.
 
@@ -1197,7 +1197,7 @@ progressiveskills:g/<short-stable-hash(owner-kind + owner-id + grant-id)>
   e.g. owner=skill/mypack:physique, grant=mypack:physique/health_per_level
        owner=class/mypack:mage,     grant=mypack:mage/max_mana
 ```
-The hash keeps the `ResourceLocation` valid and length-bounded; a runtime provenance table maps it back to file, source span, owner, grant id, attribute, operation, conditions, and resolved amount for `/ps explain`. Collisions are detected during compilation and are fatal to the staging set. Multiple compatible grants may optionally be aggregated for performance, but diagnostics retain every contributing grant. Two sources stack; the same stable grant is idempotent.
+The hash keeps the `ResourceLocation` valid and length-bounded; a runtime provenance table maps it back to file, source span, owner, grant id, attribute, operation, conditions, and resolved amount for `/pskills explain`. Collisions are detected during compilation and are fatal to the staging set. Multiple compatible grants may optionally be aggregated for performance, but diagnostics retain every contributing grant. Two sources stack; the same stable grant is idempotent.
 
 **Operation semantics (vanilla 1.21):** first let `X = base + sum(ADD_VALUE)`. Then `Y = X + X × sum(ADD_MULTIPLIED_BASE)`. Finally apply each `ADD_MULTIPLIED_TOTAL` as `Y = Y × (1 + amount)` in deterministic modifier order, followed by the attribute's own sanitization. We expose these as `add_value` / `add_multiplied_base` / `add_multiplied_total`. Pack docs (§18) explain the difference with the worked example below so devs pick correctly.
 
@@ -1211,7 +1211,7 @@ Vanilla computes: `X = 20 + 14 = 34`; `Y = 34 + (34 × 0.10) = 37.4`; total mult
 
 **Cross-mod conflict policy.** Other mods (Apotheosis gear, attribute-editing tools) normally apply their *own* namespaced ids to the same attributes, so legitimate contributions stack per vanilla rules. PS reserves `progressiveskills:*`, proves every compiled PS modifier id is unique, and diagnoses any observed modifier from an unknown source that uses that namespace; a buggy/malicious mod can still forge a colliding id, so “never collide” is not a security claim. We do **not** clamp or fight foreign modifiers; we only own ours. Two consequences, both documented:
 - If a pack stacks our grants with heavy gear, values can balloon. `[attributes]` caps/diminishing returns constrain **our modifier amounts per operation group before insertion**; they cannot isolate a final scalar “our contribution,” because multiplied-base/total operations also amplify foreign flats. Diagnostics warn on extreme predicted final values. A separate invasive hard-final-cap mode requires an explicit mixin/compat policy.
-- We never strip or override foreign modifiers. `/ps debug <player>` lists **all** modifiers on an attribute with their source namespace, so a dev can see exactly who contributed what (ours vs Apotheosis vs vanilla gear).
+- We never strip or override foreign modifiers. `/pskills debug <player>` lists **all** modifiers on an attribute with their source namespace, so a dev can see exactly who contributed what (ours vs Apotheosis vs vanilla gear).
 
 **Modifier-amount caps / diminishing returns (`[attributes]`).** Configure separate limits/curves for the summed PS `add_value` amounts, summed PS `add_multiplied_base` amounts, and PS `add_multiplied_total` product/factors before modifiers enter vanilla calculation. Reports show both those bounded amounts and the observed final value with foreign modifiers. Default absolute amount ceilings (especially reach, scale, speed, and total multipliers) prevent catastrophic typos; operators may relax gameplay caps within compile-time limits. This is never described as a separable contribution or final effective-value cap.
 
@@ -1235,12 +1235,12 @@ Vanilla computes: `X = 20 + 14 = 34`; `Y = 34 + (34 × 0.10) = 37.4`; total mult
 
 **Level-jump ordering.** A single XP award crossing multiple thresholds processes level edges in ascending order. Persistent `effects` become part of the final projection; transition `rewards` execute in their listed order subject to repeat receipts. Milestone fanfares fire once per configured crossing policy.
 
-**Re-entrancy & loop guards.** Outputs can trigger outputs (a `command` output that runs `/ps xp`, a `kubejs` hook that grants a class). Guards:
+**Re-entrancy & loop guards.** Outputs can trigger outputs (a `command` output that runs `/pskills xp`, a `kubejs` hook that grants a class). Guards:
 - A per-player **re-entrancy depth counter**; `recomputeAll` and XP application are non-reentrant — nested triggers are **queued and drained** after the current pass, not applied mid-pass.
 - A native `CascadePlan` expands the full statically/procedurally knowable child closure, costs, refunds, receipts, outbox capacity, and value deltas **before the first mutation**. Depth, breadth, action, value, and time-estimate budgets are reservations, not truncation points. If expansion cycles, cannot finish, or exceeds any budget, reject the entire native transaction with zero committed prefix; never “drop everything after depth 8” after an earlier mint.
 - `command`, server `function`, KubeJS, and opaque providers are marked side-effecting and execute only after the committed native plan, with explicit non-atomic delivery semantics. By default an opaque callback cannot synchronously re-enter a value-bearing PS mutation; the origin-chain circuit breaker rejects/quarantines that child **before it commits**. A provider that wants atomic child value must register a bounded typed child plan during planning. An explicit trusted unsafe re-entry mode remains economy-unproven, has strict per-source quotas/circuit breaking, and may never claim that a later sink will compensate an already-run external mint.
 - Queued non-value feedback still drains under a bounded budget. Hitting that feedback budget coalesces/drops only audiovisual messages with diagnostics; it never truncates a currency/XP/item/cost chain.
-- `/ps validate` **statically detects** obvious loops (a level grant that runs a command that grants XP to the same skill; circular class synergy; A-unlocks-B-unlocks-A node cycles) and warns at load.
+- `/pskills validate` **statically detects** obvious loops (a level grant that runs a command that grants XP to the same skill; circular class synergy; A-unlocks-B-unlocks-A node cycles) and warns at load.
 
 **Source-aware entitlement rule.** Stages, abilities, virtual spells, **PS virtual recipe gates**, tree/class access, flags, titles, and similar PS/provider entitlements are represented as `target -> set<GrantSource>`. Removing one source never removes an entitlement another source still owns. Manual/admin entitlements use a separate source namespace and survive config recompute until explicitly revoked. For valued entitlements (for example the same ISS spell granted at several levels), a resolver such as `highest`, `sum`, or explicit priority selects the effective value while retaining all owners. ProgressiveStages revoke is used only if its pinned API can preserve external ownership; otherwise the compat falls back to grant-only or a documented adapter-owned stage namespace. Vanilla recipe knowledge is sticky because it cannot prove owners.
 
@@ -1314,15 +1314,15 @@ NeoForge's directions are intentionally asymmetric: every serverbound intent cod
 - Routine admin inspection/grants/sets default to permission level 2.
 - Destructive bulk mutation/prune/migration/snapshot restore defaults to level 3 and confirmation.
 - Reload publish/rollback, freeze, pack import, and Studio write/publish default to level 4. Read-only validation/dry-run may be delegated separately.
-- **Read commands** (`/ps top`, and a player-scoped `/ps skill get` on *self*) are available to everyone; inspecting *other* players requires op.
-- **`/ps debug <player>`** is op-only (it exposes full modifier/source breakdowns).
+- **Read commands** (`/pskills top`, and a player-scoped `/pskills skill get` on *self*) are available to everyone; inspecting *other* players requires op.
+- **`/pskills debug <player>`** is op-only (it exposes full modifier/source breakdowns).
 
 **Granular permission integration.** Vanilla numeric permission levels are the Core fallback. Named nodes such as `progressiveskills.command.xp` require a tested NeoForge permission-node/provider adapter; compatibility with LuckPerms or another provider is version-pinned and capability-diagnosed, never inferred from vanilla alone.
 
 **Offline / rested semantics.**
 - **Rested XP** accrues based on logout timestamp; on login the boost pool is computed from elapsed offline time (capped). No server tick cost while offline (it's timestamp math on login).
 - Offline players have no loaded attachment. If allowed, an op mutation creates a durable-id `PendingProgressionOperation` in overworld `SavedData`. Creation validates the request, but **application validates again** against the current definition generation/digest and replacements, resolved target UUID/scope, character/prestige/season epoch, expiry, permission/issuer policy, caps, affordability, and requested reward eligibility. A materially changed operation is deterministically rebaseable only when its stored policy and aliases prove equivalent; otherwise it expires/quarantines for operator review instead of leaking an old grant into a new season or definition. Then use a two-phase recovery protocol: (1) apply the mutation and same-id `OperationReceipt` together in the player attachment; (2) mark the SavedData operation consumed. A crash before the attachment save retries both; a crash after it sees the receipt and only completes phase 2. This is crash-recoverable/effectively-once, not an atomic commit across two stores. It does **not** claim to modify unloaded NBT immediately. Unknown players are refused unless a previously joined UUID resolves.
-- Leaderboard (`/ps top`) reflects last-known stored values for offline players.
+- Leaderboard (`/pskills top`) reflects last-known stored values for offline players.
 
 **LAN / dedicated / integrated:** identical authority path. Dimension changes send context/state deltas and a full state only when revision continuity is lost; definitions resend only when the digest differs.
 
@@ -1330,9 +1330,9 @@ NeoForge's directions are intentionally asymmetric: every serverbound intent cod
 
 ---
 
-## 27. Balance & Sanity Warnings in `/ps validate`
+## 27. Balance & Sanity Warnings in `/pskills validate`
 
-*`/ps validate` checks not just structural validity but **balance sanity** — the KISS pillar applied to authoring. Structural errors block the def; sanity issues warn but load (a dev may mean it).*
+*`/pskills validate` checks not just structural validity but **balance sanity** — the KISS pillar applied to authoring. Structural errors block the def; sanity issues warn but load (a dev may mean it).*
 
 **Structural errors (owner is invalid in staging; default whole-snapshot publish is rejected, with file+line + plain-English fix):**
 - Unknown attribute / spell / stage / ability / tree / class / node id referenced.
@@ -1352,7 +1352,7 @@ NeoForge's directions are intentionally asymmetric: every serverbound intent cod
 - **Empty/no-op defs:** "skill `mining` has no XP sources — it can never level."; "tree `x` has no nodes."
 - **Optional slot issue:** "optional branch `mypack:curios_items` targets unavailable slot `ring`; declared policy hides that branch." An undeclared missing slot is an error, never a silent no-op.
 
-Every warning names the file, the field, the concern, and (where possible) the fix. `/ps validate` prints a summary (`N errors, M warnings`) and exit-style status so a dev knows at a glance. Runs automatically at load (logging) and on demand.
+Every warning names the file, the field, the concern, and (where possible) the fix. `/pskills validate` prints a summary (`N errors, M warnings`) and exit-style status so a dev knows at a glance. Runs automatically at load (logging) and on demand.
 
 ---
 
@@ -1389,7 +1389,7 @@ Great for an active ability's `[[actions]]` and level milestones (`on_first_reac
 
 ### 28.3 XP Transfer / Sacrifice
 Config-defined conversion mechanics so players can reshape progression:
-- **Skill-to-skill transfer** — `/ps convert skill <player> <from_skill> <to_skill> <amount>` and an optional conversion carrier/station that trades XP through a named conversion edge (with loss/tax).
+- **Skill-to-skill transfer** — `/pskills convert skill <player> <from_skill> <to_skill> <amount>` and an optional conversion carrier/station that trades XP through a named conversion edge (with loss/tax).
 - **Forget-for-currency** — an op action/item that converts a skill's progress into a named currency at a configured ratio (distinct from tree respec).
 - **XP sacrifice** — convert skill XP into a `command`/`item` output (e.g. sacrifice Arcana XP at an altar for a reward), all pack-defined.
 All conversions are server-validated, rate/loss configurable, and off unless a pack defines them. Documented with exchange-rate examples.
@@ -1450,7 +1450,7 @@ repeat_policy = "once_per_prestige"
 - A named prestige state is separate from schema/data version.
 - On prestige, chosen state resets transactionally. Persistent rewards scale from prestige state and project like other persistent grants; transition rewards use a prestige-scoped receipt/outbox and their declared crash-delivery semantics.
 - Persistent attributes/multipliers/titles/stages and transition hooks/rewards use only lifecycle-compatible output types.
-- Prestige is shown in the Character GUI header and on `/ps top` (prestige-then-level sort).
+- Prestige is shown in the Character GUI header and on `/pskills top` (prestige-then-level sort).
 - Fully documented, including the reset/keep matrix and reward-scaling examples, plus a validate warning if `requires` is unreachable.
 
 ---
@@ -1458,18 +1458,18 @@ repeat_policy = "once_per_prestige"
 ## 29. Developer Experience, Observability, Error UX & Accessibility
 
 ### 29.1 Observability & Debug Tooling
-- **`/ps debug <player>`** (op) — dumps: every skill (earned/effective level, dynamic cap source, XP/bank/next), named currency balance/reservations, held classes + occupied slots, owned nodes/abilities/spells, active toggles, **every active attribute modifier with its source id and current value**, orphans, rested/decay timestamps, prestige level, and active contextual (`conditions`) grants.
+- **`/pskills debug <player>`** (op) — dumps: every skill (earned/effective level, dynamic cap source, XP/bank/next), named currency balance/reservations, held classes + occupied slots, owned nodes/abilities/spells, active toggles, **every active attribute modifier with its source id and current value**, orphans, rested/decay timestamps, prestige level, and active contextual (`conditions`) grants.
 - **"Why is my stat this value?" breakdown** — in the Skills/Classes GUI detail panel, an optional expandable list per affected attribute showing each contributing modifier, its source (skill/node/class/ability/curio/**foreign mod**), operation, and amount, ending with the vanilla-computed final value (the §22 worked math, live, for this player). Answers "why do I have 34 hearts" with a button.
-- **XP-gain log** — `debug_logging` (or `/ps debug xp <player> on`) streams each XP award with source action + amount + resulting level to the log, for tuning curves.
-- **`/ps diagnose <integration>`** — per-integration status (ISS, PS, Curios, KubeJS, FTB Quests, Patchouli, Jade): loaded y/n, hooks resolved, def-reference counts, and any degraded features.
+- **XP-gain log** — `debug_logging` (or `/pskills debug xp <player> on`) streams each XP award with source action + amount + resulting level to the log, for tuning curves.
+- **`/pskills diagnose <integration>`** — per-integration status (ISS, PS, Curios, KubeJS, FTB Quests, Patchouli, Jade): loaded y/n, hooks resolved, def-reference counts, and any degraded features.
 
 ### 29.2 Error UX Philosophy (invalid content cannot replace known-good state)
 - **A broken definition/config is contained and cannot replace the last valid snapshot or silently corrupt progression.** One structurally invalid grant rejects its owner in staging, and the default runtime publish then rejects the **entire staged snapshot**. A pack may explicitly mark an optional integration branch with `missing_policy = "skip_declared_branch"`; only that named branch may be omitted. Explicit partial-pack mode validates dependency closure and impact before publish. Unexpected engine/JVM/mod faults are still real faults and are logged/reported honestly—“never crash under any condition” is not a credible guarantee.
 - **Where each audience sees problems:**
-  - *Pack dev:* clear `[ProgressiveSkills]`-prefixed log lines at load; the `/ps validate` report (errors + sanity warnings, §27) with file+line+fix; an **op chat summary on dry-run/publish** ("staged 12 skills, 3 trees; 2 warnings — run /ps validate" / "published generation 42"); a toast to ops on join if the last load had errors.
+  - *Pack dev:* clear `[ProgressiveSkills]`-prefixed log lines at load; the `/pskills validate` report (errors + sanity warnings, §27) with file+line+fix; an **op chat summary on dry-run/publish** ("staged 12 skills, 3 trees; 2 warnings — run /pskills validate" / "published generation 42"); a toast to ops on join if the last load had errors.
   - *Player (non-op):* never a stack trace or a crash. At most a generic, friendly message if they touch something misconfigured ("That skill isn't available right now."). Broken bits are silently inert, not exploding.
 - **Escalation ladder:** declared optional branch fallback → warn (sanity/degraded optional integration) → error+reject definition (structural) → error+reject dependent pack where manifest policy requires atomicity → keep last-known-good live set. The mod process still loads, but it never pretends a half-valid power definition is fine.
-- **Validate-before-apply on reload:** runtime `/ps reload --publish` is whole-snapshot atomic by default: any blocking error keeps the complete old registry. Partial startup leniency or partial-pack publish exists only as an explicit manifest/operator mode, requires dependency-closure validation plus an impact report, and never silently substitutes a valid subset for live content.
+- **Validate-before-apply on reload:** runtime `/pskills reload --publish` is whole-snapshot atomic by default: any blocking error keeps the complete old registry. Partial startup leniency or partial-pack publish exists only as an explicit manifest/operator mode, requires dependency-closure validation plus an impact report, and never silently substitutes a valid subset for live content.
 
 ### 29.3 Accessibility & Internationalization
 - **Built-in mod text** uses normal `assets/progressiveskills/lang/*.json` resources. **Dynamic pack text** uses the explicit `PsLocaleResolver` (§33.4): synced pack-locale tables are not falsely injected into Minecraft's resource-loaded `Language` map. Client UI resolves against its selected language/fallback; server chat resolves a safe literal Component per recipient using that player's reported locale. A declared/accepted resource pack may provide real translation keys, but raw keys are never shown when it is absent.
@@ -1534,7 +1534,7 @@ These contracts prevent the plan from promising behavior Minecraft/NeoForge cann
 | Clamps | Default clamps bound ProgressiveSkills' contribution. A true final-value clamp would require invasive enforcement and can conflict with foreign modifiers, so it is separate, opt-in, and loudly documented. |
 | Controller | Keyboard/focus accessibility is implemented and tested. Controller support is never inferred automatically from using vanilla widgets. |
 
-**Pinned dependency policy.** Each optional integration has: a tested minimum/maximum version, API symbols used, fallback behavior, smoke GameTest, and `/ps diagnose` resolver report. “Reflective” is an implementation technique, not a substitute for a compatibility contract.
+**Pinned dependency policy.** Each optional integration has: a tested minimum/maximum version, API symbols used, fallback behavior, smoke GameTest, and `/pskills diagnose` resolver report. “Reflective” is an implementation technique, not a substitute for a compatibility contract.
 
 ---
 
@@ -1641,7 +1641,7 @@ No ambiguous “last file happened to win.” Every collision declares one of:
 - `patch` — path-addressed `set`, `remove`, `append`, `prepend`, `replace_by_id` operations.
 - `disable` — retain identity/migration visibility but make it unavailable.
 
-All nested collections merge by stable id, never array position. `/ps info --provenance` reports the exact pack/file/template/patch that supplied every resolved field.
+All nested collections merge by stable id, never array position. `/pskills info --provenance` reports the exact pack/file/template/patch that supplied every resolved field.
 
 ### 32.6 World lockfile and last-known-good
 
@@ -1879,7 +1879,7 @@ Timed materialization uses `TimedInstanceKey(EntitlementKey, GrantSourceId, stac
 
 Transition outputs declare one of `always`, `once_per_character`, `once_per_prestige`, `once_per_season`, `once_per_source_epoch`, `once_per_target`, `once_per_transaction`, or a named reset policy. `ReceiptKey(GrantSourceId, policyScopeId)` therefore distinguishes owner kind/id/grant and stores many bounded target/season/prestige epochs. `GrantReceipt` records definition digest/version, timestamp, transaction, delivery/outbox result, and chosen random branch.
 
-Receipt ids survive file reorder/reload. Renamed grants require an alias; deleting/recreating an id does not silently reset claims unless an operator explicitly clears receipts. `once_per_character` and other still-live permanent tombstones are **never evicted** by age/count retention; they may only be losslessly compacted into a membership structure with collision-free proof or archived in a still-consulted ledger. Expiring target/season epochs may be pruned only after their reset domain can never recur. `/ps prune receipts --dry-run` explains every candidate and cannot reopen a claim silently.
+Receipt ids survive file reorder/reload. Renamed grants require an alias; deleting/recreating an id does not silently reset claims unless an operator explicitly clears receipts. `once_per_character` and other still-live permanent tombstones are **never evicted** by age/count retention; they may only be losslessly compacted into a membership structure with collision-free proof or archived in a still-consulted ledger. Expiring target/season epochs may be pruned only after their reset domain can never recur. `/pskills prune receipts --dry-run` explains every candidate and cannot reopen a claim silently.
 
 Before a value transaction that needs a new permanent tombstone, reserve exact-ledger capacity. If the configured exact ledger/archive is full, reject the transaction before cost/reward rather than grant without durable claim truth. Bloom/probabilistic filters are never the sole authority for eligibility.
 
@@ -1942,7 +1942,7 @@ On startup/login, a stored `stateDefinitionDigest`/generation mismatch marks tha
 ### 35.8 Snapshot, restore, and undo boundary
 
 - A **definition snapshot** stores pack/overlay sources, semantic compiled digest, manifest/lockfile, and migration metadata. Restoring it changes definitions only, then runs the generation barrier; it never rewinds player rewards.
-- An **online-player progression snapshot** requires `/ps freeze`, captures only loaded attachments plus referenced pending offline-operation metadata, has a target list/digest/retention quota, and restores reversible progression fields. It does not rewind inventories, drops, containers, mail, commands, scripts, or provider databases. Monotonic receipts/claim tombstones and delivered outbox entries are union-preserved, not rolled back; transactions with later nonrollbackable effects block ordinary undo.
+- An **online-player progression snapshot** requires `/pskills freeze`, captures only loaded attachments plus referenced pending offline-operation metadata, has a target list/digest/retention quota, and restores reversible progression fields. It does not rewind inventories, drops, containers, mail, commands, scripts, or provider databases. Monotonic receipts/claim tombstones and delivered outbox entries are union-preserved, not rolled back; transactions with later nonrollbackable effects block ordinary undo.
 - A **maintenance/world backup** is an operator/hosting-level coordinated save or stopped-server filesystem snapshot. PS can request freeze, flush/verify its stores, emit a manifest, and later verify the backup, but does not label a partial attachment export a world backup.
 
 Restore is dry-run first, checks current/target generations and pending operations, refuses future-schema/incomplete sets, records a **new** audit transaction instead of erasing history, and reconciles before unfreeze. It never restores an old `stateRevision` or `stateGeneration`; the result uses the current definition generation and `nextRevision > max(currentRevision, snapshotRevision)` so client/CAS ordering remains monotonic. Default quotas bound count/bytes/age; deleting an old snapshot never deletes permanent receipt truth.
@@ -2030,7 +2030,7 @@ amount_formula = "rule_amount"
 
 ### 36.3 Multiplier order and stacking
 
-The pipeline is fixed and visible in `/ps explain xp`:
+The pipeline is fixed and visible in `/pskills explain xp`:
 
 `base/event value → target value scaling → rule formula → context → equipment → party/team → rested/catch-up → prestige/season → global difficulty → anti-exploit decay → per-event cap → rate-cap remainder → rounding/fraction carry`
 
@@ -2068,7 +2068,7 @@ Per-skill/source/tick/minute/day caps; level-difference scaling; server-median c
 
 ### 36.7 Debugging
 
-`/ps explain xp last` shows every stage: event values, candidate route count, rejected matcher/predicate, attribution, stacking winner, every multiplier, cap/decay, rounding remainder, transaction id, and final award. `/ps trace` samples with a hard duration/output cap.
+`/pskills explain xp last` shows every stage: event values, candidate route count, rejected matcher/predicate, attribution, stacking winner, every multiplier, cap/decay, rounding remainder, transaction id, and final award. `/pskills trace` samples with a hard duration/output cap.
 
 ---
 
@@ -2125,7 +2125,7 @@ Packs choose a named aggregate formula:
 - milestone/rank table
 - custom safe formula.
 
-Adding/removing a skill can otherwise change every player's global level, so the lockfile impact report previews aggregate changes. The repeatable-run/prestige-safe default is **total conserved `runAccountedXp` through a global curve**. For a run, `Σ(skill.activeAccounted + skill.bankAccounted) = totalRunAccountedAllocation`; gameplay/accounted token awards are explicit sources, transfers preserve the sum, fees/sacrifice/declared decay are explicit sinks, and no other transaction may change it. Bank release and cap/profile/curve migration have accounted delta zero. A conversion cannot credit more accounted allocation than its source legs debit, and fixed-point split remainders stay with the source/transaction rather than rounding into new value. `/ps audit` and property tests reconcile this equation after every mutation and crash recovery. Lifetime-earned history is never a repeatable prestige gate. A prestige reset closes the old run ledger and starts a new run-accounting scope before eligibility can become true again.
+Adding/removing a skill can otherwise change every player's global level, so the lockfile impact report previews aggregate changes. The repeatable-run/prestige-safe default is **total conserved `runAccountedXp` through a global curve**. For a run, `Σ(skill.activeAccounted + skill.bankAccounted) = totalRunAccountedAllocation`; gameplay/accounted token awards are explicit sources, transfers preserve the sum, fees/sacrifice/declared decay are explicit sinks, and no other transaction may change it. Bank release and cap/profile/curve migration have accounted delta zero. A conversion cannot credit more accounted allocation than its source legs debit, and fixed-point split remainders stay with the source/transaction rather than rounding into new value. `/pskills audit` and property tests reconcile this equation after every mutation and crash recovery. Lifetime-earned history is never a repeatable prestige gate. A prestige reset closes the old run ledger and starts a new run-accounting scope before eligibility can become true again.
 
 ### 37.4 Progression profiles and difficulty
 
@@ -2173,7 +2173,7 @@ Core curve definitions are normative:
 
 Decimals are parsed as exact fixed-point/rational values, exponentiation is bounded/deterministic, and the complete expression is rounded once using `curve.rounding` (`ceil` default; `floor`, `nearest`, `bankers` optional). Every final `C(L)` must be at least 1, be nondecreasing by default, and every checked cumulative `T(L)` must fit signed `long`; otherwise staging fails with the first bad level. Negative linear steps/coefficients, an exponential factor below 1, or a decreasing custom table therefore fail normally. Creator exposes `allow_decreasing_costs = true` only as an unsafe expert opt-in with a conspicuous graph/validation warning, full-boundary tests, and no claim that the curve is monotonic. `max_level` has no outgoing cost. At cap, excess follows the explicit overflow policy (`discard`, `bank` default, `currency`, `mastery`, or provider); banked XP is not silently included in `currentTotalXp`. Its accounted delta is assigned once by the earning transaction and stored in `bankAccounted`; release moves it to `activeAccounted` with zero new accounted value. `discard` accepts no accounted allocation, while `currency`/`mastery`/provider overflow is a typed economy edge that debits or destroys source accounted units before crediting its target and can never retain both forms.
 
-Positive awards commit immediately, calculate the final `earnedLevel`, and emit legitimate reward-eligible earned edges in ascending order. Negative XP defaults to `deny`; `drain_in_level` stops at `T(earnedLevel)`, while `allow_delevel` crosses downward in descending order, recomputes `effectiveLevel` and persistent ownership, and runs only explicitly compatible `on_loss` actions. Ordinary gate/scaling variable `level` and `current_level` awards resolve to `effectiveLevel`; peaks and milestone history resolve to eligible earned crossings. UI, sync, `/ps info`, and `/ps explain` show both whenever cap suppression makes them differ.
+Positive awards commit immediately, calculate the final `earnedLevel`, and emit legitimate reward-eligible earned edges in ascending order. Negative XP defaults to `deny`; `drain_in_level` stops at `T(earnedLevel)`, while `allow_delevel` crosses downward in descending order, recomputes `effectiveLevel` and persistent ownership, and runs only explicitly compatible `on_loss` actions. Ordinary gate/scaling variable `level` and `current_level` awards resolve to `effectiveLevel`; peaks and milestone history resolve to eligible earned crossings. UI, sync, `/pskills info`, and `/pskills explain` show both whenever cap suppression makes them differ.
 
 On curve changes, the shipped migration default is `preserve_level_fraction`: preserve `earnedLevel` and the exact rational fraction `xpIntoLevel / old C(earnedLevel)`, map it into the new cost with deterministic floor, clamp at the new hard cap, and keep accounted/earned history unchanged. At the old hard cap, where `C(max_level)` is undefined, the fraction is defined as zero and the separate overflow bank is preserved; if the hard cap rises, the player remains at the former cap with zero progress into the newly available level unless an explicit bank-release policy applies. Alternatives `preserve_total_xp`, `preserve_level_raw_into`, and an explicit rederive policy require dry-run impact. Cap lowering banks overflow; raising a cap does not emit gameplay transition rewards during reconcile. Changing `min_level` is structural and requires a named migration with dry-run rather than ordinary hot reload. All migrations use cause `migration`, then validate `T(earnedLevel) + xpIntoLevel = currentTotalXp` below cap (and the capped coordinate plus separate bank at cap) and suppress value-bearing crossings unless an operator issues a separate receipt-protected grant transaction.
 
@@ -2650,7 +2650,7 @@ Searchable guide pages are generated from the client projection and show actual 
 
 ### 44.8 Op-only Authoring Studio
 
-`/ps studio` edits a **draft overlay**, never the live registry directly.
+`/pskills studio` edits a **draft overlay**, never the live registry directly.
 
 - schema-generated forms with docs/defaults/examples
 - wizards for pack, skill, tree, class, ability, resource, item, conversion, challenge, theme/layout

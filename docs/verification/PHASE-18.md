@@ -20,12 +20,12 @@ Status: implemented and verified inside the cumulative Phase 19 beta. Phase 18 w
 See [Phase 18 in the complete guide](../guides/PHASES-1-19.md#phase-18-multiplayer-progression) and the [multiplayer profile example](../guides/PACK-AUTHORING.md#multiplayer-profile).
 
 ```text
-/ps party create Dungeon Team
-/ps party invite <player>
-/ps party ready true
-/ps contribution share mypack:boss_defeat 1000
-/ps contribution receipts
-/ps season leaderboard mypack:physique_season 10
+/pskills party create Dungeon Team
+/pskills party invite <player>
+/pskills party ready true
+/pskills contribution share mypack:boss_defeat 1000
+/pskills contribution receipts
+/pskills season leaderboard mypack:physique_season 10
 ```
 
 Provider lifecycle, revision checks, privacy, PvP, persistence, and cumulative evidence are recorded in [PHASE-19.md](PHASE-19.md).

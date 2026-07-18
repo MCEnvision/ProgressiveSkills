@@ -21,10 +21,10 @@ See [Phase 14 in the complete guide](../guides/PHASES-1-19.md#phase-14-baseline-
 
 Focused workflow:
 
-1. Press `P` after `/ps network status` reports active.
+1. Press `P` after `/pskills network status` reports active.
 2. Visit every tab with Tab, Shift Tab, Enter, and Space.
 3. Open the command palette with grave accent.
 4. Open the HUD editor from the palette and test every anchor and scale.
-5. Complete and export both the Tests tab and `/ps check` checklist.
+5. Complete and export both the Tests tab and `/pskills check` checklist.
 
 Automated screen construction, side safety, client smoke, and cumulative player checks are recorded in [PHASE-19.md](PHASE-19.md).

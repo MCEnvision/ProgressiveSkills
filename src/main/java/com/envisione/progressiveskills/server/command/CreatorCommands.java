@@ -30,7 +30,7 @@ public final class CreatorCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("creator")
                         .then(Commands.literal("catalog").executes(context -> catalog(context.getSource())))
                         .then(Commands.literal("simulate")

@@ -63,7 +63,7 @@ public final class PackCommands {
                                         ResourceLocationArgument.getId(context, "kind"),
                                         ResourceLocationArgument.getId(context, "id"), true))));
 
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("help").executes(context -> help(context.getSource())))
                 .then(Commands.literal("status").requires(source -> source.hasPermission(2))
                         .executes(context -> status(context.getSource())))
@@ -96,7 +96,7 @@ public final class PackCommands {
     }
 
     private static int help(CommandSourceStack source) {
-        success(source, "Available: /ps status, validate, reload --dry-run|--publish, diff, info pack, "
+        success(source, "Available: /pskills status, validate, reload --dry-run|--publish, diff, info pack, "
                 + "info <kind> <id>, lifecycle status|demo|coowner|recompute|revoke|audit|selftest, "
                 + "persistence status|snapshot|export, network status|resync, xp, xp source, skill get, "
                 + "rule status, explain xp last, tree list|info|preview|buy|refund|respec");
@@ -155,7 +155,7 @@ public final class PackCommands {
         }
         if (showDiff) {
             sendDiff(source, attempt.diff().orElseThrow());
-            success(source, "Review complete? Run /ps reload --publish before changing pack files.");
+            success(source, "Review complete? Run /pskills reload --publish before changing pack files.");
         }
         return 1;
     }
@@ -225,7 +225,7 @@ public final class PackCommands {
             return 0;
         }
         if (service.staged().isEmpty() || service.staged().orElseThrow().diff().isEmpty()) {
-            failure(source, "No valid dry-run diff is staged; run /ps reload --dry-run");
+            failure(source, "No valid dry-run diff is staged; run /pskills reload --dry-run");
             return 0;
         }
         sendDiff(source, service.staged().orElseThrow().diff().orElseThrow());

@@ -72,9 +72,9 @@ The following in-game operator commands act on the executing player:
 
 | Command | Permission | Result |
 |---|---:|---|
-| `/ps persistence status` | 2 | Attachment version/status, storage and transaction revisions, ledger counts, orphans, operation receipts, pending operations, and migration/quarantine state. |
-| `/ps persistence snapshot` | 3 | Atomically writes a compressed NBT envelope, rereads it, and verifies player identity plus SHA-256 digest. |
-| `/ps persistence export` | 3 | Atomically writes a bounded readable SNBT maintenance export. |
+| `/pskills persistence status` | 2 | Attachment version/status, storage and transaction revisions, ledger counts, orphans, operation receipts, pending operations, and migration/quarantine state. |
+| `/pskills persistence snapshot` | 3 | Atomically writes a compressed NBT envelope, rereads it, and verifies player identity plus SHA-256 digest. |
+| `/pskills persistence export` | 3 | Atomically writes a bounded readable SNBT maintenance export. |
 
 Files are kept beneath the current world at `progressiveskills/snapshots/<player-uuid>/` and `progressiveskills/exports/<player-uuid>/`. The command reports the exact path, byte count, and digest. A player export is not mislabeled as a complete world backup, and Phase 5 intentionally does not provide snapshot restore yet.
 
@@ -83,12 +83,12 @@ Files are kept beneath the current world at `progressiveskills/snapshots/<player
 Use a fresh cheats-enabled world so the stable Phase 4 demo idempotency key has no earlier history:
 
 1. Run `/gamerule keepInventory true`.
-2. Run `/ps lifecycle status`; expect revision 0, zero demo points, zero health bonus, and no receipt/audit entries.
-3. Run `/ps lifecycle demo`; expect revision 1, one demo point, +4 max health (two hearts), one transaction receipt, one audit record, and one gold ingot.
-4. Run `/ps persistence status`; expect player data v2 `ACTIVE`, transaction revision 1, one transaction receipt/replay result/audit record, zero orphans, and no quarantine.
-5. Run `/ps persistence snapshot` and `/ps persistence export`; both must report a path, nonzero byte count, and digest with no error.
+2. Run `/pskills lifecycle status`; expect revision 0, zero demo points, zero health bonus, and no receipt/audit entries.
+3. Run `/pskills lifecycle demo`; expect revision 1, one demo point, +4 max health (two hearts), one transaction receipt, one audit record, and one gold ingot.
+4. Run `/pskills persistence status`; expect player data v2 `ACTIVE`, transaction revision 1, one transaction receipt/replay result/audit record, zero orphans, and no quarantine.
+5. Run `/pskills persistence snapshot` and `/pskills persistence export`; both must report a path, nonzero byte count, and digest with no error.
 6. Save and quit all the way to the title screen, reopen the same world, and run both status commands. Revision 1, the point, +4 health, ledger counts, and the one gold ingot must still be present.
-7. Run `/ps lifecycle demo` again. It must report `Idempotent replay`; revision and inventory must not change.
+7. Run `/pskills lifecycle demo` again. It must report `Idempotent replay`; revision and inventory must not change.
 8. Run `/kill @s`, respawn, then run both status commands. Revision 1, the point, +4 health, and transaction ledger must remain; persistence status must now show one death operation receipt.
 9. Save and quit to title again, reopen, and repeat both status commands. The death receipt and all progression state must still be present.
 

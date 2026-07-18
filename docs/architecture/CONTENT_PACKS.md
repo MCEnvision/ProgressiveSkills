@@ -165,21 +165,21 @@ discover -> parse -> dependencies -> derive IDs -> merge/patch
          -> reviewed candidate -> atomic generation publication
 ```
 
-`/ps validate` runs the full compiler without arming publication. `/ps reload` and `/ps reload --dry-run` stage an exact candidate and semantic diff. `/ps reload --publish` re-reads every source before publication and rejects semantic or source-only changes made after review. The live reference swaps only after the new last-known-good journal is safely written; any error leaves the prior generation untouched.
+`/pskills validate` runs the full compiler without arming publication. `/pskills reload` and `/pskills reload --dry-run` stage an exact candidate and semantic diff. `/pskills reload --publish` re-reads every source before publication and rejects semantic or source-only changes made after review. The live reference swaps only after the new last-known-good journal is safely written; any error leaves the prior generation untouched.
 
 ## Operator commands
 
 | Command | Permission | Result |
 |---|---:|---|
-| `/ps help` | everyone | Lists Phase 3 commands. |
-| `/ps status` | 2 | Shows live generation, pack/definition counts, digest, and recovery state. |
-| `/ps validate` | 2 | Validates current disk content without staging it for publish. |
-| `/ps reload` | 2 | Safe alias of dry-run. |
-| `/ps reload --dry-run` | 2 | Stages and reports the exact semantic diff without mutating live state. |
-| `/ps diff` | 2 | Reprints the current reviewed diff. |
-| `/ps reload --publish` | 4 | Revalidates and publishes only the reviewed source snapshot. |
-| `/ps info pack <id>` | 2 | Shows live manifest version, namespace, priority, and engine range. |
-| `/ps info <kind> <id> [--provenance]` | 2 | Shows definition state/digest/value summary and optional field sources. |
+| `/pskills help` | everyone | Lists Phase 3 commands. |
+| `/pskills status` | 2 | Shows live generation, pack/definition counts, digest, and recovery state. |
+| `/pskills validate` | 2 | Validates current disk content without staging it for publish. |
+| `/pskills reload` | 2 | Safe alias of dry-run. |
+| `/pskills reload --dry-run` | 2 | Stages and reports the exact semantic diff without mutating live state. |
+| `/pskills diff` | 2 | Reprints the current reviewed diff. |
+| `/pskills reload --publish` | 4 | Revalidates and publishes only the reviewed source snapshot. |
+| `/pskills info pack <id>` | 2 | Shows live manifest version, namespace, priority, and engine range. |
+| `/pskills info <kind> <id> [--provenance]` | 2 | Shows definition state/digest/value summary and optional field sources. |
 
 Command suggestions come from the live kind, pack, and definition registries. Diagnostics include stable codes, portable source paths, and generated corrective help; chat output is bounded.
 

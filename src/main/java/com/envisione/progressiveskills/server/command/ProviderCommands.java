@@ -23,7 +23,7 @@ public final class ProviderCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("compatibility")
                         .then(Commands.literal("status").executes(context -> status(context.getSource())))
                         .then(Commands.literal("profile")

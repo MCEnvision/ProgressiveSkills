@@ -13,7 +13,7 @@ This record covers the bounded typed requirement evaluator, deterministic depend
 - deterministic sorted dependency collection
 - bounded node count, depth, fanout, dependencies, operations, and trace retention
 - pure preview evaluation with no transaction or source-memory mutation
-- bounded requirement results in `/ps explain xp last`
+- bounded requirement results in `/pskills explain xp last`
 - exact checked fixed-point numeric AST
 - one final rule-level `rounding` operation
 - fail-closed overflow, divide-by-zero, domain, missing-value, and budget behavior
@@ -61,7 +61,7 @@ bash .ci/smoke-client.sh
 - [x] Numeric operations use checked exact fixed-point values without binary floating point.
 - [x] The complete amount expression applies its selected rounding policy exactly once.
 - [x] Overflow, divide-by-zero, invalid domains, and unavailable required values fail closed.
-- [x] `/ps explain xp last` includes bounded requirement and final-rounding evidence.
+- [x] `/pskills explain xp last` includes bounded requirement and final-rounding evidence.
 - [x] Canonical encode and decode preserve Phase 9 values while old Phase 8 definitions receive safe defaults.
 - [x] Semantic digest and staged diff change when a requirement or rounding value changes.
 - [x] Generated schemas and diagnostics describe only the supported Core authoring surface.
@@ -72,16 +72,16 @@ bash .ci/smoke-client.sh
 
 Use the exact Phase 9 checkpoint JAR in a cheats-enabled test world. Back up the world and the pack directory first. Existing starter files are not overwritten, so perform the test in a temporary copy of the starter pack or remove the temporary route when finished.
 
-1. Run `/ps validate`, `/ps status`, `/ps rule status`, and `/ps skill get progressiveskills:physique`. Record the starting Physique level and XP. Use a fresh test player if possible so the starting level and `progressiveskills:global_points` balance are both zero.
+1. Run `/pskills validate`, `/pskills status`, `/pskills rule status`, and `/pskills skill get progressiveskills:physique`. Record the starting Physique level and XP. Use a fresh test player if possible so the starting level and `progressiveskills:global_points` balance are both zero.
 2. Copy the Phase 8 stone route to a temporary, correctly named rule file. Give it a unique rule ID and stack group, disable the original stone route for this test, allow newly placed test blocks, disable cooldown, decay, and rate caps, and keep its output pointed at Physique. Set its base to 0.000001 and its one literal multiplier to 1.5 so its exact pre-rounded amount falls halfway between two fixed-point units.
-3. Add `rounding = "floor"`. Add two flat `[[rule.requirements]]` objects using the documented Phase 9 shape. Require actor Physique level at least 1 and actor global points at least 0. Run `/ps reload --dry-run`, inspect `/ps diff`, then run `/ps reload --publish`.
-4. At level zero, place and break a test stone through an allowed origin. Expect no XP. Run `/ps explain xp last`; expect the skill-level requirement to fail and no transaction ID to be committed.
-5. Run `/ps xp @s progressiveskills:physique 100`. Confirm Physique reaches level 1 and the first highest-level point entitlement is granted. Change the global points threshold to 2, review, and publish. Break another allowed test stone. Expect no route XP because the skill requirement now passes while the two-point currency requirement fails. Confirm both results in `/ps explain xp last`.
+3. Add `rounding = "floor"`. Add two flat `[[rule.requirements]]` objects using the documented Phase 9 shape. Require actor Physique level at least 1 and actor global points at least 0. Run `/pskills reload --dry-run`, inspect `/pskills diff`, then run `/pskills reload --publish`.
+4. At level zero, place and break a test stone through an allowed origin. Expect no XP. Run `/pskills explain xp last`; expect the skill-level requirement to fail and no transaction ID to be committed.
+5. Run `/pskills xp @s progressiveskills:physique 100`. Confirm Physique reaches level 1 and the first highest-level point entitlement is granted. Change the global points threshold to 2, review, and publish. Break another allowed test stone. Expect no route XP because the skill requirement now passes while the two-point currency requirement fails. Confirm both results in `/pskills explain xp last`.
 6. Award only enough additional Physique XP to reach level 2 and its second point entitlement. Break another allowed test stone. Expect both requirements to pass and a committed 0.000001 XP route award. Confirm the explanation shows both typed dependencies, the selected floor policy, rounded amount, and transaction ID.
 7. Change only `rounding` to `ceil`, keeping the same nonintegral exact amount. Stage, inspect, and publish. Break another allowed test stone. Expect a committed 0.000002 XP route award and the explanation to identify the ceil policy. Do not use repeat decay or a cap in this comparison.
 8. Change the currency threshold above the current balance and publish. Break another allowed test stone. Expect no XP, no cooldown or first-time consumption, and a failed currency comparison in the explanation. Restore the passing threshold, publish, and confirm the next break can award normally.
 9. In separate dry runs, attempt a nested `all` or `any` object, a general formula string, an unknown skill ID, and an unknown currency ID. Each unsupported or dangling form must fail validation without changing the live generation. Restore the valid file after every case.
-10. Restart the game and rejoin the same world. Confirm the valid direct requirements and rounding policy still govern the route, proving canonical and last-known-good compatibility. Run `/ps validate` and `/ps rule status` once more.
+10. Restart the game and rejoin the same world. Confirm the valid direct requirements and rounding policy still govern the route, proving canonical and last-known-good compatibility. Run `/pskills validate` and `/pskills rule status` once more.
 11. Restore the original starter route, remove the temporary test file, and publish the cleanup through the reviewed reload flow.
 
 The internal `any` and `not` nodes, deterministic dependency order, operation budgets, pure preview behavior, one-final-round invariant, and malformed canonical-value defenses have no complete player command surface in Phase 9. Treat their automated unit, property, and GameTest rows as required evidence rather than claiming the manual route proves them.

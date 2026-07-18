@@ -61,7 +61,7 @@ The closed client intent family is assign, unassign, select, toggle, and activat
 
 At the historical Phase 12 checkpoint, fixed controls provided the complete nonvisual fallback. The cumulative Phase 14 UI now adds the ability screen, wheel renderer, HUD, command palette, and accessibility controls. Previous, Next, and Ability Wheel cycle assigned slots. Use Selected activates the selected slot. A direct slot activates its assigned active ability or changes its assigned toggle.
 
-The complete chat fallback is available under `/ps ability`.
+The complete chat fallback is available under `/pskills ability`.
 
 - `list` reports every definition and ownership state.
 - `info` reports kind, target, costs, timing, effects, and ordered actions.

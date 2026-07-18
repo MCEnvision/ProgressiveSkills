@@ -24,7 +24,7 @@ This record covers the rule engine and anti exploit foundation, the first NeoFor
 - atomic XP and source-memory transactions
 - persistent internal memory filtered from client state projection
 - route pause and immutable table rebuild during definition publication
-- `/ps rule status` and `/ps explain xp last`
+- `/pskills rule status` and `/pskills explain xp last`
 - two non-overwriting starter routes for stone training and a first log reward
 - generated rule schema metadata and six stable Phase 8 diagnostics
 
@@ -78,14 +78,14 @@ The exact checkpoint binary is committed at `releases/phase-8/progressiveskills-
 
 Use a cheats-enabled development world. Existing installed rule files are not overwritten. An omitted `allowed_block_origins` still receives the safe natural and creative-placed default, but adding the line explicitly makes the pack intent clear.
 
-1. Install the refined Phase 8 JAR and launch the same world. Run `/ps validate`, `/ps status`, and `/ps rule status`. Expect five valid definitions, two enabled rules, and block provenance `Reliable true`.
-2. Add `allowed_block_origins = ["natural", "creative_placed"]` under `[rule.anti_exploit]` in both starter rule files if it is absent. Publish through `/ps reload --dry-run`, `/ps diff`, and `/ps reload --publish`.
-3. Find stone in newly generated terrain, record Physique XP as `X`, and break it in survival. Expect `X + 10`. `/ps explain xp last` must show origin `natural` and a committed 10 XP award.
+1. Install the refined Phase 8 JAR and launch the same world. Run `/pskills validate`, `/pskills status`, and `/pskills rule status`. Expect five valid definitions, two enabled rules, and block provenance `Reliable true`.
+2. Add `allowed_block_origins = ["natural", "creative_placed"]` under `[rule.anti_exploit]` in both starter rule files if it is absent. Publish through `/pskills reload --dry-run`, `/pskills diff`, and `/pskills reload --publish`.
+3. Find stone in newly generated terrain, record Physique XP as `X`, and break it in survival. Expect `X + 10`. `/pskills explain xp last` must show origin `natural` and a committed 10 XP award.
 4. Place stone in survival, wait at least six seconds, then break it. Expect no XP. The explanation must show origin `survival_placed` and outcome `block origin survival_placed is not allowed`.
 5. Switch to creative, place stone, switch back to survival, wait at least six seconds, and break it. Expect 10 XP. The explanation must show origin `creative_placed` and a committed award.
 6. Save and quit completely after placing another stone in survival. Reopen the world and break that stone. Expect no XP with origin `survival_placed`, proving the ledger persisted.
 7. To prove customization, change the stone rule to `allowed_block_origins = ["natural", "creative_placed", "survival_placed"]`, publish it, place stone in survival, wait six seconds, and break it. Expect 10 XP with origin `survival_placed`.
 8. To prove full XP without timeout or decay, keep survival placed enabled and set `cooldown_ticks = 0`, all three caps to `0`, `repeat_window_ticks = 0`, `repeat_decay = 1`, and `minimum_multiplier = 1`. Publish, then place and break two survival stones consecutively. Each must award the full 10 XP.
-9. Restore the desired safe origins and pacing values through the reviewed publish flow. Run `/ps rule status` once more and confirm `Reliable true`.
+9. Restore the desired safe origins and pacing values through the reviewed publish flow. Run `/pskills rule status` once more and confirm `Reliable true`.
 
-Blocks placed before this refinement have no historical marker and are inferred natural. Use newly placed blocks and newly generated terrain for an unambiguous checkpoint. Include the complete game log and all `/ps explain xp last` lines when reporting the result.
+Blocks placed before this refinement have no historical marker and are inferred natural. Use newly placed blocks and newly generated terrain for an unambiguous checkpoint. Include the complete game log and all `/pskills explain xp last` lines when reporting the result.

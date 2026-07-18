@@ -68,17 +68,17 @@ Right click handling runs only for a server player holding one of the five regis
 
 All actions are expanded against a virtual snapshot and committed as one progression cascade. A failure leaves balances, trees, the issuance ledger, charges, and the held stack unchanged. On success the ledger and stack advance once and the client receives fresh state.
 
-Tree respec actions use the same refund planner as `/ps tree respec`, including original currency and paid amount records. Skill level actions grant only the XP needed to reach the requested bounded target level. They do not overwrite a level balance directly.
+Tree respec actions use the same refund planner as `/pskills tree respec`, including original currency and paid amount records. Skill level actions grant only the XP needed to reach the requested bounded target level. They do not overwrite a level balance directly.
 
 ## Acquisition and claims
 
-`/ps give <player> <item_definition> [count]` is the safe operator acquisition path. It resolves the current typed definition, reserves its archived snapshot, creates server owned components, and attempts inventory insertion. The command never accepts a behavior digest or reward amount from the caller.
+`/pskills give <player> <item_definition> [count]` is the safe operator acquisition path. It resolves the current typed definition, reserves its archived snapshot, creates server owned components, and attempts inventory insertion. The command never accepts a behavior digest or reward amount from the caller.
 
 When configured delivery is `pending_claim`, inventory overflow becomes a durable player claim. A claim materializes its validated carrier identity, state, physical kind, full bounded behavior snapshot, origin delivery id, reason, and creation time. Construction and decode prove that the snapshot digest and fields match the stack identity. This lets a recovery path reconstruct the pinned item even if the archive needs repair. Client projection contains only a bounded summary and never includes actions or amounts.
 
 Claim ids are stable UUIDs. Claims have exact count and encoded size ceilings, deterministic ordering, and no age eviction. Capacity is reserved before a value bearing acquisition completes. Taking a claim removes it only after successful inventory insertion. `take all` processes a deterministic prefix and leaves every undelivered claim intact.
 
-The cumulative Phase 14 client adds the visual claim panel. The complete chat fallback remains `/ps claim list`, `/ps claim take <id>`, and `/ps claim take all`.
+The cumulative Phase 14 client adds the visual claim panel. The complete chat fallback remains `/pskills claim list`, `/pskills claim take <id>`, and `/pskills claim take all`.
 
 ## Migration and diagnostics
 

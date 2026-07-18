@@ -142,19 +142,19 @@ A zero cap means unlimited. A zero repeat window requires both repeat multiplier
 
 | Command | Result |
 |---|---|
-| `/ps rule status` | Reports total and enabled compiled rules plus tracked block count, ledger reliability, and any fail-closed issue. |
-| `/ps explain xp last` | Shows the caller's most recent matched block route, block origin, bounded requirement result, rounding result, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
+| `/pskills rule status` | Reports total and enabled compiled rules plus tracked block count, ledger reliability, and any fail-closed issue. |
+| `/pskills explain xp last` | Shows the caller's most recent matched block route, block origin, bounded requirement result, rounding result, candidate, eligibility and selection counts, final award, outcome, and committed transaction ID. |
 
 The explanation is intentionally bounded. Core shows direct requirement and final-rounding evidence; reusable predicate traces and general formula source remain unavailable until their Creator authoring surface exists.
 
 ## Troubleshooting
 
-- Run `/ps validate` first. Unknown triggers, subject-incompatible matchers, missing skills, conflicting stack policies, and unbounded anti exploit values reject the candidate generation with the definition path and reason.
-- Run `/ps explain xp last` after a matched block. A zero award can be a denied block origin, an active cooldown, an already claimed first-time route, repeat decay to zero, an exhausted cap, a duplicate token, or fake-player denial.
+- Run `/pskills validate` first. Unknown triggers, subject-incompatible matchers, missing skills, conflicting stack policies, and unbounded anti exploit values reject the candidate generation with the definition path and reason.
+- Run `/pskills explain xp last` after a matched block. A zero award can be a denied block origin, an active cooldown, an already claimed first-time route, repeat decay to zero, an exhausted cap, a duplicate token, or fake-player denial.
 - A failed direct requirement names its safe type and comparison in the explanation. If the value is unavailable, confirm the skill or currency ID exists in the same staged generation and that the subject is `actor`.
-- A rounding or evaluator-budget failure is not recoverable at event time. Run `/ps validate`, reduce the expression or requirement structure, and publish a corrected generation.
-- Run `/ps rule status` when origin behavior is unexpected. `Reliable false` means untracked positions resolve to unknown until the ledger is repaired or intentionally reset while the server is stopped.
-- A disabled or nonmatching block does not replace the previous explanation because it never enters the matched hot path. Compare XP and `/ps rule status` when testing a disabled route.
+- A rounding or evaluator-budget failure is not recoverable at event time. Run `/pskills validate`, reduce the expression or requirement structure, and publish a corrected generation.
+- Run `/pskills rule status` when origin behavior is unexpected. `Reliable false` means untracked positions resolve to unknown until the ledger is repaired or intentionally reset while the server is stopped.
+- A disabled or nonmatching block does not replace the previous explanation because it never enters the matched hot path. Compare XP and `/pskills rule status` when testing a disabled route.
 - Tag routes require the server's current tag registry. A normal server start or data reload provides vanilla and datapack tag membership.
 
 ## Phase boundary

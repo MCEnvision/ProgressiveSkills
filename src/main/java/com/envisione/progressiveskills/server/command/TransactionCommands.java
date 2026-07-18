@@ -25,7 +25,7 @@ public final class TransactionCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("lifecycle").requires(source -> source.hasPermission(2))
                         .then(Commands.literal("status")
                                 .executes(context -> status(context.getSource())))

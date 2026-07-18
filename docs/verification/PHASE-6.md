@@ -17,7 +17,7 @@ This record covers “Networking handshake + definition projection.” It does n
 - join, respawn, dimension, transaction, logout, and published-reload lifecycle wiring
 - monotonic bounded intent replay cache, stale rejection/resync, future/old rejection, and token bucket
 - strict NeoForge `StreamCodec` registrations and malformed-buffer/property tests
-- `/ps network status` and `/ps network resync`
+- `/pskills network status` and `/pskills network resync`
 - six generated networking schemas and five stable `PS-NET-*` diagnostics
 
 ## Required commands

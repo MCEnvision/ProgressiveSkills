@@ -73,9 +73,9 @@ At exactly 975 active XP, Physique is level 6, has awarded six lifetime points, 
 
 | Command | Permission | Result |
 |---|---:|---|
-| `/ps skill get <skill>` | player | Shows the caller's active XP, level progress, highest level, bank, and award-currency balances. |
-| `/ps xp <player> <skill> <amount>` | 2 | Awards an exact positive fixed-point amount through the full transaction. |
-| `/ps xp source <player> <key>` | 2 | Fires one configured Phase 7 custom XP route. |
+| `/pskills skill get <skill>` | player | Shows the caller's active XP, level progress, highest level, bank, and award-currency balances. |
+| `/pskills xp <player> <skill> <amount>` | 2 | Awards an exact positive fixed-point amount through the full transaction. |
+| `/pskills xp source <player> <key>` | 2 | Fires one configured Phase 7 custom XP route. |
 
 Committed awards show an action-bar XP summary. Level changes send one bounded chat summary and play the vanilla player-level sound. Banked XP and new currency rewards are reported separately.
 

@@ -153,14 +153,14 @@ The implemented command surface is:
 
 | Command | Authority |
 |---|---|
-| `/ps tree list` | Reads the live public catalog and caller ownership. |
-| `/ps tree info <tree>` | Reads one live tree and caller state. |
-| `/ps tree preview buy <tree> <node>` | Creates a bounded nonmutating purchase preview. |
-| `/ps tree buy <tree> <node>` | Calls the same purchase planner as the client intent. |
-| `/ps tree preview refund <tree> <node>` | Creates a bounded nonmutating cascade preview. |
-| `/ps tree refund <tree> <node> <digest>` | Rebuilds and commits the exact current cascade. |
-| `/ps tree preview respec <tree>` | Creates a bounded preview for every owned node in one tree. |
-| `/ps tree respec <tree> <digest>` | Rebuilds and commits the exact current tree respec. |
+| `/pskills tree list` | Reads the live public catalog and caller ownership. |
+| `/pskills tree info <tree>` | Reads one live tree and caller state. |
+| `/pskills tree preview buy <tree> <node>` | Creates a bounded nonmutating purchase preview. |
+| `/pskills tree buy <tree> <node>` | Calls the same purchase planner as the client intent. |
+| `/pskills tree preview refund <tree> <node>` | Creates a bounded nonmutating cascade preview. |
+| `/pskills tree refund <tree> <node> <digest>` | Rebuilds and commits the exact current cascade. |
+| `/pskills tree preview respec <tree>` | Creates a bounded preview for every owned node in one tree. |
+| `/pskills tree respec <tree> <digest>` | Rebuilds and commits the exact current tree respec. |
 
 The client intent envelope is session bound, monotonically numbered, rate limited, definition bound, and state revision bound. The intent body contains a stable node ID or a server issued confirmation token. Server code resolves the actor from the connection and always targets that player for the Core screen. The server recomputes affordability, requirements, closure, grants, and refunds.
 

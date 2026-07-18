@@ -124,11 +124,11 @@ secret_projection = "redact"
 Publication example:
 
 ```text
-/ps validate
-/ps reload --dry-run
-/ps diff
-/ps reload --publish
-/ps status
+/pskills validate
+/pskills reload --dry-run
+/pskills diff
+/pskills reload --publish
+/pskills status
 ```
 
 Detailed flow:
@@ -160,15 +160,15 @@ Every plan carries:
 Lifecycle demonstration:
 
 ```text
-/ps lifecycle status
-/ps lifecycle demo
-/ps lifecycle demo
-/ps lifecycle coowner
-/ps lifecycle recompute
-/ps lifecycle revoke primary
-/ps lifecycle revoke secondary
-/ps lifecycle audit
-/ps lifecycle selftest
+/pskills lifecycle status
+/pskills lifecycle demo
+/pskills lifecycle demo
+/pskills lifecycle coowner
+/pskills lifecycle recompute
+/pskills lifecycle revoke primary
+/pskills lifecycle revoke secondary
+/pskills lifecycle audit
+/pskills lifecycle selftest
 ```
 
 Expected behavior:
@@ -200,9 +200,9 @@ Delivered behavior:
 Maintenance example:
 
 ```text
-/ps persistence status
-/ps persistence snapshot
-/ps persistence export
+/pskills persistence status
+/pskills persistence snapshot
+/pskills persistence export
 ```
 
 Use `snapshot` before a planned upgrade. It creates a verified machine oriented snapshot. Use `export` when a human readable record is also needed for diagnosis.
@@ -210,7 +210,7 @@ Use `snapshot` before a planned upgrade. It creates a verified machine oriented 
 Death and restart example:
 
 1. Award Physique XP and buy a tree node.
-2. Run `/ps persistence status` and record both storage and transaction revisions.
+2. Run `/pskills persistence status` and record both storage and transaction revisions.
 3. Die normally and respawn. Confirm skill, paid cost, and ownership remain.
 4. Stop the server cleanly, restart, and confirm the same state.
 
@@ -234,7 +234,7 @@ The client receives sanitized definitions and its own visible state. It does not
 Status example:
 
 ```text
-/ps network status
+/pskills network status
 ```
 
 Expected healthy output includes:
@@ -248,8 +248,8 @@ It also reports definition generation, short semantic and presentation digests, 
 Recovery example:
 
 ```text
-/ps network resync
-/ps network status
+/pskills network resync
+/pskills network status
 ```
 
 Safe failure example: a client submits an ability activation created at state revision 41 after the server has advanced to 42. The server rejects the stale action, sends current state, and Safe Retry may rebuild the same safe intent after synchronization. It never trusts or reuses client supplied costs.
@@ -292,9 +292,9 @@ Level zero to one costs 100 XP units. Level one to two costs 125, then 150, and 
 Command example:
 
 ```text
-/ps xp @s progressiveskills:physique 100
-/ps skill get progressiveskills:physique
-/ps xp source @s progressiveskills:physique_training
+/pskills xp @s progressiveskills:physique 100
+/pskills skill get progressiveskills:physique
+/pskills xp source @s progressiveskills:physique_training
 ```
 
 The first command is an operator manual award. The second prints the active level, lifetime highest level, active XP, progress into the current level, next cost, banked XP, and related currency balance. The third executes the pack defined custom source amount.
@@ -342,9 +342,9 @@ Set caps high enough for the intended server economy, or omit optional caps wher
 Explanation example:
 
 ```text
-/ps rule status
-/ps rule preview progressiveskills:physique_stone_training
-/ps explain xp last
+/pskills rule status
+/pskills rule preview progressiveskills:physique_stone_training
+/pskills explain xp last
 ```
 
 ## Phase 9. Requirements and expressions
@@ -365,7 +365,7 @@ Both rows must pass because the list is an AND list. The explicit `missing = fal
 Preview example:
 
 ```text
-/ps rule preview mypack:endurance_night_training
+/pskills rule preview mypack:endurance_night_training
 ```
 
 The result states whether requirements passed, how many were checked, dependency count, calculated amount, rounding mode, and the first failure. Preview never mutates rule memory or player balances.
@@ -373,7 +373,7 @@ The result states whether requirements passed, how many were checked, dependency
 Formula example in Creator:
 
 ```text
-/ps creator simulate max(10,progressiveskills:global_points*2)
+/pskills creator simulate max(10,progressiveskills:global_points*2)
 ```
 
 The expression compiler uses a closed grammar and fixed point arithmetic. Unknown dependencies, overflow, invalid arity, unsupported functions, and malformed input fail before runtime execution.
@@ -394,19 +394,19 @@ Important guarantees:
 Starter workflow:
 
 ```text
-/ps tree list
-/ps tree info progressiveskills:physique_training
-/ps tree preview buy progressiveskills:physique_training progressiveskills:physique_training/conditioning
-/ps tree buy progressiveskills:physique_training progressiveskills:physique_training/conditioning
-/ps tree preview buy progressiveskills:physique_training progressiveskills:physique_training/resilience
-/ps tree buy progressiveskills:physique_training progressiveskills:physique_training/resilience
-/ps tree preview refund progressiveskills:physique_training progressiveskills:physique_training/conditioning
+/pskills tree list
+/pskills tree info progressiveskills:physique_training
+/pskills tree preview buy progressiveskills:physique_training progressiveskills:physique_training/conditioning
+/pskills tree buy progressiveskills:physique_training progressiveskills:physique_training/conditioning
+/pskills tree preview buy progressiveskills:physique_training progressiveskills:physique_training/resilience
+/pskills tree buy progressiveskills:physique_training progressiveskills:physique_training/resilience
+/pskills tree preview refund progressiveskills:physique_training progressiveskills:physique_training/conditioning
 ```
 
 The refund preview for Conditioning includes Resilience because Resilience depends on it. Copy the preview digest into:
 
 ```text
-/ps tree refund progressiveskills:physique_training progressiveskills:physique_training/conditioning <digest>
+/pskills tree refund progressiveskills:physique_training progressiveskills:physique_training/conditioning <digest>
 ```
 
 Safe failure example: if a price, requirement, ownership record, definition digest, or player revision changes between preview and confirmation, the digest no longer matches and nothing is refunded.
@@ -429,12 +429,12 @@ Warrior and Scholar each cost one slot, so both fit. Their `Student of War` syne
 Workflow:
 
 ```text
-/ps class list
-/ps class preview select progressiveskills:warrior
-/ps class select progressiveskills:warrior
-/ps class select progressiveskills:scholar
-/ps class entitlements
-/ps ability list
+/pskills class list
+/pskills class preview select progressiveskills:warrior
+/pskills class select progressiveskills:warrior
+/pskills class select progressiveskills:scholar
+/pskills class entitlements
+/pskills ability list
 ```
 
 Expected result:
@@ -447,8 +447,8 @@ Expected result:
 Respec example:
 
 ```text
-/ps class preview respec progressiveskills:warrior
-/ps class respec progressiveskills:warrior <digest>
+/pskills class preview respec progressiveskills:warrior
+/pskills class respec progressiveskills:warrior <digest>
 ```
 
 Safe ownership behavior: if another class or tree also owns an ability, removing Warrior removes only the Warrior source. The ability remains owned until its final source disappears.
@@ -471,11 +471,11 @@ Supported Core behavior includes:
 Second Wind example:
 
 ```text
-/ps ability info progressiveskills:second_wind
-/ps ability assign progressiveskills:second_wind 1
-/ps ability select 1
-/ps ability activate 1
-/ps ability status
+/pskills ability info progressiveskills:second_wind
+/pskills ability assign progressiveskills:second_wind 1
+/pskills ability select 1
+/pskills ability activate 1
+/pskills ability status
 ```
 
 The server checks ownership, assignment, target, hunger cost, charge, and cooldown before committing. A successful activation spends four hunger points, consumes a charge, starts the recovery cooldown, sends a message, heals four health points, and applies Speed for 100 ticks.
@@ -485,8 +485,8 @@ Immediate second activation is rejected by cooldown without spending another cha
 Toggle example:
 
 ```text
-/ps ability assign progressiveskills:warrior_guard 2
-/ps ability toggle progressiveskills:warrior_guard
+/pskills ability assign progressiveskills:warrior_guard 2
+/pskills ability toggle progressiveskills:warrior_guard
 ```
 
 The armor and guarding flag appear only while the toggle is active and owned.
@@ -508,27 +508,27 @@ The server behavior archive retains canonical snapshots by digest. Existing item
 Workflow:
 
 ```text
-/ps item list
-/ps item info progressiveskills:tome_of_physique
-/ps give @s progressiveskills:tome_of_physique 1
-/ps item held
-/ps item archive status
-/ps item archive verify
+/pskills item list
+/pskills item info progressiveskills:tome_of_physique
+/pskills give @s progressiveskills:tome_of_physique 1
+/pskills item held
+/pskills item archive status
+/pskills item archive verify
 ```
 
 Full inventory example:
 
 1. Fill every inventory slot.
-2. Run `/ps give @s progressiveskills:tome_of_physique 1`.
+2. Run `/pskills give @s progressiveskills:tome_of_physique 1`.
 3. Delivery creates a durable pending claim when configured for `pending_claim`.
-4. Run `/ps claim list`.
-5. Free a slot and run `/ps claim take all`.
+4. Run `/pskills claim list`.
+5. Free a slot and run `/pskills claim take all`.
 
 Migration example:
 
 ```text
-/ps item migrate held preview
-/ps item migrate held confirm <preview_digest>
+/pskills item migrate held preview
+/pskills item migrate held confirm <preview_digest>
 ```
 
 Safe failure example: edited components, repeated unique use counters, missing archive digests, stale migration previews, and client supplied behavior bodies fail closed.
@@ -590,13 +590,13 @@ Modes:
 Commands:
 
 ```text
-/ps compatibility status
-/ps compatibility profile list
-/ps compatibility profile active
-/ps compatibility profile mypack:default_compatibility
-/ps compatibility profile strict
-/ps compatibility profile preferred
-/ps compatibility profile fallback
+/pskills compatibility status
+/pskills compatibility profile list
+/pskills compatibility profile active
+/pskills compatibility profile mypack:default_compatibility
+/pskills compatibility profile strict
+/pskills compatibility profile preferred
+/pskills compatibility profile fallback
 ```
 
 Provider self tests are bounded and nonmutating. Repeated provider failures open a circuit breaker. External integrations in the compatibility matrix remain unavailable until an exact artifact and supported range pass absent and present mod tests.
@@ -608,8 +608,8 @@ Phase 16 added operations tooling and final release gates.
 Doctor example:
 
 ```text
-/ps doctor
-/ps doctor json
+/pskills doctor
+/pskills doctor json
 ```
 
 The readable form checks pack generation, transaction availability, carrier archive integrity, providers, performance guard state, player network session, and player data. The JSON form is suitable for log capture and external diagnostics.
@@ -617,8 +617,8 @@ The readable form checks pack generation, transaction availability, carrier arch
 Decision explanation:
 
 ```text
-/ps why latest
-/ps why verbose
+/pskills why latest
+/pskills why verbose
 ```
 
 The latest accepted or rejected XP, ability, social, or other recorded decision includes category, subject, allow or deny state, reason, time, and state revision.
@@ -626,8 +626,8 @@ The latest accepted or rejected XP, ability, social, or other recorded decision 
 Reproduction example:
 
 ```text
-/ps reproduce export
-/ps reproduce replay reproduction_<bundle_id>.json
+/pskills reproduce export
+/pskills reproduce replay reproduction_<bundle_id>.json
 ```
 
 The bundle captures a redacted bounded state, definition digest, seed, decision events, and per event state revisions. Replay uses only the captured bundle state. It never reads the current live player to decide whether the historical event should match.
@@ -635,7 +635,7 @@ The bundle captures a redacted bounded state, definition digest, seed, decision 
 Performance example:
 
 ```text
-/ps perf smoke
+/pskills perf smoke
 ```
 
 The locked PERF 001 driver compiles 10000 real rule definitions with five matchers each, compiled requirements, and rule stack resolution. It executes fixed 40 and 100 player warmup and capture schedules and reports percentile timing.
@@ -643,12 +643,12 @@ The locked PERF 001 driver compiles 10000 real rule definitions with five matche
 Persistent final test:
 
 ```text
-/ps check start
-/ps check pass natural stone awarded expected XP
-/ps check fail ability wheel did not open
-/ps check status
-/ps check finish
-/ps check export
+/pskills check start
+/pskills check pass natural stone awarded expected XP
+/pskills check fail ability wheel did not open
+/pskills check status
+/pskills check finish
+/pskills check export
 ```
 
 The checklist is stored with the world and can resume after restart.
@@ -693,18 +693,18 @@ decay_interval_ticks = 200
 Commands:
 
 ```text
-/ps resource get mypack:focus
-/ps resource add mypack:focus 10
+/pskills resource get mypack:focus
+/pskills resource add mypack:focus 10
 ```
 
 Build example:
 
 ```text
-/ps loadout save mypack:boss_build
-/ps loadout code mypack:boss_build
-/ps build code
-/ps build inspect <code>
-/ps build apply <code>
+/pskills loadout save mypack:boss_build
+/pskills loadout code mypack:boss_build
+/pskills build code
+/pskills build inspect <code>
+/pskills build apply <code>
 ```
 
 Build codes contain a definition digest plus desired classes, tree nodes, and ability assignments. Apply creates one combined revision checked transaction. A code from another definition digest is rejected rather than partially applied.
@@ -712,9 +712,9 @@ Build codes contain a definition digest plus desired classes, tree nodes, and ab
 Training example:
 
 ```text
-/ps contract assign mypack:daily_training
-/ps contract status
-/ps contract progress mypack:daily_training progressiveskills:physique 5
+/pskills contract assign mypack:daily_training
+/pskills contract status
+/pskills contract progress mypack:daily_training progressiveskills:physique 5
 ```
 
 Contract selection and goal are deterministic for the definition, player, and assignment epoch. Repeating the same epoch cannot reroll a better task.
@@ -726,12 +726,12 @@ Phase 18 added native provider backed parties and teams, contribution accounting
 Party example with Alice and Bob:
 
 ```text
-Alice: /ps party create Dungeon Team
-Alice: /ps party invite Bob
-Bob:   /ps party accept
-Alice: /ps party ready true
-Bob:   /ps party ready true
-Both:  /ps party readiness
+Alice: /pskills party create Dungeon Team
+Alice: /pskills party invite Bob
+Bob:   /pskills party accept
+Alice: /pskills party ready true
+Bob:   /pskills party ready true
+Both:  /pskills party readiness
 ```
 
 Each player controls whether role, build, resources, and cooldown readiness are visible. Readiness displays only consented categories.
@@ -739,8 +739,8 @@ Each player controls whether role, build, resources, and cooldown readiness are 
 Shared award example:
 
 ```text
-/ps contribution share mypack:boss_defeat 1000
-/ps contribution receipts
+/pskills contribution share mypack:boss_defeat 1000
+/pskills contribution receipts
 ```
 
 The allocator produces bounded contribution receipts explaining the source, total, shares, and privacy safe calculation. It does not expose another player's private progression state.
@@ -748,9 +748,9 @@ The allocator produces bounded contribution receipts explaining the source, tota
 Consent transfer example:
 
 ```text
-Alice: /ps transfer offer Bob progressiveskills:global_points 5
-Bob:   /ps transfer accept
-Bob:   /ps transfer wallet progressiveskills:global_points
+Alice: /pskills transfer offer Bob progressiveskills:global_points 5
+Bob:   /pskills transfer accept
+Bob:   /pskills transfer wallet progressiveskills:global_points
 ```
 
 No currency moves at offer time. Acceptance rechecks both parties and current balances.
@@ -758,10 +758,10 @@ No currency moves at offer time. Acceptance rechecks both parties and current ba
 Season example:
 
 ```text
-/ps season status
-/ps season score Alice mypack:physique_season 250
-/ps season leaderboard mypack:physique_season 10
-/ps season rollover mypack:summer 2
+/pskills season status
+/pskills season score Alice mypack:physique_season 250
+/pskills season leaderboard mypack:physique_season 10
+/pskills season rollover mypack:summer 2
 ```
 
 Leaderboard privacy is honored. Rollover is epoch pinned and replay safe.
@@ -789,14 +789,14 @@ Core concepts:
 Text workflow:
 
 ```text
-/ps studio draft create mypack Balance Update
-/ps studio draft list
-/ps studio draft status <draft_id>
-/ps studio file put <draft_id> 0 skills/endurance.json {"schema_version":2,"skill":{"id":"mypack:endurance","display":{"fallback":"Endurance"},"description":{"fallback":"Sustained physical effort."},"icon":{"type":"item","value":"minecraft:leather_boots","fallback":"minecraft:barrier","alt":"Leather boots"},"enabled":true,"max_level":10,"overflow":"bank","negative_xp_policy":"deny"},"curve":{"type":"linear","base":100,"step":25,"rounding":"ceil"}}
-/ps studio lint <draft_id>
-/ps studio diff <draft_id>
-/ps studio history <draft_id>
-/ps studio publish <draft_id> <revision> <lint_digest>
+/pskills studio draft create mypack Balance Update
+/pskills studio draft list
+/pskills studio draft status <draft_id>
+/pskills studio file put <draft_id> 0 skills/endurance.json {"schema_version":2,"skill":{"id":"mypack:endurance","display":{"fallback":"Endurance"},"description":{"fallback":"Sustained physical effort."},"icon":{"type":"item","value":"minecraft:leather_boots","fallback":"minecraft:barrier","alt":"Leather boots"},"enabled":true,"max_level":10,"overflow":"bank","negative_xp_policy":"deny"},"curve":{"type":"linear","base":100,"step":25,"rounding":"ceil"}}
+/pskills studio lint <draft_id>
+/pskills studio diff <draft_id>
+/pskills studio history <draft_id>
+/pskills studio publish <draft_id> <revision> <lint_digest>
 ```
 
 Create returns a random stable id in the form `mypack:studio/<uuid>`. Copy that complete value as `<draft_id>`. The successful file write returns a new revision. Use that revision for later writes. Lint returns the digest that publish requires. Never use an older revision or a digest from an earlier draft state.
@@ -804,9 +804,9 @@ Create returns a random stable id in the form `mypack:studio/<uuid>`. Copy that 
 Rollback and export:
 
 ```text
-/ps studio rollback <draft_id> <current_revision>
-/ps studio export <draft_id>
-/ps studio import imported_namespace <file.pspack> Imported Pack
+/pskills studio rollback <draft_id> <current_revision>
+/pskills studio export <draft_id>
+/pskills studio import imported_namespace <file.pspack> Imported Pack
 ```
 
 Visual workflow:
@@ -822,10 +822,10 @@ Visual workflow:
 Studio recorder example:
 
 ```text
-/ps studio record start
-/ps studio record mark xp progressiveskills:physique 100
-/ps studio record mark ability progressiveskills:second_wind 1
-/ps studio record stop <draft_id> <revision> mypack:second_wind_fixture
+/pskills studio record start
+/pskills studio record mark xp progressiveskills:physique 100
+/pskills studio record mark ability progressiveskills:second_wind 1
+/pskills studio record stop <draft_id> <revision> mypack:second_wind_fixture
 ```
 
 The recorder writes a redacted declarative fixture into the draft. It never publishes the recording directly.
@@ -834,9 +834,9 @@ The recorder writes a redacted declarative fixture into the draft. It never publ
 
 This scenario crosses the complete stack:
 
-1. Boot the verified Phase 19 JAR and confirm `/ps status`.
+1. Boot the verified Phase 19 JAR and confirm `/pskills status`.
 2. Publish a pack with one skill, rule, tree, class, ability, carrier, and multiplayer profile.
-3. Break a natural block and inspect `/ps explain xp last`.
+3. Break a natural block and inspect `/pskills explain xp last`.
 4. Confirm fixed point XP commits and persists.
 5. Spend the highest level currency on a tree node.
 6. Select a class that owns an ability.
@@ -847,6 +847,6 @@ This scenario crosses the complete stack:
 11. Save a loadout and apply its build code after a state change.
 12. Author a Studio draft, lint it, publish its confirmed digest, and verify the client receives the new generation.
 13. Export and replay a reproduction bundle for the session.
-14. Complete `/ps check`, export the report, and retain it with the tested JAR checksum.
+14. Complete `/pskills check`, export the report, and retain it with the tested JAR checksum.
 
 If any stage fails, capture the exact command, expected result, observed result, latest client and server logs, and whether relog or restart changes the behavior.

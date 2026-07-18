@@ -43,7 +43,7 @@ public final class HardeningCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("doctor")
                         .executes(context -> doctor(context.getSource(), false))
                         .then(Commands.literal("json").executes(context -> doctor(context.getSource(), true))))

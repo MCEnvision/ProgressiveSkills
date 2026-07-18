@@ -46,7 +46,7 @@ An `IdempotencyKey` is a bounded caller identity. The service stores terminal re
 
 The online cache is capped at 256 loaded accounts. Each persisted account is capped at 512 exact transition receipts, 512 retained idempotency results, 256 retained audit records, and the configured paid-cost ceiling. Replay and audit records compact oldest first. Permanent receipts and paid-cost records are not evicted. Every candidate transaction preflights the complete actual attachment, including definition state, operation receipts, migration evidence, extensions, and the candidate transaction state. A candidate that cannot fit the 16,384 tag or 1 MiB attachment ceiling rejects before projection or mutation.
 
-The Phase 4 demo uses a stable primary key. Running `/ps lifecycle demo` twice therefore cannot add another point, item, health owner, revision, or audit mutation.
+The Phase 4 demo uses a stable primary key. Running `/pskills lifecycle demo` twice therefore cannot add another point, item, health owner, revision, or audit mutation.
 
 ## Checked balances and cascades
 
@@ -104,14 +104,14 @@ A successful rollback is a new transaction with a new, greater state revision. I
 
 | Command | Purpose |
 |---|---|
-| `/ps lifecycle status` | Show persisted revision, demo points, health bonus/owner count, receipts, and audit count. |
-| `/ps lifecycle demo` | Commit or replay the primary point + health-owner + gold-ingot transaction. |
-| `/ps lifecycle coowner` | Add a second equal owner without stacking the `highest` value. |
-| `/ps lifecycle recompute` | Re-resolve persistent owners and prove zero transition execution. |
-| `/ps lifecycle revoke primary` | Remove only the primary health source. |
-| `/ps lifecycle revoke secondary` | Remove only the secondary health source. |
-| `/ps lifecycle audit` | Show the latest bounded transaction records. |
-| `/ps lifecycle selftest` | Run a player-independent executable invariant proof; usable from GameTest/console. |
+| `/pskills lifecycle status` | Show persisted revision, demo points, health bonus/owner count, receipts, and audit count. |
+| `/pskills lifecycle demo` | Commit or replay the primary point + health-owner + gold-ingot transaction. |
+| `/pskills lifecycle coowner` | Add a second equal owner without stacking the `highest` value. |
+| `/pskills lifecycle recompute` | Re-resolve persistent owners and prove zero transition execution. |
+| `/pskills lifecycle revoke primary` | Remove only the primary health source. |
+| `/pskills lifecycle revoke secondary` | Remove only the secondary health source. |
+| `/pskills lifecycle audit` | Show the latest bounded transaction records. |
+| `/pskills lifecycle selftest` | Run a player-independent executable invariant proof; usable from GameTest/console. |
 
 All player-mutating lifecycle commands require an in-game operator and execute on that player. The fixture is a development checkpoint, not pack content or a supported player progression system. Phase 5 preserves its account state across clean unload, restart, and death replacement.
 
@@ -119,13 +119,13 @@ All player-mutating lifecycle commands require an in-game operator and execute o
 
 Use a cheats-enabled development world with at least one free inventory slot:
 
-1. `/ps lifecycle status` — expect revision 0, 0 demo points, 0 health bonus, and 0 owners.
-2. `/ps lifecycle demo` — expect revision 1, 1 point, a +4 max-health bonus (two hearts), one owner, one receipt, and exactly one gold ingot.
-3. Run `/ps lifecycle demo` again — expect `Idempotent replay`, the same transaction ID/revision, and no additional point, item, owner, or receipt.
-4. Run `/ps lifecycle recompute` twice — expect 0 persistent changes and 0 transition actions both times.
-5. `/ps lifecycle coowner` — expect revision 2 and two owners, but the `highest` resolver keeps the bonus at +4 rather than +8.
-6. `/ps lifecycle revoke primary` — expect revision 3, one owner, and the +4 bonus still active.
-7. `/ps lifecycle revoke secondary` — expect revision 4, zero owners, and the bonus removed.
-8. `/ps lifecycle audit` — expect four committed mutation records; replay and recompute do not add mutation records.
+1. `/pskills lifecycle status` — expect revision 0, 0 demo points, 0 health bonus, and 0 owners.
+2. `/pskills lifecycle demo` — expect revision 1, 1 point, a +4 max-health bonus (two hearts), one owner, one receipt, and exactly one gold ingot.
+3. Run `/pskills lifecycle demo` again — expect `Idempotent replay`, the same transaction ID/revision, and no additional point, item, owner, or receipt.
+4. Run `/pskills lifecycle recompute` twice — expect 0 persistent changes and 0 transition actions both times.
+5. `/pskills lifecycle coowner` — expect revision 2 and two owners, but the `highest` resolver keeps the bonus at +4 rather than +8.
+6. `/pskills lifecycle revoke primary` — expect revision 3, one owner, and the +4 bonus still active.
+7. `/pskills lifecycle revoke secondary` — expect revision 4, zero owners, and the bonus removed.
+8. `/pskills lifecycle audit` — expect four committed mutation records; replay and recompute do not add mutation records.
 
 The original Phase 4 command sequence is accepted. The Phase 5 restart/death extension is the manual checkpoint in [PERSISTENCE_AND_MIGRATIONS.md](PERSISTENCE_AND_MIGRATIONS.md#manual-in-game-checkpoint).

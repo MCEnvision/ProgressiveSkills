@@ -121,9 +121,9 @@ The following twenty features extend the planned phases. They are part of the de
 
 ### Command and accessibility features
 
-16. `/ps doctor` provides pack, compatibility, network, and data checks in readable and JSON forms.
-17. `/ps check` provides a resumable mass test runner with start, next, pass, fail, status, finish, and export operations.
-18. `/ps why` explains the latest XP, lock, stat, or ability decision in short and verbose narrator friendly forms.
+16. `/pskills doctor` provides pack, compatibility, network, and data checks in readable and JSON forms.
+17. `/pskills check` provides a resumable mass test runner with start, next, pass, fail, status, finish, and export operations.
+18. `/pskills why` explains the latest XP, lock, stat, or ability decision in short and verbose narrator friendly forms.
 19. Chat only social commands cover party invitations, readiness, consent transfers, and privacy without requiring a mouse.
 20. Text Studio commands cover draft status, lint, diff, history, validation, publish confirmation, command palette access, and text graph export.
 

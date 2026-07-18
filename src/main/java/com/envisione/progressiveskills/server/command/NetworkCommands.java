@@ -21,7 +21,7 @@ public final class NetworkCommands {
 
     @SubscribeEvent
     static void onRegisterCommands(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("network").requires(source -> source.hasPermission(2))
                         .then(Commands.literal("status")
                                 .executes(context -> status(context.getSource())))
@@ -55,7 +55,7 @@ public final class NetworkCommands {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         NetworkRuntime.begin(player);
-        success(source, "Started a fresh digest-bound handshake; run /ps network status after the ACK completes");
+        success(source, "Started a fresh digest-bound handshake; run /pskills network status after the ACK completes");
         return 1;
     }
 

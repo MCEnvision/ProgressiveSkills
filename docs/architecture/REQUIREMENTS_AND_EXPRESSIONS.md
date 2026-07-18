@@ -121,7 +121,7 @@ The evaluator returns a typed result independently of whether the caller intends
 
 Preview is read-only and uses an immutable actor snapshot. It cannot reserve, spend, award, update cooldowns, or consume first-time state. Commit-time code must evaluate against the current authoritative snapshot and still perform the award through the normal transaction; a preview result is never a transaction permit.
 
-`/ps explain xp last` consumes the same bounded result produced by the live route. Player-facing output may redact server-only values while preserving a safe reason code. Future UI, Creator simulation, and Studio inspection may call the preview hook without creating a second evaluator.
+`/pskills explain xp last` consumes the same bounded result produced by the live route. Player-facing output may redact server-only values while preserving a safe reason code. Future UI, Creator simulation, and Studio inspection may call the preview hook without creating a second evaluator.
 
 ## Phase boundary
 

@@ -14,7 +14,7 @@ authoring source (Phase 3 TOML; later adapters follow)
   -> semanticProjection() without provenance
 ```
 
-The historical Phase 2 boundary excluded TOML discovery and parsing, pack manifests, merge and patch, staged publication, and `/ps` commands. Phase 3 supplies those consumers without changing the immutable IR contract. Later phases register transaction, persistence, networking, skill, rule, tree, class, ability, and carrier metadata. Creator and multiplayer definitions normalize generic bounded values into the same IR, and Studio TOML or JSON sources must compile to the same semantic representation before publication.
+The historical Phase 2 boundary excluded TOML discovery and parsing, pack manifests, merge and patch, staged publication, and `/pskills` commands. Phase 3 supplies those consumers without changing the immutable IR contract. Later phases register transaction, persistence, networking, skill, rule, tree, class, ability, and carrier metadata. Creator and multiplayer definitions normalize generic bounded values into the same IR, and Studio TOML or JSON sources must compile to the same semantic representation before publication.
 
 ## Delivery boundary against plan §§33.4–33.5
 

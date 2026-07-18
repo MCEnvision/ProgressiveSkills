@@ -129,15 +129,15 @@ Phase 11 does not add a class screen. The command surface must remain sufficient
 
 | Command | Result |
 | --- | --- |
-| `/ps class list` | Lists slots, occupancy, selected state, and available class IDs in stable order. |
-| `/ps class info <class>` | Describes slot use, requirements, costs, starter kit, grants, synergies, and current status. |
-| `/ps class preview select <class>` | Shows all public blockers and exact selection charges without mutation. |
-| `/ps class select <class>` | Selects through the authoritative transaction planner. |
-| `/ps class preview respec <class>` | Shows affected classes, synergies, grants, and charges plus a confirmation digest. |
-| `/ps class respec <class> <digest>` | Rebuilds and commits the exact current respec plan. |
-| `/ps class preview swap <old> <new>` | Shows the complete atomic replacement plan and digest. |
-| `/ps class swap <old> <new> <digest>` | Rebuilds and commits the exact current swap plan. |
-| `/ps class entitlements` | Lists effective class and synergy grant summaries without raw source internals. |
+| `/pskills class list` | Lists slots, occupancy, selected state, and available class IDs in stable order. |
+| `/pskills class info <class>` | Describes slot use, requirements, costs, starter kit, grants, synergies, and current status. |
+| `/pskills class preview select <class>` | Shows all public blockers and exact selection charges without mutation. |
+| `/pskills class select <class>` | Selects through the authoritative transaction planner. |
+| `/pskills class preview respec <class>` | Shows affected classes, synergies, grants, and charges plus a confirmation digest. |
+| `/pskills class respec <class> <digest>` | Rebuilds and commits the exact current respec plan. |
+| `/pskills class preview swap <old> <new>` | Shows the complete atomic replacement plan and digest. |
+| `/pskills class swap <old> <new> <digest>` | Rebuilds and commits the exact current swap plan. |
+| `/pskills class entitlements` | Lists effective class and synergy grant summaries without raw source internals. |
 
 Output uses stable line order, explicit Active, Suspended, Available, and Blocked words, short readable messages, and no color only meaning. Commands remain usable without a mouse. The Phase 14 class panel calls the same server intent and projection contracts rather than creating another authority path.
 

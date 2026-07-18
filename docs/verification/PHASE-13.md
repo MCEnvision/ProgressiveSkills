@@ -21,13 +21,13 @@ See [Phase 13 in the complete guide](../guides/PHASES-1-19.md#phase-13-carrier-i
 Focused workflow:
 
 ```text
-/ps item list
-/ps item info progressiveskills:tome_of_physique
-/ps give @s progressiveskills:tome_of_physique 1
-/ps item held
-/ps item archive verify
-/ps claim list
-/ps claim take all
+/pskills item list
+/pskills item info progressiveskills:tome_of_physique
+/pskills give @s progressiveskills:tome_of_physique 1
+/pskills item held
+/pskills item archive verify
+/pskills claim list
+/pskills claim take all
 ```
 
 Automated evidence, release JAR identity, and the final player checklist are recorded in [PHASE-19.md](PHASE-19.md).

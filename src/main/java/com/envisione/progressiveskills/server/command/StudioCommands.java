@@ -27,7 +27,7 @@ public final class StudioCommands {
 
     @SubscribeEvent
     static void register(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("ps")
+        event.getDispatcher().register(Commands.literal("pskills")
                 .then(Commands.literal("studio").requires(source -> source.hasPermission(4))
                         .then(Commands.literal("draft")
                                 .then(Commands.literal("create")
@@ -283,7 +283,7 @@ public final class StudioCommands {
     }
 
     private static int palette(CommandSourceStack source) {
-        success(source, "Open the command palette key and choose Studio actions or use ps studio commands.");
+        success(source, "Open the command palette key and choose Studio actions or use pskills studio commands.");
         return 1;
     }
 
