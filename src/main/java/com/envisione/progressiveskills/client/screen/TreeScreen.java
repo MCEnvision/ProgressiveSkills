@@ -9,7 +9,6 @@ import com.envisione.progressiveskills.common.skill.SkillStateIds;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -20,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public final class TreeScreen extends Screen {
+public final class TreeScreen extends ProgressiveScreen {
     private static final int GRID_TOP = 62;
     private static final int NODE_WIDTH = 138;
     private static final int NODE_HEIGHT = 20;
@@ -165,7 +164,7 @@ public final class TreeScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xB8101010);
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
         if (!trees.isEmpty()) {

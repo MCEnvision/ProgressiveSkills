@@ -4,13 +4,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public final class StudioCurveScreen extends Screen {
+public final class StudioCurveScreen extends ProgressiveScreen {
     private final String draft;
     private final String revision;
     private final String definition;
@@ -47,7 +46,7 @@ public final class StudioCurveScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xEE151515);
         graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
         graphics.drawString(font, Component.literal(status), 96, 62, 0xFFCC66, false);

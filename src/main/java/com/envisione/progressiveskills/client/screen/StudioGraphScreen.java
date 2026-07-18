@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -15,7 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class StudioGraphScreen extends Screen {
+public final class StudioGraphScreen extends ProgressiveScreen {
     private final ResourceLocation draftId;
     private final ResourceLocation definitionId;
     private final String display;
@@ -86,7 +85,7 @@ public final class StudioGraphScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xEE151515);
         graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
         graphics.drawString(font, Component.literal(status), 10, 80, 0xFFCC66, false);

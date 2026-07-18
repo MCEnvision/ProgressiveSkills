@@ -4,10 +4,9 @@ import com.envisione.progressiveskills.client.SafeRetryTray;
 import com.envisione.progressiveskills.common.network.PsNetworking;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class AbilityWheelScreen extends Screen {
+public final class AbilityWheelScreen extends ProgressiveScreen {
     public AbilityWheelScreen() {
         super(Component.translatable("screen.progressiveskills.ability_wheel.title"));
     }
@@ -38,7 +37,7 @@ public final class AbilityWheelScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xD8101010);
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
         graphics.drawCenteredString(font,

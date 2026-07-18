@@ -3,10 +3,9 @@ package com.envisione.progressiveskills.client.screen;
 import com.envisione.progressiveskills.client.ClientPreferences;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class HudEditorScreen extends Screen {
+public final class HudEditorScreen extends ProgressiveScreen {
     public HudEditorScreen() {
         super(Component.literal("Progression HUD Editor"));
     }
@@ -52,7 +51,7 @@ public final class HudEditorScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xE8181818);
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
         String position = "Offset " + ClientPreferences.hudOffsetX() + ", "

@@ -6,6 +6,8 @@ This checkpoint contains the cumulative carrier, baseline UI, compatibility prov
 
 The command root is `/pskills`. ProgressiveSkills does not register `/ps`, so another installed mod can own that shorter command without a collision.
 
+Every ProgressiveSkills screen performs the menu background blur once before rendering its panels, text, widgets, and tooltips. Enabling Menu Background Blur therefore keeps the world behind the screen blurred while the complete menu remains sharp.
+
 ## Automated gate
 
 | Check | Status | Evidence |
@@ -19,7 +21,7 @@ The command root is `/pskills`. ProgressiveSkills does not register `/ps`, so an
 | NeoForge GameTest | pass | Both required cumulative GameTests passed. |
 | Dedicated server | pass | Dedicated server startup and forbidden error scan passed. |
 | Client | pass | Headless client reached the title screen and passed the forbidden error scan. |
-| Release JAR | pass | `progressiveskills-phase-19.jar`, 2075906 bytes, SHA 256 `a01ce657d4ae0a0ca4d593ba3006c174bf47b72eabc1e53ba693641afed654a2`. Archive verification passed. |
+| Release JAR | pass | `progressiveskills-phase-19.jar`, 2076680 bytes, SHA 256 `61422d5bf4bab04e9dc024bc632724736b0602a79ffe4b28756017131e089d93`. Archive verification passed. |
 
 ## Player mass check
 

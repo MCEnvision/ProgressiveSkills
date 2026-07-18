@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.Locale;
 
-public final class CommandPaletteScreen extends Screen {
+public final class CommandPaletteScreen extends ProgressiveScreen {
     private static final List<Action> ACTIONS = List.of(
             new Action("Open progression", () -> open(new ProgressionScreen())),
             new Action("Open skill trees", () -> open(new TreeScreen())),
@@ -70,7 +70,7 @@ public final class CommandPaletteScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         graphics.fill(6, 6, width - 6, height - 6, 0xE8101010);
         graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
         super.render(graphics, mouseX, mouseY, partialTick);

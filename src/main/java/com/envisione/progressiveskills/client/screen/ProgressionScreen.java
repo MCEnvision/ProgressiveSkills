@@ -15,7 +15,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -28,7 +27,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public final class ProgressionScreen extends Screen {
+public final class ProgressionScreen extends ProgressiveScreen {
     private Tab tab;
     private int page;
     private int selected;
@@ -127,7 +126,7 @@ public final class ProgressionScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         int alpha = ClientPreferences.reducedMotion() ? 0xE8 : Math.min(0xE8, 0x88 + openTicks * 5);
         int background = ClientPreferences.highContrast() ? 0xF0000000 : alpha << 24 | 0x181818;
         graphics.fill(4, 4, width - 4, height - 4, background);
