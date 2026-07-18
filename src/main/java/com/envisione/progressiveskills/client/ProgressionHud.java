@@ -28,8 +28,11 @@ public final class ProgressionHud {
 
     private static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!ClientPreferences.hudEnabled() || minecraft.options.hideGui || minecraft.player == null
-                || minecraft.screen != null) {
+        if (minecraft.options.hideGui || minecraft.player == null || minecraft.screen != null) {
+            return;
+        }
+        AbilityWheelOverlay.render(graphics);
+        if (!ClientPreferences.hudEnabled() || AbilityWheelOverlay.isActive()) {
             return;
         }
         var state = PsNetworking.clientSnapshot().visibleState();

@@ -38,6 +38,7 @@
   "screen.progressiveskills.tree.status.owned": "Owned",
   "screen.progressiveskills.tree.status.available": "Available",
   "screen.progressiveskills.tree.status.locked": "Locked",
+  "screen.progressiveskills.tree.status.suspended": "Suspended",
   "screen.progressiveskills.tree.cost": "Cost %s %s",
   "screen.progressiveskills.tree.currency_minimum": "Balance cannot fall below %s",
   "screen.progressiveskills.tree.requires": "Requires %s",
@@ -52,4 +53,15 @@
   ,"screen.progressiveskills.palette.search": "Search actions"
   ,"screen.progressiveskills.ability_wheel.title": "Ability Wheel"
   ,"screen.progressiveskills.ability_wheel.hint": "Choose a ready ability"
+  ,"screen.progressiveskills.ability_wheel.release": "Release to select"
+  ,"screen.progressiveskills.ability_wheel.choose": "Choose an assigned ability"
+  ,"screen.progressiveskills.ability_wheel.empty": "Slot %s is empty"
+  ,"screen.progressiveskills.ability_wheel.unavailable": "Unavailable"
+  ,"screen.progressiveskills.ability_wheel.dead_zone": "Center dead zone"
+  ,"screen.progressiveskills.ability_wheel.state_unavailable": "%s. State unavailable"
+  ,"screen.progressiveskills.ability_wheel.ready": "%s. Ready"
+  ,"screen.progressiveskills.ability_wheel.cooldown": "%s. Cooldown %s"
+  ,"screen.progressiveskills.ability_wheel.no_charges": "%s. No charges"
+  ,"screen.progressiveskills.action_changed": "That action is no longer available. The menu state was refreshed."
+  ,"screen.progressiveskills.tab.selected": "Selected tab."
 }

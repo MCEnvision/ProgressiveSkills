@@ -16,7 +16,6 @@ public final class CommandPaletteScreen extends ProgressiveScreen {
     private static final List<Action> ACTIONS = List.of(
             new Action("Open progression", () -> open(new ProgressionScreen())),
             new Action("Open skill trees", () -> open(new TreeScreen())),
-            new Action("Open ability wheel", () -> open(new AbilityWheelScreen())),
             new Action("Run doctor", () -> command("pskills doctor")),
             new Action("Explain latest decision", () -> command("pskills why latest")),
             new Action("Open test center", () -> open(new ProgressionScreen(ProgressionScreen.Tab.TESTS))),
@@ -33,6 +32,7 @@ public final class CommandPaletteScreen extends ProgressiveScreen {
 
     private EditBox search;
     private String query = "";
+    private int page;
 
     public CommandPaletteScreen() {
         super(Component.translatable("screen.progressiveskills.palette.title"));
@@ -40,40 +40,54 @@ public final class CommandPaletteScreen extends ProgressiveScreen {
 
     @Override
     protected void init() {
-        search = new EditBox(font, Math.max(8, width / 2 - 120), 30, 240, 20,
+        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
+        search = new EditBox(font, frame.contentX() + 4, frame.contentY() + 4, 226, 18,
                 Component.translatable("screen.progressiveskills.palette.search"));
         search.setValue(query);
         search.setResponder(value -> {
             if (!value.equals(query)) {
                 query = value;
+                page = 0;
                 rebuildWidgets();
             }
         });
         addRenderableWidget(search);
         setInitialFocus(search);
         String normalized = query.strip().toLowerCase(Locale.ROOT);
-        int y = 58;
-        for (Action action : ACTIONS) {
-            if (!normalized.isEmpty() && !action.label().toLowerCase(Locale.ROOT).contains(normalized)) {
-                continue;
-            }
+        List<Action> filtered = ACTIONS.stream().filter(action -> normalized.isEmpty()
+                || action.label().toLowerCase(Locale.ROOT).contains(normalized)).toList();
+        int pageSize = 4;
+        int pages = Math.max(1, (filtered.size() + pageSize - 1) / pageSize);
+        page = Math.clamp(page, 0, pages - 1);
+        int y = frame.contentY() + 26;
+        for (Action action : filtered.stream().skip((long) page * pageSize).limit(pageSize).toList()) {
             addRenderableWidget(Button.builder(Component.literal(action.label()), button -> action.run())
-                    .bounds(Math.max(8, width / 2 - 120), y, 240, 20).build());
-            y += 24;
-            if (y > height - 34) {
-                break;
-            }
+                    .bounds(frame.contentX() + 4, y, 226, 19).build());
+            y += 21;
         }
+        Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> changePage(-1))
+                .bounds(frame.x(), frame.footerY(), 24, 20).build());
+        previous.active = page > 0;
+        Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> changePage(1))
+                .bounds(frame.x() + 26, frame.footerY(), 24, 20).build());
+        next.active = page + 1 < pages;
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(Math.max(8, width / 2 - 50), height - 28, 100, 20).build());
+                .bounds(frame.x() + 152, frame.footerY(), 100, 20).build());
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
-        graphics.fill(6, 6, width - 6, height - 6, 0xE8101010);
-        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+        AdvancementUi.Frame frame = AdvancementUi.frame(width, height);
+        AdvancementUi.renderInside(graphics, frame);
+        AdvancementUi.renderWindow(graphics, font, frame, title);
         super.render(graphics, mouseX, mouseY, partialTick);
+        String normalized = query.strip().toLowerCase(Locale.ROOT);
+        int count = (int) ACTIONS.stream().filter(action -> normalized.isEmpty()
+                || action.label().toLowerCase(Locale.ROOT).contains(normalized)).count();
+        int pages = Math.max(1, (count + 3) / 4);
+        graphics.drawCenteredString(font, Component.literal((page + 1) + " of " + pages),
+                frame.x() + 101, frame.footerY() + 6, 0xFFFFFF);
     }
 
     @Override
@@ -91,6 +105,11 @@ public final class CommandPaletteScreen extends ProgressiveScreen {
             minecraft.player.connection.sendCommand(value);
             minecraft.setScreen(null);
         }
+    }
+
+    private void changePage(int direction) {
+        page += direction;
+        rebuildWidgets();
     }
 
     private record Action(String label, Runnable operation) {

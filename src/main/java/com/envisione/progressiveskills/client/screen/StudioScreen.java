@@ -118,8 +118,8 @@ public final class StudioScreen extends ProgressiveScreen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
-        graphics.fill(6, 6, width - 6, height - 6, 0xEE151515);
-        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+        AdvancementUi.renderWorkbench(graphics, font, title, 6, 6, width - 6, height - 6);
+        AdvancementUi.renderInset(graphics, 10, contentTop - 4, width - 10, height - 44);
         drawGraph(graphics);
         int historyX = Math.max(12, width - 250);
         int historyY = contentTop;

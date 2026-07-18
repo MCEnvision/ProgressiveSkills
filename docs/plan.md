@@ -3013,7 +3013,61 @@ No corresponding feature phase begins until its spike has an executable test and
 
 **Gate:** multi-editor conflict, path/permission/import security, comment/provenance fidelity, crash/interrupted publish recovery, TOML/JSON/Studio IR equivalence, complete accessibility/keyboard authoring path.
 
-### 49.5 Feature completion checklist
+### 49.5 Phase 20 interface rehaul
+
+Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advancement inspired interface. It is a client presentation and input milestone. Server authority, transaction rules, player state, pack semantics, and the Protocol 7 gameplay contract remain unchanged unless a separately documented compatibility fix requires an additive field.
+
+**Visual language and shared shell:**
+
+- Every ProgressiveSkills menu uses one shared screen foundation with a single correctly ordered blur pass, a centered advancement style window, stone and parchment toned panels, vanilla font, item rendering, tooltips, button sounds, focus states, and narration.
+- Progression, trees, classes, abilities, claims, guide, comparison, tests, synchronization, HUD editing, command discovery, and Studio use the same frame, spacing, tabs, selected states, headings, and footer controls.
+- Layout responds to GUI scale, window resize, long localized text, text scaling, high contrast, compact layout, and reduced motion. Small windows retain keyboard reachable content instead of clipping required actions.
+- The redesign uses resource pack addressable ProgressiveSkills sprites or stable vanilla resources with code fallbacks. Missing cosmetic assets cannot hide information or disable progression.
+- Menu Background Blur affects only the world or previous screen behind the interface. Panels, text, icons, widgets, and tooltips render after the blur and remain sharp.
+
+**Progression screen:**
+
+- The main Progression screen follows the Minecraft advancements window model. Major progression pages appear as icon tabs around the window rather than a full screen text table.
+- Each page owns an advancement style canvas or list inside the window, a title strip, current player summary, hovered element tooltip, selected element detail, and contextual actions.
+- Skills and the other progression pages use compact native selection cards, item tab icons, hover detail, selected detail, and page specific actions inside the advancement window. Classes, abilities, claims, guide entries, comparison, tests, synchronization, and Studio preserve their appropriate list, card, form, or diagnostic behavior.
+- Search, paging, safe retry, accessibility preferences, and direct shortcuts remain available without covering the active content.
+- Buttons are created only when the authoritative visible state allows their action. An unowned ability can be inspected but cannot expose assignment, toggle, or activation actions.
+
+**Tree screen:**
+
+- The Tree screen behaves like Minecraft's advancements screen. Every live progression tree is a root tab with its own remembered pan position, selected node, node graph, connectors, background, and tooltip state.
+- Tree tabs move between the top, bottom, left, and right edges as needed using advancement style tab shapes. Mouse click, keyboard traversal, and accessible next and previous tree actions select roots without leaving the screen.
+- The canvas supports bounded click drag panning, centered initial layout, owned, available, locked, suspended, and selected node frames, connection lines, item icons, rank text, hover tooltips, and a selected node detail panel.
+- Purchase and refund controls show only for valid current player states. Every mutation uses the current definition generation, player revision, and preview digest. Stale or invalid actions disable safely and request resynchronization rather than throwing from an input callback.
+
+**Ability wheel:**
+
+- The ability wheel is a nonpausing HUD overlay rather than a `Screen`. Holding the configured Ability Wheel key displays it. Releasing the key closes it. A click does not latch it open.
+- Because no screen is installed, movement, sprinting, jumping, sneaking, and normal world ticking continue while the wheel is visible.
+- Assigned abilities occupy equally sized radial wedges. Mouse direction selects a wedge, the center is a dead zone, the current selection is highlighted, and empty slots remain visibly distinct.
+- Releasing the wheel key commits only the selected slot. The existing Use Selected Ability key performs activation. Closing with no radial selection preserves the previous slot.
+- The overlay shows the selected ability name, slot number, type, charges, cooldown, readiness, and a clear unavailable reason without exposing server private data.
+- Opening and closing the wheel cannot send duplicate selection or activation intents. Disconnect, loss of synchronization, screen opening, focus loss, and key remapping cancel the overlay safely.
+
+**Crash hardening:**
+
+- UI construction derives action availability from owner visible state and never treats definition presence as ownership.
+- Client intent preparation may reject stale, unowned, malformed, or unavailable actions, but no exception from that boundary may escape a button, key, mouse, or overlay callback into Minecraft's render thread.
+- Safe Retry stores only actions that were valid when built and rebuilds them against the latest synchronized state. It never replays an invalid ability id, slot, revision, generation, or digest.
+- A regression test reproduces the Phase 19 crash where the Progression Ability page attempted to assign an unowned ability. Expected behavior is a disabled or absent action and a nonfatal player message.
+
+**Phase 20 gate:**
+
+- all ProgressiveSkills screens compile on the physical client boundary and open without a second blur pass;
+- progression and tree screens pass mouse, keyboard, narrator, resize, GUI scale, high contrast, compact layout, and reduced motion checks;
+- every live tree can be selected and panned without closing the screen;
+- the radial wheel appears only while held, movement remains active, release selects at most once, and the wheel never activates an ability implicitly;
+- owned, unowned, disabled, stale, cooling down, empty slot, and disconnected ability cases are nonfatal;
+- the supplied unowned ability click crash has an automated regression test;
+- unit, property, architecture, schema, GameTest, dedicated server, headless client, and release JAR verification gates pass;
+- `docs/verification/PHASE-20.md`, an exact release JAR, and its SHA 256 are committed to the Phase 20 branch for the player checklist.
+
+### 49.6 Feature completion checklist
 
 A feature is not done until it has:
 
@@ -3071,4 +3125,4 @@ By the end of the roadmap, pack developers can customize:
 
 ### 50.3 Product principle
 
-**Maximum customization means maximum composition and inspectability, not maximum hardcoded special cases.** The winning core is: stable ids + content packs + typed predicates/formulas + transactions/lifecycles + source-owned effects + provider APIs + excellent authoring/diagnostics. Every flashy feature above should be expressible by those primitives or justify a new primitive with the full §49.5 completion contract.
+**Maximum customization means maximum composition and inspectability, not maximum hardcoded special cases.** The winning core is: stable ids + content packs + typed predicates/formulas + transactions/lifecycles + source-owned effects + provider APIs + excellent authoring/diagnostics. Every flashy feature above should be expressible by those primitives or justify a new primitive with the full §49.6 completion contract.

@@ -2,7 +2,6 @@ package com.envisione.progressiveskills.client;
 
 import com.envisione.progressiveskills.ProjectIdentity;
 import com.envisione.progressiveskills.client.screen.TreeScreen;
-import com.envisione.progressiveskills.client.screen.AbilityWheelScreen;
 import com.envisione.progressiveskills.client.screen.CommandPaletteScreen;
 import com.envisione.progressiveskills.client.screen.ProgressionScreen;
 import com.envisione.progressiveskills.common.network.PsNetworking;
@@ -20,28 +19,25 @@ public final class ClientInputEvents {
 
     @SubscribeEvent
     static void onClientTick(ClientTickEvent.Post event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        AbilityWheelOverlay.tick(minecraft, ClientKeyMappings.ABILITY_WHEEL.isDown());
         while (ClientKeyMappings.OPEN_PROGRESS.consumeClick()) {
-            Minecraft minecraft = Minecraft.getInstance();
             var snapshot = PsNetworking.clientSnapshot();
             if (minecraft.player != null && minecraft.screen == null && ProgressionScreen.isAvailable(snapshot)) {
                 minecraft.setScreen(new ProgressionScreen());
             }
         }
         while (ClientKeyMappings.OPEN_TREE.consumeClick()) {
-            Minecraft minecraft = Minecraft.getInstance();
             var snapshot = PsNetworking.clientSnapshot();
             if (minecraft.player != null && minecraft.screen == null && TreeScreen.isAvailable(snapshot)) {
                 minecraft.setScreen(new TreeScreen());
             }
         }
-        if (Minecraft.getInstance().screen != null) {
+        if (minecraft.screen != null || AbilityWheelOverlay.isActive()) {
             return;
         }
         while (ClientKeyMappings.COMMAND_PALETTE.consumeClick()) {
-            Minecraft.getInstance().setScreen(new CommandPaletteScreen());
-        }
-        while (ClientKeyMappings.ABILITY_WHEEL.consumeClick()) {
-            Minecraft.getInstance().setScreen(new AbilityWheelScreen());
+            minecraft.setScreen(new CommandPaletteScreen());
         }
         while (ClientKeyMappings.PREVIOUS_ABILITY.consumeClick()) {
             selectRelativeAbility(-1);

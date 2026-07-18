@@ -8,6 +8,8 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -86,8 +88,8 @@ public final class StudioGraphScreen extends ProgressiveScreen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
-        graphics.fill(6, 6, width - 6, height - 6, 0xEE151515);
-        graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+        AdvancementUi.renderWorkbench(graphics, font, title, 6, 6, width - 6, height - 6);
+        AdvancementUi.renderInset(graphics, 8, 76, width - 8, height - 44);
         graphics.drawString(font, Component.literal(status), 10, 80, 0xFFCC66, false);
         drawGraph(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -204,15 +206,19 @@ public final class StudioGraphScreen extends ProgressiveScreen {
                     xs[edge.to()] + 37, Math.max(ys[edge.from()] + 10, ys[edge.to()] + 1), color);
         }
         for (int index = 0; index < nodes.size(); index++) {
-            int color = index == selected ? 0xFF486A3A : 0xFF26384A;
-            graphics.fill(xs[index], ys[index], xs[index] + 72, ys[index] + 18, color);
+            int centerX = xs[index] + 36;
+            int centerY = ys[index] + 9;
+            AdvancementUi.renderNodeFrame(graphics, centerX, centerY,
+                    index == selected ? AdvancementUi.NodeFrame.OWNED : AdvancementUi.NodeFrame.AVAILABLE,
+                    index == selected);
+            graphics.renderItem(new ItemStack(index == 0 ? Items.KNOWLEDGE_BOOK : Items.PAPER),
+                    centerX - 8, centerY - 8);
             String label = nodes.get(index).id().getPath();
             label = label.substring(label.lastIndexOf('/') + 1);
             if (label.length() > 10) {
                 label = label.substring(0, 9) + ".";
             }
-            graphics.drawString(font, Component.literal(label), xs[index] + 4, ys[index] + 5,
-                    0xFFFFFF, false);
+            graphics.drawCenteredString(font, Component.literal(label), centerX, centerY + 17, 0xFFFFFF);
         }
     }
 

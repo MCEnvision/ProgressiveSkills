@@ -7,3 +7,5 @@ Each phase directory contains the exact verified JAR committed on that phase bra
 Every checkpoint records its SHA-256 digest in `checksums.txt`.
 
 The current approved release is stored in `phase-19/progressiveskills-phase-19.jar` on `main`, tagged as `phase-19`, with its historical branch preserved at `envy/phase-19`. It contains Phases 13 through 19 in one cumulative build. Earlier phase directories preserve their matching checkpoint artifacts.
+
+The Phase 20 beta is stored in `phase-20/progressiveskills-phase-20.jar` on `envy/phase-20-ui-rehaul`. It remains off `main` and untagged until the player interface checklist is approved.

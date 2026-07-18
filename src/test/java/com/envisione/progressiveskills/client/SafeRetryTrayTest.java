@@ -64,6 +64,15 @@ class SafeRetryTrayTest {
         assertTrue(SafeRetryTray.label().isEmpty());
     }
 
+    @Test
+    void rejectsAnInvalidUiActionWithoutCrashingTheClient() {
+        assertFalse(SafeRetryTray.sendOrRemember("invalid", () -> {
+            throw new IllegalArgumentException("Ability intent references an unowned ability");
+        }));
+        assertTrue(SafeRetryTray.label().isEmpty());
+        assertFalse(SafeRetryTray.retry());
+    }
+
     private static NetworkPayloads.IntentResult result(
             long requestId,
             NetworkPayloads.IntentStatus status

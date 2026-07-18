@@ -47,8 +47,8 @@ public final class StudioCurveScreen extends ProgressiveScreen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
-        graphics.fill(6, 6, width - 6, height - 6, 0xEE151515);
-        graphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
+        AdvancementUi.renderWorkbench(graphics, font, title, 6, 6, width - 6, height - 6);
+        AdvancementUi.renderInset(graphics, 10, 84, width - 10, height - 44);
         graphics.drawString(font, Component.literal(status), 96, 62, 0xFFCC66, false);
         drawPreview(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);

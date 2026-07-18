@@ -1,12 +1,15 @@
 package com.envisione.progressiveskills.client;
 
 import com.envisione.progressiveskills.common.network.NetworkPayloads;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
 
 public final class SafeRetryTray {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static Optional<RetryableAction> pending = Optional.empty();
 
     private SafeRetryTray() {
@@ -16,7 +19,14 @@ public final class SafeRetryTray {
         Objects.requireNonNull(label, "label");
         Objects.requireNonNull(sender, "sender");
         pending = Optional.of(new RetryableAction(label, sender, -1L, false));
-        boolean sent = sender.getAsBoolean();
+        boolean sent;
+        try {
+            sent = sender.getAsBoolean();
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Rejected client action before it could be sent", exception);
+            pending = Optional.empty();
+            return false;
+        }
         if (!sent) {
             pending = Optional.of(new RetryableAction(label, sender, -1L, true));
         } else if (pending.filter(action -> action.requestId() < 0).isPresent()) {
@@ -56,7 +66,14 @@ public final class SafeRetryTray {
         }
         RetryableAction action = pending.orElseThrow();
         pending = Optional.of(new RetryableAction(action.label(), action.sender(), -1L, false));
-        boolean sent = action.sender().getAsBoolean();
+        boolean sent;
+        try {
+            sent = action.sender().getAsBoolean();
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Rejected retried client action before it could be sent", exception);
+            pending = Optional.empty();
+            return false;
+        }
         if (!sent) {
             pending = Optional.of(new RetryableAction(action.label(), action.sender(), -1L, true));
         } else if (pending.filter(value -> value.requestId() < 0).isPresent()) {

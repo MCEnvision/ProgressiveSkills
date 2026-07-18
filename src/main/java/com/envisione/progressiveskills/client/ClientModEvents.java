@@ -42,5 +42,6 @@ public final class ClientModEvents {
     static void onClientLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         PsNetworking.clientDisconnect();
         SafeRetryTray.clear();
+        AbilityWheelOverlay.cancel();
     }
 }
