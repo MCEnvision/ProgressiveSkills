@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -38,6 +39,10 @@ public final class ProgressionScreen extends ProgressiveScreen {
     private ResourceLocation compareSecond;
     private List<Row> rows = List.of();
     private final List<ProgressionCardButton> cards = new ArrayList<>();
+    private final List<ProgressionSelectorButton> selectors = new ArrayList<>();
+    private List<ClassSlotModel> classSlots = List.of();
+    private ResourceLocation selectedClassSlot;
+    private int classSlotPage;
     private String fingerprint = "";
     private String query = "";
     private ProgressionUiTheme theme;
@@ -60,9 +65,38 @@ public final class ProgressionScreen extends ProgressiveScreen {
         var snapshot = PsNetworking.clientSnapshot();
         theme = ProgressionUiTheme.load();
         cards.clear();
+        selectors.clear();
+        if (tab == Tab.CLASSES) {
+            refreshClassSlots(snapshot);
+        }
         rows = rows(snapshot);
         selected = rows.isEmpty() ? 0 : Math.max(0, Math.min(selected, rows.size() - 1));
         AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
+        int visibleEntries = visibleEntries(frame);
+        int pages = Math.max(1, (rows.size() + visibleEntries - 1) / visibleEntries);
+        page = Math.max(0, Math.min(page, pages - 1));
+        addProgressionTabs(frame);
+        if (tab == Tab.SKILLS) {
+            addSkillSelectors(snapshot, frame);
+        } else if (tab == Tab.CLASSES) {
+            addClassSelectors(snapshot, frame);
+        } else {
+            addCardBrowser(snapshot, frame);
+        }
+        int bottom = frame.footerY();
+        Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> changePage(-1))
+                .bounds(frame.x(), bottom, 24, 20).build());
+        previous.active = page > 0;
+        Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> changePage(1))
+                .bounds(frame.x() + 26, bottom, 24, 20).build());
+        next.active = page + 1 < pages;
+        addActions(snapshot, bottom);
+        addRenderableWidget(Button.builder(Component.translatable("gui.done"), ignored -> onClose())
+                .bounds(frame.right() - 100, bottom, 100, 20).build());
+        fingerprint = fingerprint(snapshot);
+    }
+
+    private void addProgressionTabs(AdvancementUi.Frame frame) {
         for (int index = 0; index < Tab.values().length; index++) {
             Tab value = Tab.values()[index];
             boolean above = index < 8;
@@ -80,6 +114,9 @@ public final class ProgressionScreen extends ProgressiveScreen {
                     x, y, Component.literal(value.label), tabIcon(value), value == tab,
                     side, position, () -> selectTab(value)));
         }
+    }
+
+    private void addCardBrowser(ClientNetworkState.Snapshot snapshot, AdvancementUi.Frame frame) {
         if (searchableTab()) {
             int searchWidth = Math.min(180, cardAreaWidth(frame) - 8);
             EditBox search = new EditBox(font, frame.contentX() + 4, frame.contentY() + 4, searchWidth, 18,
@@ -101,9 +138,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
         int cardGap = 4;
         int cardHeight = 40;
         int cardWidth = (cardAreaWidth(frame) - 8 - (columns - 1) * cardGap) / columns;
-        int visibleRows = visibleRows(frame);
-        int pages = Math.max(1, (rows.size() + visibleRows - 1) / visibleRows);
-        page = Math.max(0, Math.min(page, pages - 1));
+        int visibleRows = visibleEntries(frame);
         int first = page * visibleRows;
         int last = Math.min(rows.size(), first + visibleRows);
         for (int index = first; index < last; index++) {
@@ -128,17 +163,113 @@ public final class ProgressionScreen extends ProgressiveScreen {
                     }));
             cards.add(button);
         }
-        int bottom = frame.footerY();
-        Button previous = addRenderableWidget(Button.builder(Component.literal("<"), ignored -> changePage(-1))
-                .bounds(frame.x(), bottom, 24, 20).build());
-        previous.active = page > 0;
-        Button next = addRenderableWidget(Button.builder(Component.literal(">"), ignored -> changePage(1))
-                .bounds(frame.x() + 26, bottom, 24, 20).build());
-        next.active = page + 1 < pages;
-        addActions(snapshot, bottom);
-        addRenderableWidget(Button.builder(Component.translatable("gui.done"), ignored -> onClose())
-                .bounds(frame.right() - 100, bottom, 100, 20).build());
-        fingerprint = fingerprint(snapshot);
+    }
+
+    private void addSkillSelectors(ClientNetworkState.Snapshot snapshot, AdvancementUi.Frame frame) {
+        int gridLeft = frame.contentX() + 5;
+        int gridTop = skillGridTop(frame);
+        int buttonSize = 32;
+        int gap = 5;
+        int columns = skillColumns(frame);
+        int visible = visibleEntries(frame);
+        int first = page * visible;
+        int last = Math.min(rows.size(), first + visible);
+        for (int index = first; index < last; index++) {
+            Row row = rows.get(index);
+            int cell = index - first;
+            int rowIndex = index;
+            long level = row.id().map(id -> skillLevel(snapshot, id)).orElse(0L);
+            ProgressionSelectorButton button = addRenderableWidget(new ProgressionSelectorButton(
+                    gridLeft + cell % columns * (buttonSize + gap),
+                    gridTop + cell / columns * (buttonSize + gap),
+                    buttonSize,
+                    buttonSize,
+                    rowIndex,
+                    UiText.legacy(row.label()),
+                    Component.literal(cardSummary(row)),
+                    rowIcon(snapshot, row),
+                    Long.toString(level),
+                    index == selected,
+                    () -> {
+                        selected = rowIndex;
+                        rebuildWidgets();
+                    }
+            ));
+            selectors.add(button);
+        }
+    }
+
+    private void addClassSelectors(ClientNetworkState.Snapshot snapshot, AdvancementUi.Frame frame) {
+        int slotWidth = classSlotWidth(frame);
+        int slotButtonWidth = slotWidth - 8;
+        int slotVisible = visibleClassSlots(frame);
+        int slotPages = Math.max(1, (classSlots.size() + slotVisible - 1) / slotVisible);
+        classSlotPage = Math.max(0, Math.min(classSlotPage, slotPages - 1));
+        int slotFirst = classSlotPage * slotVisible;
+        int slotLast = Math.min(classSlots.size(), slotFirst + slotVisible);
+        for (int index = slotFirst; index < slotLast; index++) {
+            ClassSlotModel slot = classSlots.get(index);
+            int used = usedClassCapacity(snapshot, slot.id());
+            addRenderableWidget(new ProgressionSelectorButton(
+                    frame.contentX() + 5,
+                    frame.contentY() + 6 + (index - slotFirst) * 29,
+                    slotButtonWidth,
+                    26,
+                    -1,
+                    slot.display(),
+                    Component.literal("Capacity " + used + " of " + slot.view().capacity()),
+                    ProjectionPresentation.icon(slot.entry(), Items.CHEST),
+                    used + "/" + slot.view().capacity(),
+                    slot.id().equals(selectedClassSlot),
+                    () -> selectClassSlot(slot.id())
+            ));
+        }
+        if (slotPages > 1) {
+            int navY = frame.contentBottom() - 22;
+            int navWidth = (slotButtonWidth - 2) / 2;
+            Button previous = addRenderableWidget(Button.builder(Component.literal("<"),
+                            ignored -> changeClassSlotPage(-1))
+                    .bounds(frame.contentX() + 5, navY, navWidth, 18).build());
+            previous.active = classSlotPage > 0;
+            Button next = addRenderableWidget(Button.builder(Component.literal(">"),
+                            ignored -> changeClassSlotPage(1))
+                    .bounds(frame.contentX() + 7 + navWidth, navY, navWidth, 18).build());
+            next.active = classSlotPage + 1 < slotPages;
+        }
+        int gridLeft = frame.contentX() + slotWidth + 4;
+        int gridTop = frame.contentY() + 28;
+        int buttonSize = 36;
+        int gap = 5;
+        int columns = classColumns(frame);
+        int visible = visibleEntries(frame);
+        int first = page * visible;
+        int last = Math.min(rows.size(), first + visible);
+        for (int index = first; index < last; index++) {
+            Row row = rows.get(index);
+            int cell = index - first;
+            int rowIndex = index;
+            boolean owned = row.id().stream().anyMatch(id -> snapshot.visibleState().stream()
+                    .anyMatch(state -> state.selectedClasses().containsKey(id)));
+            int weight = row.id().flatMap(id -> classView(snapshot, id))
+                    .map(DefinitionProjection.ClassView::slotCost).orElse(0);
+            ProgressionSelectorButton button = addRenderableWidget(new ProgressionSelectorButton(
+                    gridLeft + cell % columns * (buttonSize + gap),
+                    gridTop + cell / columns * (buttonSize + gap),
+                    buttonSize,
+                    buttonSize,
+                    rowIndex,
+                    UiText.legacy(row.label()),
+                    Component.literal(cardSummary(row)),
+                    rowIcon(snapshot, row),
+                    owned ? "ON" : Integer.toString(weight),
+                    index == selected,
+                    () -> {
+                        selected = rowIndex;
+                        rebuildWidgets();
+                    }
+            ));
+            selectors.add(button);
+        }
     }
 
     @Override
@@ -155,21 +286,32 @@ public final class ProgressionScreen extends ProgressiveScreen {
         renderBackgroundLayer(graphics, mouseX, mouseY, partialTick);
         AdvancementUi.Frame frame = AdvancementUi.largeFrame(width, height);
         AdvancementUi.renderInside(graphics, frame);
-        int detailsLeft = detailLeft(frame);
-        AdvancementUi.renderInset(graphics, frame.contentX() + 2, frame.contentY() + 2,
-                detailsLeft - 3, frame.contentBottom() - 2);
-        AdvancementUi.renderInset(graphics, detailsLeft, frame.contentY() + 2,
-                frame.contentRight() - 2, frame.contentBottom() - 2);
-        graphics.enableScissor(detailsLeft + 1, frame.contentY() + 3,
-                frame.contentRight() - 3, frame.contentBottom() - 3);
-        renderDetails(graphics, PsNetworking.clientSnapshot());
-        graphics.disableScissor();
+        if (tab == Tab.SKILLS) {
+            renderSkillDashboard(graphics, frame, PsNetworking.clientSnapshot(), mouseX, mouseY);
+        } else if (tab == Tab.CLASSES) {
+            renderClassDashboard(graphics, frame, PsNetworking.clientSnapshot());
+        } else {
+            int detailsLeft = detailLeft(frame);
+            AdvancementUi.renderInset(graphics, frame.contentX() + 2, frame.contentY() + 2,
+                    detailsLeft - 3, frame.contentBottom() - 2);
+            AdvancementUi.renderInset(graphics, detailsLeft, frame.contentY() + 2,
+                    frame.contentRight() - 2, frame.contentBottom() - 2);
+            graphics.enableScissor(detailsLeft + 1, frame.contentY() + 3,
+                    frame.contentRight() - 3, frame.contentBottom() - 3);
+            renderDetails(graphics, PsNetworking.clientSnapshot());
+            graphics.disableScissor();
+        }
         AdvancementUi.renderWindow(graphics, font, frame,
                 Component.empty().append(title).append(". ").append(tab.label));
         super.render(graphics, mouseX, mouseY, partialTick);
-        int pages = Math.max(1, (rows.size() + visibleRows(frame) - 1) / visibleRows(frame));
+        int pages = Math.max(1, (rows.size() + visibleEntries(frame) - 1) / visibleEntries(frame));
+        int pageCenter = tab == Tab.CLASSES
+                ? frame.contentX() + classSlotWidth(frame) + Math.max(20,
+                (detailLeft(frame) - frame.contentX() - classSlotWidth(frame)) / 2)
+                : tab == Tab.SKILLS ? frame.contentX() + frame.contentWidth() / 2
+                : frame.contentX() + cardAreaWidth(frame) / 2;
         graphics.drawCenteredString(font, Component.literal((page + 1) + " of " + pages),
-                frame.contentX() + cardAreaWidth(frame) / 2, frame.footerY() + 6, 0xFFFFFF);
+                pageCenter, frame.footerY() + 6, 0xFFFFFF);
     }
 
     @Override
@@ -189,6 +331,10 @@ public final class ProgressionScreen extends ProgressiveScreen {
         } else if (tab == Tab.CLASSES && selectedRow().flatMap(Row::id).isPresent()) {
             ResourceLocation id = selectedRow().flatMap(Row::id).orElseThrow();
             boolean owned = snapshot.visibleState().stream().anyMatch(state -> state.selectedClasses().containsKey(id));
+            Optional<DefinitionProjection.ClassView> classView = classView(snapshot, id);
+            if (!owned && classView.filter(DefinitionProjection.ClassView::enabled).isEmpty()) {
+                return;
+            }
             Optional<NetworkPayloads.ClassChangePreview> preview = matchingClassPreview(snapshot, id);
             if (owned && preview.filter(NetworkPayloads.ClassChangePreview::allowed).isPresent()) {
                 String digest = preview.orElseThrow().previewDigest();
@@ -302,6 +448,173 @@ public final class ProgressionScreen extends ProgressiveScreen {
     private void addAction(int x, int y, String label, Runnable operation, int buttonWidth) {
         addRenderableWidget(Button.builder(Component.literal(label), ignored -> operation.run())
                 .bounds(x, y, buttonWidth, 18).build());
+    }
+
+    private void renderSkillDashboard(
+            GuiGraphics graphics,
+            AdvancementUi.Frame frame,
+            ClientNetworkState.Snapshot snapshot,
+            int mouseX,
+            int mouseY
+    ) {
+        int top = frame.contentY() + 2;
+        int dashboardBottom = skillGridTop(frame) - 3;
+        int left = frame.contentX() + 2;
+        int right = frame.contentRight() - 2;
+        int leftWidth = Math.clamp(frame.contentWidth() / 4, 78, 104);
+        int centerWidth = Math.clamp(frame.contentWidth() / 5, 54, 78);
+        int centerLeft = left + leftWidth + 3;
+        int centerRight = centerLeft + centerWidth;
+        int detailLeft = centerRight + 3;
+        AdvancementUi.renderInset(graphics, left, top, centerLeft - 3, dashboardBottom);
+        AdvancementUi.renderInset(graphics, centerLeft, top, centerRight, dashboardBottom);
+        AdvancementUi.renderInset(graphics, detailLeft, top, right, dashboardBottom);
+        AdvancementUi.renderInset(graphics, left, skillGridTop(frame) - 1,
+                right, frame.contentBottom() - 2);
+        long totalLevel = rows.stream().flatMap(row -> row.id().stream())
+                .mapToLong(id -> skillLevel(snapshot, id)).sum();
+        long highest = rows.stream().flatMap(row -> row.id().stream())
+                .mapToLong(id -> skillLevel(snapshot, id)).max().orElse(0L);
+        int textX = left + 5;
+        int textY = top + 5;
+        graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.total_level"),
+                textX, textY, 0xFFFFD65C, false);
+        graphics.drawString(font, Long.toString(totalLevel), textX, textY + 11, 0xFFFFFFFF, true);
+        graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.tracks"),
+                textX, textY + 25, 0xFFB8B8B8, false);
+        graphics.drawString(font, Integer.toString(rows.size()), textX, textY + 36, 0xFFFFFFFF, true);
+        if (dashboardBottom - top >= 78) {
+            graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.highest"),
+                    textX, textY + 50, 0xFFB8B8B8, false);
+            graphics.drawString(font, Long.toString(highest), textX, textY + 61, 0xFFFFFFFF, true);
+        }
+        if (minecraft != null && minecraft.player != null) {
+            int scale = Math.clamp((dashboardBottom - top) / 3, 18, 30);
+            InventoryScreen.renderEntityInInventoryFollowsMouse(
+                    graphics,
+                    centerLeft + 2,
+                    top + 2,
+                    centerRight - 2,
+                    dashboardBottom - 2,
+                    scale,
+                    0.0F,
+                    mouseX,
+                    mouseY,
+                    minecraft.player
+            );
+        }
+        if (rows.isEmpty()) {
+            graphics.drawString(font, Component.literal("No skills are available."),
+                    detailLeft + 5, top + 5, 0xFFAAAAAA, false);
+            return;
+        }
+        int preview = previewEntryIndex();
+        Row row = rows.get(preview);
+        int x = detailLeft + 5;
+        int y = top + 5;
+        int maxWidth = Math.max(36, right - x - 4);
+        graphics.renderItem(rowIcon(snapshot, row), x, y);
+        x += 21;
+        var nameLines = font.split(UiText.legacy(row.label()), Math.max(20, maxWidth - 21));
+        for (int lineIndex = 0; lineIndex < Math.min(2, nameLines.size()); lineIndex++) {
+            graphics.drawString(font, nameLines.get(lineIndex), x, y + 3, 0xFFFFFFFF, false);
+            y += font.lineHeight + 1;
+        }
+        x = detailLeft + 5;
+        y = Math.max(y + 3, top + 24);
+        ResourceLocation id = row.id().orElseThrow();
+        graphics.drawString(font, Component.translatable(
+                        "screen.progressiveskills.skills.level", skillLevel(snapshot, id)),
+                x, y, 0xFFFFD65C, false);
+        y += 12;
+        graphics.drawString(font, Component.translatable(
+                        "screen.progressiveskills.skills.active_xp", skillBalance(snapshot, id, true)),
+                x, y, 0xFF80C8FF, false);
+        y += 11;
+        graphics.drawString(font, Component.translatable(
+                        "screen.progressiveskills.skills.banked_xp", skillBalance(snapshot, id, false)),
+                x, y, 0xFFB8B8B8, false);
+    }
+
+    private void renderClassDashboard(
+            GuiGraphics graphics,
+            AdvancementUi.Frame frame,
+            ClientNetworkState.Snapshot snapshot
+    ) {
+        int slotWidth = classSlotWidth(frame);
+        int slotsRight = frame.contentX() + slotWidth;
+        int detailsLeft = detailLeft(frame);
+        AdvancementUi.renderInset(graphics, frame.contentX() + 2, frame.contentY() + 2,
+                slotsRight, frame.contentBottom() - 2);
+        AdvancementUi.renderInset(graphics, slotsRight + 3, frame.contentY() + 2,
+                detailsLeft - 3, frame.contentBottom() - 2);
+        AdvancementUi.renderInset(graphics, detailsLeft, frame.contentY() + 2,
+                frame.contentRight() - 2, frame.contentBottom() - 2);
+        ClassSlotModel slot = selectedClassSlotModel().orElse(null);
+        if (slot != null) {
+            int used = usedClassCapacity(snapshot, slot.id());
+            Component heading = Component.empty().append(slot.display()).append(". ")
+                    .append(Component.translatable("screen.progressiveskills.classes.capacity",
+                            used, slot.view().capacity()));
+            graphics.drawCenteredString(font, heading,
+                    slotsRight + 3 + (detailsLeft - slotsRight - 6) / 2,
+                    frame.contentY() + 9, 0xFFFFD65C);
+        }
+        if (rows.isEmpty()) {
+            graphics.drawCenteredString(font, Component.literal("No classes are available for this slot."),
+                    slotsRight + 3 + (detailsLeft - slotsRight - 6) / 2,
+                    frame.contentY() + 45, 0xFFAAAAAA);
+            return;
+        }
+        graphics.enableScissor(detailsLeft + 1, frame.contentY() + 3,
+                frame.contentRight() - 3, frame.contentBottom() - 23);
+        int preview = previewEntryIndex();
+        Row row = rows.get(preview);
+        ResourceLocation id = row.id().orElseThrow();
+        DefinitionProjection.ClassView view = classView(snapshot, id).orElse(null);
+        int x = detailsLeft + 5;
+        int y = frame.contentY() + 7;
+        int maxWidth = Math.max(40, frame.contentRight() - x - 5);
+        graphics.renderItem(rowIcon(snapshot, row), x, y);
+        for (var line : font.split(UiText.legacy(row.label()), Math.max(20, maxWidth - 21))) {
+            graphics.drawString(font, line, x + 21, y + 3, 0xFFFFFFFF, false);
+            y += font.lineHeight + 1;
+        }
+        y = Math.max(y + 4, frame.contentY() + 29);
+        VisiblePlayerState.ClassSelection selection = snapshot.visibleState().stream()
+                .map(state -> state.selectedClasses().get(id)).filter(java.util.Objects::nonNull)
+                .findFirst().orElse(null);
+        Component state = selection == null
+                ? Component.translatable("screen.progressiveskills.classes.not_selected")
+                : Component.translatable("screen.progressiveskills.classes.selected", selection.activity());
+        graphics.drawString(font, state, x, y, selection == null ? 0xFFB8B8B8 : 0xFF7CFC98, false);
+        if (view == null) {
+            graphics.disableScissor();
+            return;
+        }
+        y += 12;
+        graphics.drawString(font, Component.translatable(
+                        "screen.progressiveskills.classes.weight", view.slotCost()),
+                x, y, 0xFFFFD65C, false);
+        y += 11;
+        Component cost = view.selectionCost().<Component>map(value -> Component.translatable(
+                        "screen.progressiveskills.classes.cost", value.amount(),
+                        displayName(snapshot, value.currency())))
+                .orElseGet(() -> Component.translatable("screen.progressiveskills.classes.free"));
+        for (var line : font.split(cost, maxWidth)) {
+            graphics.drawString(font, line, x, y, 0xFF80C8FF, false);
+            y += font.lineHeight + 1;
+        }
+        Component requirements = Component.translatable("screen.progressiveskills.classes.requirements",
+                view.minimumSkillLevels().size(), view.requiredNodes().size(), view.requiredClasses().size());
+        for (var line : font.split(requirements, maxWidth)) {
+            graphics.drawString(font, line, x, y, 0xFFB8B8B8, false);
+            y += font.lineHeight + 1;
+        }
+        graphics.drawString(font, Component.translatable(
+                        "screen.progressiveskills.classes.grants", view.grants().size()),
+                x, y, 0xFFB8B8B8, false);
+        graphics.disableScissor();
     }
 
     private void renderDetails(GuiGraphics graphics, ClientNetworkState.Snapshot snapshot) {
@@ -426,6 +739,11 @@ public final class ProgressionScreen extends ProgressiveScreen {
             if (!matches(value.getKey())) {
                 continue;
             }
+            if (tab == Tab.CLASSES && selectedClassSlot != null
+                    && value.getValue().classDefinition().stream()
+                    .noneMatch(classView -> classView.slotId().equals(selectedClassSlot))) {
+                continue;
+            }
             String display = value.getValue().display().map(DefinitionProjection.Text::fallback)
                     .orElse(value.getKey().id().getPath());
             String description = value.getValue().description().map(DefinitionProjection.Text::fallback)
@@ -435,7 +753,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
         }
         result.sort(Comparator.comparing(Row::label, String.CASE_INSENSITIVE_ORDER));
         String normalized = query.strip().toLowerCase(Locale.ROOT);
-        if (!normalized.isEmpty()) {
+        if (searchableTab() && !normalized.isEmpty()) {
             result.removeIf(row -> !row.label().toLowerCase(Locale.ROOT).contains(normalized)
                     && !row.detail().toLowerCase(Locale.ROOT).contains(normalized)
                     && row.id().map(ResourceLocation::toString).stream()
@@ -445,8 +763,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
     }
 
     private boolean searchableTab() {
-        return tab == Tab.SKILLS || tab == Tab.TREES || tab == Tab.CLASSES
-                || tab == Tab.ABILITIES || tab == Tab.GUIDE;
+        return tab == Tab.TREES || tab == Tab.ABILITIES || tab == Tab.GUIDE;
     }
 
     private boolean matches(DefinitionKey key) {
@@ -491,20 +808,50 @@ public final class ProgressionScreen extends ProgressiveScreen {
         tab = value;
         page = 0;
         selected = 0;
+        query = "";
         rebuildWidgets();
     }
 
     private void changePage(int amount) {
         page += amount;
         selected = Math.min(rows.size() - 1,
-                Math.max(0, page * visibleRows(AdvancementUi.largeFrame(width, height))));
+                Math.max(0, page * visibleEntries(AdvancementUi.largeFrame(width, height))));
         rebuildWidgets();
     }
 
-    private int visibleRows(AdvancementUi.Frame frame) {
+    private int visibleEntries(AdvancementUi.Frame frame) {
+        if (tab == Tab.SKILLS) {
+            int vertical = Math.max(1, (frame.contentBottom() - skillGridTop(frame) - 4) / 37);
+            return vertical * skillColumns(frame);
+        }
+        if (tab == Tab.CLASSES) {
+            int vertical = Math.max(1, (frame.contentBottom() - frame.contentY() - 32) / 41);
+            return vertical * classColumns(frame);
+        }
         int contentTop = frame.contentY() + (searchableTab() ? 27 : 5);
         int vertical = Math.max(1, (frame.contentBottom() - contentTop - 4) / 44);
         return vertical * cardColumns(frame);
+    }
+
+    static int skillGridTop(AdvancementUi.Frame frame) {
+        return frame.contentY() + Math.clamp(frame.contentHeight() * 45 / 100, 62, 82);
+    }
+
+    static int skillColumns(AdvancementUi.Frame frame) {
+        return Math.max(1, (frame.contentWidth() - 10) / 37);
+    }
+
+    static int classSlotWidth(AdvancementUi.Frame frame) {
+        return Math.clamp(frame.contentWidth() / 5, 68, 104);
+    }
+
+    static int classColumns(AdvancementUi.Frame frame) {
+        int gridWidth = detailLeft(frame) - frame.contentX() - classSlotWidth(frame) - 12;
+        return Math.max(1, gridWidth / 41);
+    }
+
+    static int visibleClassSlots(AdvancementUi.Frame frame) {
+        return Math.max(1, (frame.contentHeight() - 32) / 29);
     }
 
     private static int detailWidth(AdvancementUi.Frame frame) {
@@ -527,7 +874,8 @@ public final class ProgressionScreen extends ProgressiveScreen {
         ItemStack fallback = tabIcon(tab);
         return row.id().flatMap(id -> snapshot.activeDefinitions().stream()
                         .flatMap(value -> value.definitions().entrySet().stream())
-                        .filter(entry -> entry.getKey().id().equals(id))
+                        .filter(entry -> entry.getKey().id().equals(id)
+                                && (tab == Tab.GUIDE || tab == Tab.CLAIMS || matches(entry.getKey())))
                         .map(Map.Entry::getValue).findFirst())
                 .map(entry -> ProjectionPresentation.icon(entry, fallback.getItem()))
                 .orElse(fallback);
@@ -545,6 +893,100 @@ public final class ProgressionScreen extends ProgressiveScreen {
         }
         int end = detail.indexOf('.');
         return end < 0 ? detail : detail.substring(0, end);
+    }
+
+    private int previewEntryIndex() {
+        return selectors.stream().filter(ProgressionSelectorButton::isHoveredOrFocused)
+                .mapToInt(ProgressionSelectorButton::entryIndex)
+                .filter(index -> index >= 0 && index < rows.size())
+                .findFirst().orElse(selected);
+    }
+
+    private static long skillLevel(ClientNetworkState.Snapshot snapshot, ResourceLocation id) {
+        return snapshot.visibleState().map(state -> state.balances().getOrDefault(
+                SkillStateIds.level(id).toString(), 0L)).orElse(0L);
+    }
+
+    private static long skillBalance(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation id,
+            boolean active
+    ) {
+        return snapshot.visibleState().map(state -> state.balances().getOrDefault(
+                (active ? SkillStateIds.activeXp(id) : SkillStateIds.bankedXp(id)).toString(), 0L
+        )).orElse(0L);
+    }
+
+    private static Optional<DefinitionProjection.ClassView> classView(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation classId
+    ) {
+        return snapshot.activeDefinitions().stream().flatMap(value -> value.definitions().entrySet().stream())
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CLASS)
+                        && entry.getKey().id().equals(classId))
+                .map(Map.Entry::getValue).flatMap(entry -> entry.classDefinition().stream()).findFirst();
+    }
+
+    private static Component displayName(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation id
+    ) {
+        return snapshot.activeDefinitions().stream().flatMap(value -> value.definitions().entrySet().stream())
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.CURRENCY)
+                        && entry.getKey().id().equals(id))
+                .map(Map.Entry::getValue)
+                .map(entry -> ProjectionPresentation.display(entry, UiText.prettyId(id)))
+                .findFirst().orElseGet(() -> Component.literal(UiText.prettyId(id)));
+    }
+
+    private void refreshClassSlots(ClientNetworkState.Snapshot snapshot) {
+        var next = new ArrayList<ClassSlotModel>();
+        snapshot.activeDefinitions().ifPresent(projection -> projection.definitions().forEach((key, entry) -> {
+            if (key.kind().equals(DefinitionKinds.CLASS_SLOT) && entry.classSlot().isPresent()) {
+                next.add(new ClassSlotModel(
+                        key.id(),
+                        ProjectionPresentation.display(entry, UiText.prettyId(key.id())),
+                        entry,
+                        entry.classSlot().orElseThrow()
+                ));
+            }
+        }));
+        next.sort(Comparator.comparing(ClassSlotModel::id, ResourceLocation::compareNamespaced));
+        classSlots = List.copyOf(next);
+        if (classSlots.isEmpty()) {
+            selectedClassSlot = null;
+            classSlotPage = 0;
+            return;
+        }
+        if (selectedClassSlot == null || classSlots.stream().noneMatch(slot -> slot.id().equals(selectedClassSlot))) {
+            selectedClassSlot = classSlots.getFirst().id();
+            classSlotPage = 0;
+        }
+    }
+
+    private Optional<ClassSlotModel> selectedClassSlotModel() {
+        return classSlots.stream().filter(slot -> slot.id().equals(selectedClassSlot)).findFirst();
+    }
+
+    private static int usedClassCapacity(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation slotId
+    ) {
+        return snapshot.visibleState().stream().flatMap(state -> state.selectedClasses().values().stream())
+                .filter(selection -> selection.slotId().stream().anyMatch(slotId::equals))
+                .mapToInt(VisiblePlayerState.ClassSelection::slotCost).sum();
+    }
+
+    private void selectClassSlot(ResourceLocation slotId) {
+        selectedClassSlot = slotId;
+        page = 0;
+        selected = 0;
+        rebuildWidgets();
+    }
+
+    private void changeClassSlotPage(int amount) {
+        classSlotPage += amount;
+        rebuildWidgets();
     }
 
     private ItemStack tabIcon(Tab tab) {
@@ -752,5 +1194,13 @@ public final class ProgressionScreen extends ProgressiveScreen {
     }
 
     private record Row(Optional<ResourceLocation> id, Optional<java.util.UUID> claimId, String label, String detail) {
+    }
+
+    private record ClassSlotModel(
+            ResourceLocation id,
+            Component display,
+            DefinitionProjection.Entry entry,
+            DefinitionProjection.ClassSlotView view
+    ) {
     }
 }

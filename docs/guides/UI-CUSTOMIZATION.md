@@ -69,6 +69,10 @@ Supported legacy formatting codes are `&0` through `&9`, `&a` through `&f`, `&k`
 
 Skills, trees, classes, abilities, and tree nodes continue to use their definition `display`, `description`, and `icon` fields. The root tree tab uses the tree definition icon. The Progression cards use the matching definition icon. This keeps server supplied pack identity visible while the theme file controls only shared navigation.
 
+The dedicated Skills dashboard uses each skill definition icon as its selector and its synchronized level as the badge. The dedicated Classes dashboard uses each class definition icon as its selector and each class slot definition icon in the slot rail. Changing these definition icons changes the dashboards without a client code change.
+
+Class slot capacity and class slot weight are gameplay data rather than theme data. Their displayed values always come from the synchronized server projection and cannot be replaced by a resource pack.
+
 When no synchronized display exists for a referenced id, the UI removes its namespace, replaces underscores, slashes, periods, and hyphens with spaces, and title cases the result. For example, `progressiveskills:global_points` becomes `Global Points`.
 
 ## Resource reload
