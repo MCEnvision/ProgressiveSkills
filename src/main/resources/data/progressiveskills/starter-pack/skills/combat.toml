@@ -1,0 +1,31 @@
+schema_version = 2
+
+[skill]
+id = "progressiveskills:combat"
+display = { key = "skill.progressiveskills.combat", fallback = "Combat" }
+description = { key = "skill.progressiveskills.combat.desc", fallback = "Weapon handling and close quarters mastery." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Combat" }
+max_level = 10
+enabled = true
+overflow = "bank"
+negative_xp_policy = "deny"
+
+[curve]
+type = "linear"
+base = 100
+step = 25
+rounding = "ceil"
+
+[[level_currency_awards]]
+id = "progressiveskills:combat/level_points"
+amount_per_level = 2
+currency = "progressiveskills:global_points"
+award_basis = "lifetime_highest_level"
+award_scope = "character"
+
+[[xp_sources]]
+id = "progressiveskills:combat/training"
+action = "custom"
+key = "progressiveskills:combat_training"
+amount = 25
+repeat_policy = "always"

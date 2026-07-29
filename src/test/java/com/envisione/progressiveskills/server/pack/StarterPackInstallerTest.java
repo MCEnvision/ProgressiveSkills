@@ -34,6 +34,8 @@ class StarterPackInstallerTest {
                 .contains("progressiveskills:global_points"));
         assertTrue(Files.readString(pack.resolve("skills/physique.toml"))
                 .contains("progressiveskills:physique"));
+        assertTrue(Files.readString(pack.resolve("skills/builder.toml"))
+                .contains("progressiveskills:builder"));
         assertTrue(Files.readString(pack.resolve("rules/physique_stone_training.toml"))
                 .contains("progressiveskills:block_break"));
         assertTrue(Files.readString(pack.resolve("rules/physique_stone_training.toml"))
@@ -68,7 +70,7 @@ class StarterPackInstallerTest {
     }
 
     @Test
-    void installedStarterPackCompilesThePhysiqueVerticalSlice() throws IOException {
+    void installedStarterPackCompilesAllStarterSkillsAndTrees() throws IOException {
         Path root = temporaryDirectory.resolve("packs");
         StarterPackInstaller.install(root);
 
@@ -88,6 +90,7 @@ class StarterPackInstallerTest {
         assertTrue(catalog.skill(net.minecraft.resources.ResourceLocation.parse(
                 "progressiveskills:physique"
         )).isPresent());
+        assertEquals(15, catalog.skills().size());
         assertTrue(catalog.currency(net.minecraft.resources.ResourceLocation.parse(
                 "progressiveskills:global_points"
         )).isPresent());
@@ -111,10 +114,21 @@ class StarterPackInstallerTest {
         var trees = com.envisione.progressiveskills.common.tree.TreeCatalog.from(
                 result.snapshot().orElseThrow().canonicalIr(), catalog
         );
+        assertEquals(15, trees.trees().size());
+        catalog.skills().keySet().forEach(skillId -> {
+            var bound = trees.trees().values().stream()
+                    .filter(value -> value.boundSkill().stream().anyMatch(skillId::equals))
+                    .toList();
+            assertEquals(1, bound.size(), () -> "Expected one tree for " + skillId);
+            assertTrue(bound.getFirst().nodes().size() >= 10, () ->
+                    "Expected at least ten nodes for " + skillId);
+            assertTrue(bound.getFirst().nodes().stream().allMatch(node -> !node.grants().isEmpty()), () ->
+                    "Expected functional node grants for " + skillId);
+        });
         var tree = trees.tree(ResourceLocation.parse(
                 "progressiveskills:physique_training"
         )).orElseThrow();
-        assertEquals(4, tree.nodes().size());
+        assertEquals(10, tree.nodes().size());
         assertEquals(com.envisione.progressiveskills.common.tree.TreeScope.SKILL, tree.scope());
         assertEquals(64, trees.nodeLineageFingerprint(
                 tree.id(), ResourceLocation.parse("progressiveskills:physique_training/conditioning")

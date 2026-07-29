@@ -26,6 +26,7 @@ import com.envisione.progressiveskills.common.transaction.IdempotencyKey;
 import com.envisione.progressiveskills.common.transaction.ProgressionSnapshot;
 import com.envisione.progressiveskills.common.id.DefinitionKinds;
 import com.envisione.progressiveskills.common.skill.SkillCatalog;
+import com.envisione.progressiveskills.common.skill.SkillCurve;
 import com.envisione.progressiveskills.common.tree.TreeCatalog;
 import com.envisione.progressiveskills.common.tree.TreeProgression;
 import com.envisione.progressiveskills.server.pack.PackRuntime;
@@ -205,7 +206,7 @@ public final class NetworkRuntime {
         TransactionRuntime.Context transactions = transactionContext.orElseThrow();
         var state = transactions.service().snapshot(player.getUUID());
         boolean progressionReady = transactions.ready(player);
-        Map<String, Long> balances = visibleBalances(state.balances());
+        Map<String, Long> balances = visibleBalances(state.balances(), cached.skills());
         Map<String, Long> effective = new LinkedHashMap<>();
         state.projectedValues().forEach((key, value) -> effective.put(key.toString(), value));
         long gameTick = player.serverLevel().getGameTime();
@@ -235,13 +236,47 @@ public final class NetworkRuntime {
     static Map<String, Long> visibleBalances(
             Map<net.minecraft.resources.ResourceLocation, Long> authoritative
     ) {
+        return visibleBalances(authoritative, null);
+    }
+
+    static Map<String, Long> visibleBalances(
+            Map<net.minecraft.resources.ResourceLocation, Long> authoritative,
+            SkillCatalog skills
+    ) {
         Map<String, Long> balances = new LinkedHashMap<>();
         authoritative.forEach((key, value) -> {
             if (!RuleMemoryKeys.isInternal(key) && !AbilityProgression.isInternalBalance(key)) {
                 balances.put(key.toString(), value);
             }
         });
+        if (skills != null) {
+            skills.skills().forEach((id, skill) -> {
+                long level = authoritative.getOrDefault(
+                        com.envisione.progressiveskills.common.skill.SkillStateIds.level(id), 0L);
+                long active = authoritative.getOrDefault(
+                        com.envisione.progressiveskills.common.skill.SkillStateIds.activeXp(id), 0L);
+                SkillProgressProjection progress = skillProgress(skill.curve(), level, active);
+                balances.put(
+                        com.envisione.progressiveskills.common.skill.SkillStateIds.intoLevelXp(id).toString(),
+                        progress.intoLevelUnits()
+                );
+                balances.put(
+                        com.envisione.progressiveskills.common.skill.SkillStateIds.nextLevelXp(id).toString(),
+                        progress.nextLevelUnits()
+                );
+            });
+        }
         return balances;
+    }
+
+    static SkillProgressProjection skillProgress(SkillCurve curve, long level, long activeUnits) {
+        if (level < curve.minLevel() || level >= curve.maxLevel() || activeUnits < 0L) {
+            return new SkillProgressProjection(0L, 0L);
+        }
+        return new SkillProgressProjection(
+                curve.intoLevelUnits(activeUnits),
+                curve.costUnitsAt((int) level)
+        );
     }
 
     static Map<net.minecraft.resources.ResourceLocation, Integer> visibleNodeRanks(
@@ -1083,6 +1118,7 @@ public final class NetworkRuntime {
                 semanticDigest,
                 definitions,
                 BoundedNetworkCodec.digest(DefinitionProjectionCodec.encode(definitions)),
+                skills,
                 trees,
                 classes,
                 abilities
@@ -1100,11 +1136,15 @@ public final class NetworkRuntime {
     ) {
     }
 
+    record SkillProgressProjection(long intoLevelUnits, long nextLevelUnits) {
+    }
+
     private record CachedDefinitions(
             long generation,
             String semanticDigest,
             DefinitionProjection definitions,
             String presentationDigest,
+            SkillCatalog skills,
             TreeCatalog trees,
             ClassCatalog classes,
             AbilityCatalog abilities

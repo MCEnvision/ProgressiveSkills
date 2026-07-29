@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:hunting_mastery"
+display = { key = "tree.progressiveskills.hunting_mastery", fallback = "Hunting Mastery" }
+description = { key = "tree.progressiveskills.hunting_mastery.desc", fallback = "Develop every branch of hunting." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Hunting" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:hunting"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/root"
+display = { key = "node.progressiveskills.hunting_mastery.root", fallback = "Tracking" }
+description = { key = "node.progressiveskills.hunting_mastery.root.desc", fallback = "Develop tracking through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Tracking" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:hunting" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/left_path"
+display = { key = "node.progressiveskills.hunting_mastery.left_path", fallback = "Quiet Step" }
+description = { key = "node.progressiveskills.hunting_mastery.left_path.desc", fallback = "Develop quiet step through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Quiet Step" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:hunting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/right_path"
+display = { key = "node.progressiveskills.hunting_mastery.right_path", fallback = "Field Dressing" }
+description = { key = "node.progressiveskills.hunting_mastery.right_path.desc", fallback = "Develop field dressing through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Field Dressing" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:hunting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/left_focus"
+display = { key = "node.progressiveskills.hunting_mastery.left_focus", fallback = "Ambush" }
+description = { key = "node.progressiveskills.hunting_mastery.left_focus.desc", fallback = "Develop ambush through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Ambush" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:hunting_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/center_focus"
+display = { key = "node.progressiveskills.hunting_mastery.center_focus", fallback = "Trail Sense" }
+description = { key = "node.progressiveskills.hunting_mastery.center_focus.desc", fallback = "Develop trail sense through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Trail Sense" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:hunting_mastery/left_path", "progressiveskills:hunting_mastery/right_path"]
+min_level = { "progressiveskills:hunting" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/right_focus"
+display = { key = "node.progressiveskills.hunting_mastery.right_focus", fallback = "Predator Focus" }
+description = { key = "node.progressiveskills.hunting_mastery.right_focus.desc", fallback = "Develop predator focus through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Predator Focus" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:hunting_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/left_mastery"
+display = { key = "node.progressiveskills.hunting_mastery.left_mastery", fallback = "Wilderness Lore" }
+description = { key = "node.progressiveskills.hunting_mastery.left_mastery.desc", fallback = "Develop wilderness lore through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Wilderness Lore" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:hunting_mastery/left_focus", "progressiveskills:hunting_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/right_mastery"
+display = { key = "node.progressiveskills.hunting_mastery.right_mastery", fallback = "Relentless Pursuit" }
+description = { key = "node.progressiveskills.hunting_mastery.right_mastery.desc", fallback = "Develop relentless pursuit through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Relentless Pursuit" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:hunting_mastery/center_focus", "progressiveskills:hunting_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/mastery"
+display = { key = "node.progressiveskills.hunting_mastery.mastery", fallback = "Master Hunter" }
+description = { key = "node.progressiveskills.hunting_mastery.mastery.desc", fallback = "Develop master hunter through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Master Hunter" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:hunting_mastery/left_mastery", "progressiveskills:hunting_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:hunting_mastery/capstone"
+display = { key = "node.progressiveskills.hunting_mastery.capstone", fallback = "Apex Instinct" }
+description = { key = "node.progressiveskills.hunting_mastery.capstone.desc", fallback = "Develop apex instinct through dedicated hunting training." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Apex Instinct" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:hunting_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:hunting" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:hunting_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005

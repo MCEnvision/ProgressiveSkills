@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:archery_mastery"
+display = { key = "tree.progressiveskills.archery_mastery", fallback = "Archery Mastery" }
+description = { key = "tree.progressiveskills.archery_mastery.desc", fallback = "Develop every branch of archery." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Archery" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:archery"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/root"
+display = { key = "node.progressiveskills.archery_mastery.root", fallback = "Steady Aim" }
+description = { key = "node.progressiveskills.archery_mastery.root.desc", fallback = "Develop steady aim through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Steady Aim" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:archery" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/left_path"
+display = { key = "node.progressiveskills.archery_mastery.left_path", fallback = "Draw Control" }
+description = { key = "node.progressiveskills.archery_mastery.left_path.desc", fallback = "Develop draw control through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Draw Control" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:archery_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/right_path"
+display = { key = "node.progressiveskills.archery_mastery.right_path", fallback = "Quick Nock" }
+description = { key = "node.progressiveskills.archery_mastery.right_path.desc", fallback = "Develop quick nock through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Quick Nock" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:archery_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/left_focus"
+display = { key = "node.progressiveskills.archery_mastery.left_focus", fallback = "Long Shot" }
+description = { key = "node.progressiveskills.archery_mastery.left_focus.desc", fallback = "Develop long shot through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Long Shot" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:archery_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/center_focus"
+display = { key = "node.progressiveskills.archery_mastery.center_focus", fallback = "Piercing Focus" }
+description = { key = "node.progressiveskills.archery_mastery.center_focus.desc", fallback = "Develop piercing focus through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Piercing Focus" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:archery_mastery/left_path", "progressiveskills:archery_mastery/right_path"]
+min_level = { "progressiveskills:archery" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/right_focus"
+display = { key = "node.progressiveskills.archery_mastery.right_focus", fallback = "Mobile Archer" }
+description = { key = "node.progressiveskills.archery_mastery.right_focus.desc", fallback = "Develop mobile archer through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Mobile Archer" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:archery_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/left_mastery"
+display = { key = "node.progressiveskills.archery_mastery.left_mastery", fallback = "Eagle Eye" }
+description = { key = "node.progressiveskills.archery_mastery.left_mastery.desc", fallback = "Develop eagle eye through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Eagle Eye" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:archery_mastery/left_focus", "progressiveskills:archery_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/right_mastery"
+display = { key = "node.progressiveskills.archery_mastery.right_mastery", fallback = "Volley Rhythm" }
+description = { key = "node.progressiveskills.archery_mastery.right_mastery.desc", fallback = "Develop volley rhythm through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Volley Rhythm" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:archery_mastery/center_focus", "progressiveskills:archery_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/mastery"
+display = { key = "node.progressiveskills.archery_mastery.mastery", fallback = "Master Archer" }
+description = { key = "node.progressiveskills.archery_mastery.mastery.desc", fallback = "Develop master archer through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Master Archer" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:archery_mastery/left_mastery", "progressiveskills:archery_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:archery_mastery/capstone"
+display = { key = "node.progressiveskills.archery_mastery.capstone", fallback = "Perfect Shot" }
+description = { key = "node.progressiveskills.archery_mastery.capstone.desc", fallback = "Develop perfect shot through dedicated archery training." }
+icon = { type = "item", value = "minecraft:arrow", fallback = "minecraft:barrier", alt = "Perfect Shot" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:archery_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:archery" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:archery_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005

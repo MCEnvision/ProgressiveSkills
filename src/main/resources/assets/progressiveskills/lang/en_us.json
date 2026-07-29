@@ -13,7 +13,6 @@
   "key.categories.progressiveskills": "Progressive Skills",
   "key.progressiveskills.open_progress": "Open Progression",
   "key.progressiveskills.command_palette": "Command Palette",
-  "key.progressiveskills.open_tree": "Open Skill Trees",
   "key.progressiveskills.ability_wheel": "Ability Wheel",
   "key.progressiveskills.previous_ability": "Previous Ability",
   "key.progressiveskills.next_ability": "Next Ability",
@@ -50,9 +49,12 @@
   "screen.progressiveskills.tree.confirm_review": "Affected nodes in cascade order %s. Refund balances %s",
   "screen.progressiveskills.tree.latest_result": "Latest request %s. %s"
   ,"screen.progressiveskills.progression.title": "Progressive Skills"
+  ,"screen.progressiveskills.main.heading": "Choose Your Progression"
+  ,"screen.progressiveskills.main.open": "Open"
+  ,"screen.progressiveskills.main.summary": "Total Level %s. Skills %s. Classes %s. Abilities %s."
   ,"screen.progressiveskills.skills.total_level": "Total Level"
   ,"screen.progressiveskills.skills.total_level_value": "Total Level %s"
-  ,"screen.progressiveskills.skills.tracks": "Tracks"
+  ,"screen.progressiveskills.skills.tracks": "Skills %s"
   ,"screen.progressiveskills.skills.highest": "Highest"
   ,"screen.progressiveskills.skills.level": "Level %s"
   ,"screen.progressiveskills.skills.active_xp": "Active XP %s"
@@ -67,6 +69,10 @@
   ,"screen.progressiveskills.skills.node_cost": "Cost %s %s. Balance %s"
   ,"screen.progressiveskills.skills.choice_path": "Alternative choice path"
   ,"screen.progressiveskills.skills.required_path": "Required path"
+  ,"screen.progressiveskills.skills.next_level": "Next Level %s of %s"
+  ,"screen.progressiveskills.skills.max_level": "Maximum Level"
+  ,"screen.progressiveskills.skills.progress_unavailable": "Progress Unavailable"
+  ,"screen.progressiveskills.skills.tree_controls": "Drag. Scroll. Space. Zoom %s percent"
   ,"screen.progressiveskills.classes.capacity": "Capacity %s of %s"
   ,"screen.progressiveskills.classes.not_selected": "Not Selected"
   ,"screen.progressiveskills.classes.selected": "Selected. %s"

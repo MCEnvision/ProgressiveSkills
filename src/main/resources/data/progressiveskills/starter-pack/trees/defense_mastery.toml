@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:defense_mastery"
+display = { key = "tree.progressiveskills.defense_mastery", fallback = "Defense Mastery" }
+description = { key = "tree.progressiveskills.defense_mastery.desc", fallback = "Develop every branch of defense." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Defense" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:defense"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/root"
+display = { key = "node.progressiveskills.defense_mastery.root", fallback = "Brace" }
+description = { key = "node.progressiveskills.defense_mastery.root.desc", fallback = "Develop brace through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Brace" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:defense" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/left_path"
+display = { key = "node.progressiveskills.defense_mastery.left_path", fallback = "Shield Form" }
+description = { key = "node.progressiveskills.defense_mastery.left_path.desc", fallback = "Develop shield form through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Shield Form" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:defense_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/right_path"
+display = { key = "node.progressiveskills.defense_mastery.right_path", fallback = "Iron Skin" }
+description = { key = "node.progressiveskills.defense_mastery.right_path.desc", fallback = "Develop iron skin through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Iron Skin" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:defense_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/left_focus"
+display = { key = "node.progressiveskills.defense_mastery.left_focus", fallback = "Deflection" }
+description = { key = "node.progressiveskills.defense_mastery.left_focus.desc", fallback = "Develop deflection through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Deflection" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:defense_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/center_focus"
+display = { key = "node.progressiveskills.defense_mastery.center_focus", fallback = "Hold Ground" }
+description = { key = "node.progressiveskills.defense_mastery.center_focus.desc", fallback = "Develop hold ground through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Hold Ground" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:defense_mastery/left_path", "progressiveskills:defense_mastery/right_path"]
+min_level = { "progressiveskills:defense" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/right_focus"
+display = { key = "node.progressiveskills.defense_mastery.right_focus", fallback = "Bulwark" }
+description = { key = "node.progressiveskills.defense_mastery.right_focus.desc", fallback = "Develop bulwark through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Bulwark" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:defense_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/left_mastery"
+display = { key = "node.progressiveskills.defense_mastery.left_mastery", fallback = "Guardian" }
+description = { key = "node.progressiveskills.defense_mastery.left_mastery.desc", fallback = "Develop guardian through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Guardian" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:defense_mastery/left_focus", "progressiveskills:defense_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/right_mastery"
+display = { key = "node.progressiveskills.defense_mastery.right_mastery", fallback = "Last Stand" }
+description = { key = "node.progressiveskills.defense_mastery.right_mastery.desc", fallback = "Develop last stand through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Last Stand" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:defense_mastery/center_focus", "progressiveskills:defense_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/mastery"
+display = { key = "node.progressiveskills.defense_mastery.mastery", fallback = "Master Defender" }
+description = { key = "node.progressiveskills.defense_mastery.mastery.desc", fallback = "Develop master defender through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Master Defender" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:defense_mastery/left_mastery", "progressiveskills:defense_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:defense_mastery/capstone"
+display = { key = "node.progressiveskills.defense_mastery.capstone", fallback = "Living Fortress" }
+description = { key = "node.progressiveskills.defense_mastery.capstone.desc", fallback = "Develop living fortress through dedicated defense training." }
+icon = { type = "item", value = "minecraft:shield", fallback = "minecraft:barrier", alt = "Living Fortress" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:defense_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:defense" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:defense_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10

@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:agility_mastery"
+display = { key = "tree.progressiveskills.agility_mastery", fallback = "Agility Mastery" }
+description = { key = "tree.progressiveskills.agility_mastery.desc", fallback = "Develop every branch of agility." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Agility" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:agility"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/root"
+display = { key = "node.progressiveskills.agility_mastery.root", fallback = "Light Step" }
+description = { key = "node.progressiveskills.agility_mastery.root.desc", fallback = "Develop light step through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Light Step" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:agility" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/left_path"
+display = { key = "node.progressiveskills.agility_mastery.left_path", fallback = "Vault" }
+description = { key = "node.progressiveskills.agility_mastery.left_path.desc", fallback = "Develop vault through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Vault" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:agility_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/right_path"
+display = { key = "node.progressiveskills.agility_mastery.right_path", fallback = "Quick Turn" }
+description = { key = "node.progressiveskills.agility_mastery.right_path.desc", fallback = "Develop quick turn through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Quick Turn" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:agility_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/left_focus"
+display = { key = "node.progressiveskills.agility_mastery.left_focus", fallback = "Sprint Form" }
+description = { key = "node.progressiveskills.agility_mastery.left_focus.desc", fallback = "Develop sprint form through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Sprint Form" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:agility_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/center_focus"
+display = { key = "node.progressiveskills.agility_mastery.center_focus", fallback = "Evasion" }
+description = { key = "node.progressiveskills.agility_mastery.center_focus.desc", fallback = "Develop evasion through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Evasion" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:agility_mastery/left_path", "progressiveskills:agility_mastery/right_path"]
+min_level = { "progressiveskills:agility" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/right_focus"
+display = { key = "node.progressiveskills.agility_mastery.right_focus", fallback = "Flow" }
+description = { key = "node.progressiveskills.agility_mastery.right_focus.desc", fallback = "Develop flow through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Flow" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:agility_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/left_mastery"
+display = { key = "node.progressiveskills.agility_mastery.left_mastery", fallback = "Acrobat" }
+description = { key = "node.progressiveskills.agility_mastery.left_mastery.desc", fallback = "Develop acrobat through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Acrobat" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:agility_mastery/left_focus", "progressiveskills:agility_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/right_mastery"
+display = { key = "node.progressiveskills.agility_mastery.right_mastery", fallback = "Wind Runner" }
+description = { key = "node.progressiveskills.agility_mastery.right_mastery.desc", fallback = "Develop wind runner through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Wind Runner" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:agility_mastery/center_focus", "progressiveskills:agility_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/mastery"
+display = { key = "node.progressiveskills.agility_mastery.mastery", fallback = "Master Agility" }
+description = { key = "node.progressiveskills.agility_mastery.mastery.desc", fallback = "Develop master agility through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Master Agility" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:agility_mastery/left_mastery", "progressiveskills:agility_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:agility_mastery/capstone"
+display = { key = "node.progressiveskills.agility_mastery.capstone", fallback = "Untouchable" }
+description = { key = "node.progressiveskills.agility_mastery.capstone.desc", fallback = "Develop untouchable through dedicated agility training." }
+icon = { type = "item", value = "minecraft:rabbit_foot", fallback = "minecraft:barrier", alt = "Untouchable" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:agility_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:agility" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:agility_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005

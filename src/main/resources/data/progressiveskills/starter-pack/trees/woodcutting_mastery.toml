@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:woodcutting_mastery"
+display = { key = "tree.progressiveskills.woodcutting_mastery", fallback = "Woodcutting Mastery" }
+description = { key = "tree.progressiveskills.woodcutting_mastery.desc", fallback = "Develop every branch of woodcutting." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Woodcutting" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:woodcutting"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/root"
+display = { key = "node.progressiveskills.woodcutting_mastery.root", fallback = "Grain Reading" }
+description = { key = "node.progressiveskills.woodcutting_mastery.root.desc", fallback = "Develop grain reading through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Grain Reading" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/left_path"
+display = { key = "node.progressiveskills.woodcutting_mastery.left_path", fallback = "Clean Cuts" }
+description = { key = "node.progressiveskills.woodcutting_mastery.left_path.desc", fallback = "Develop clean cuts through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Clean Cuts" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:woodcutting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/right_path"
+display = { key = "node.progressiveskills.woodcutting_mastery.right_path", fallback = "Timber Sense" }
+description = { key = "node.progressiveskills.woodcutting_mastery.right_path.desc", fallback = "Develop timber sense through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Timber Sense" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:woodcutting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/left_focus"
+display = { key = "node.progressiveskills.woodcutting_mastery.left_focus", fallback = "Branchwork" }
+description = { key = "node.progressiveskills.woodcutting_mastery.left_focus.desc", fallback = "Develop branchwork through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Branchwork" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:woodcutting_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/center_focus"
+display = { key = "node.progressiveskills.woodcutting_mastery.center_focus", fallback = "Forest Step" }
+description = { key = "node.progressiveskills.woodcutting_mastery.center_focus.desc", fallback = "Develop forest step through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Forest Step" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:woodcutting_mastery/left_path", "progressiveskills:woodcutting_mastery/right_path"]
+min_level = { "progressiveskills:woodcutting" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/right_focus"
+display = { key = "node.progressiveskills.woodcutting_mastery.right_focus", fallback = "Heavy Swing" }
+description = { key = "node.progressiveskills.woodcutting_mastery.right_focus.desc", fallback = "Develop heavy swing through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Heavy Swing" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:woodcutting_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/left_mastery"
+display = { key = "node.progressiveskills.woodcutting_mastery.left_mastery", fallback = "Seasoned Logger" }
+description = { key = "node.progressiveskills.woodcutting_mastery.left_mastery.desc", fallback = "Develop seasoned logger through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Seasoned Logger" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:woodcutting_mastery/left_focus", "progressiveskills:woodcutting_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/right_mastery"
+display = { key = "node.progressiveskills.woodcutting_mastery.right_mastery", fallback = "Woodland Instinct" }
+description = { key = "node.progressiveskills.woodcutting_mastery.right_mastery.desc", fallback = "Develop woodland instinct through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Woodland Instinct" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:woodcutting_mastery/center_focus", "progressiveskills:woodcutting_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/mastery"
+display = { key = "node.progressiveskills.woodcutting_mastery.mastery", fallback = "Master Woodcutter" }
+description = { key = "node.progressiveskills.woodcutting_mastery.mastery.desc", fallback = "Develop master woodcutter through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Master Woodcutter" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:woodcutting_mastery/left_mastery", "progressiveskills:woodcutting_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:woodcutting_mastery/capstone"
+display = { key = "node.progressiveskills.woodcutting_mastery.capstone", fallback = "Heartwood" }
+description = { key = "node.progressiveskills.woodcutting_mastery.capstone.desc", fallback = "Develop heartwood through dedicated woodcutting training." }
+icon = { type = "item", value = "minecraft:diamond_axe", fallback = "minecraft:barrier", alt = "Heartwood" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:woodcutting_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:woodcutting" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:woodcutting_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005

@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:miner_mastery"
+display = { key = "tree.progressiveskills.miner_mastery", fallback = "Miner Mastery" }
+description = { key = "tree.progressiveskills.miner_mastery.desc", fallback = "Develop every branch of miner." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Miner" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:miner"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/root"
+display = { key = "node.progressiveskills.miner_mastery.root", fallback = "Prospecting" }
+description = { key = "node.progressiveskills.miner_mastery.root.desc", fallback = "Develop prospecting through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Prospecting" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:miner" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/left_path"
+display = { key = "node.progressiveskills.miner_mastery.left_path", fallback = "Steady Swing" }
+description = { key = "node.progressiveskills.miner_mastery.left_path.desc", fallback = "Develop steady swing through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Steady Swing" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:miner_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/right_path"
+display = { key = "node.progressiveskills.miner_mastery.right_path", fallback = "Tunnel Sense" }
+description = { key = "node.progressiveskills.miner_mastery.right_path.desc", fallback = "Develop tunnel sense through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Tunnel Sense" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:miner_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/left_focus"
+display = { key = "node.progressiveskills.miner_mastery.left_focus", fallback = "Ore Eye" }
+description = { key = "node.progressiveskills.miner_mastery.left_focus.desc", fallback = "Develop ore eye through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Ore Eye" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:miner_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/center_focus"
+display = { key = "node.progressiveskills.miner_mastery.center_focus", fallback = "Stonecraft" }
+description = { key = "node.progressiveskills.miner_mastery.center_focus.desc", fallback = "Develop stonecraft through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Stonecraft" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:miner_mastery/left_path", "progressiveskills:miner_mastery/right_path"]
+min_level = { "progressiveskills:miner" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/right_focus"
+display = { key = "node.progressiveskills.miner_mastery.right_focus", fallback = "Deep Delving" }
+description = { key = "node.progressiveskills.miner_mastery.right_focus.desc", fallback = "Develop deep delving through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Deep Delving" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:miner_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/left_mastery"
+display = { key = "node.progressiveskills.miner_mastery.left_mastery", fallback = "Efficient Strikes" }
+description = { key = "node.progressiveskills.miner_mastery.left_mastery.desc", fallback = "Develop efficient strikes through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Efficient Strikes" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:miner_mastery/left_focus", "progressiveskills:miner_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/right_mastery"
+display = { key = "node.progressiveskills.miner_mastery.right_mastery", fallback = "Cave Veteran" }
+description = { key = "node.progressiveskills.miner_mastery.right_mastery.desc", fallback = "Develop cave veteran through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Cave Veteran" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:miner_mastery/center_focus", "progressiveskills:miner_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/mastery"
+display = { key = "node.progressiveskills.miner_mastery.mastery", fallback = "Master Miner" }
+description = { key = "node.progressiveskills.miner_mastery.mastery.desc", fallback = "Develop master miner through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Master Miner" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:miner_mastery/left_mastery", "progressiveskills:miner_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:miner_mastery/capstone"
+display = { key = "node.progressiveskills.miner_mastery.capstone", fallback = "Bedrock Resolve" }
+description = { key = "node.progressiveskills.miner_mastery.capstone.desc", fallback = "Develop bedrock resolve through dedicated miner training." }
+icon = { type = "item", value = "minecraft:diamond_pickaxe", fallback = "minecraft:barrier", alt = "Bedrock Resolve" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:miner_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:miner" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:miner_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005

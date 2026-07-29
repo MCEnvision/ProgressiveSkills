@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:exploration_mastery"
+display = { key = "tree.progressiveskills.exploration_mastery", fallback = "Exploration Mastery" }
+description = { key = "tree.progressiveskills.exploration_mastery.desc", fallback = "Develop every branch of exploration." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Exploration" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:exploration"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/root"
+display = { key = "node.progressiveskills.exploration_mastery.root", fallback = "Trailblazing" }
+description = { key = "node.progressiveskills.exploration_mastery.root.desc", fallback = "Develop trailblazing through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Trailblazing" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:exploration" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/left_path"
+display = { key = "node.progressiveskills.exploration_mastery.left_path", fallback = "Landmark Sense" }
+description = { key = "node.progressiveskills.exploration_mastery.left_path.desc", fallback = "Develop landmark sense through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Landmark Sense" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:exploration_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/right_path"
+display = { key = "node.progressiveskills.exploration_mastery.right_path", fallback = "Pathfinder" }
+description = { key = "node.progressiveskills.exploration_mastery.right_path.desc", fallback = "Develop pathfinder through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Pathfinder" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:exploration_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/left_focus"
+display = { key = "node.progressiveskills.exploration_mastery.left_focus", fallback = "Climber" }
+description = { key = "node.progressiveskills.exploration_mastery.left_focus.desc", fallback = "Develop climber through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Climber" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:exploration_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/center_focus"
+display = { key = "node.progressiveskills.exploration_mastery.center_focus", fallback = "Cartographer" }
+description = { key = "node.progressiveskills.exploration_mastery.center_focus.desc", fallback = "Develop cartographer through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Cartographer" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:exploration_mastery/left_path", "progressiveskills:exploration_mastery/right_path"]
+min_level = { "progressiveskills:exploration" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/right_focus"
+display = { key = "node.progressiveskills.exploration_mastery.right_focus", fallback = "Wayfinder" }
+description = { key = "node.progressiveskills.exploration_mastery.right_focus.desc", fallback = "Develop wayfinder through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Wayfinder" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:exploration_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/left_mastery"
+display = { key = "node.progressiveskills.exploration_mastery.left_mastery", fallback = "Frontier Spirit" }
+description = { key = "node.progressiveskills.exploration_mastery.left_mastery.desc", fallback = "Develop frontier spirit through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Frontier Spirit" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:exploration_mastery/left_focus", "progressiveskills:exploration_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/right_mastery"
+display = { key = "node.progressiveskills.exploration_mastery.right_mastery", fallback = "World Walker" }
+description = { key = "node.progressiveskills.exploration_mastery.right_mastery.desc", fallback = "Develop world walker through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "World Walker" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:exploration_mastery/center_focus", "progressiveskills:exploration_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.entity_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/mastery"
+display = { key = "node.progressiveskills.exploration_mastery.mastery", fallback = "Master Explorer" }
+description = { key = "node.progressiveskills.exploration_mastery.mastery.desc", fallback = "Develop master explorer through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Master Explorer" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:exploration_mastery/left_mastery", "progressiveskills:exploration_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:exploration_mastery/capstone"
+display = { key = "node.progressiveskills.exploration_mastery.capstone", fallback = "Horizon Seeker" }
+description = { key = "node.progressiveskills.exploration_mastery.capstone.desc", fallback = "Develop horizon seeker through dedicated exploration training." }
+icon = { type = "item", value = "minecraft:compass", fallback = "minecraft:barrier", alt = "Horizon Seeker" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:exploration_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:exploration" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:exploration_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10

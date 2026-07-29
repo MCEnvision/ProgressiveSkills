@@ -3020,24 +3020,25 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 **Visual language and shared shell:**
 
 - Every ProgressiveSkills menu uses one shared screen foundation with a single correctly ordered blur pass, a centered advancement style window, stone and parchment toned panels, vanilla font, item rendering, tooltips, button sounds, focus states, and narration.
-- Progression, trees, classes, abilities, claims, guide, comparison, tests, synchronization, HUD editing, command discovery, and Studio use the same frame, spacing, tabs, selected states, headings, and footer controls.
+- The player Progression interface exposes only Main Menu, Skills, Classes, and Abilities. Claims, guide, comparison, tests, synchronization, HUD editing, and Studio are not player navigation pages. Existing administrator commands and server diagnostics remain available outside this interface.
 - Layout responds to GUI scale, window resize, long localized text, text scaling, high contrast, compact layout, and reduced motion. Small windows retain keyboard reachable content instead of clipping required actions.
 - The redesign uses resource pack addressable ProgressiveSkills sprites or stable vanilla resources with code fallbacks. Missing cosmetic assets cannot hide information or disable progression.
 - Menu Background Blur affects only the world or previous screen behind the interface. Panels, text, icons, widgets, and tooltips render after the blur and remain sharp.
 
-**Progression screen:**
+**Unified Progression screen:**
 
-- The main Progression screen follows the Minecraft advancements window model. Major progression pages appear as icon tabs around the window rather than a full screen text table.
+- The main Progression screen follows the Minecraft advancements window model. Pressing `P` opens Main Menu, and the only visible pages are Main Menu, Skills, Classes, and Abilities.
 - Each page owns an advancement style canvas or list inside the window, a title strip, current player summary, hovered element tooltip, selected element detail, and contextual actions.
-- Skills and the other progression pages use compact native selection cards, item tab icons, hover detail, selected detail, and page specific actions inside the advancement window. Classes, abilities, claims, guide entries, comparison, tests, synchronization, and Studio preserve their appropriate list, card, form, or diagnostic behavior.
+- Main Menu provides direct, readable entry cards for Skills, Classes, and Abilities. Those three pages use compact native selection cards, item tab icons, hover detail, selected detail, and page specific actions inside the same window.
 - Search, paging, safe retry, accessibility preferences, and direct shortcuts remain available without covering the active content.
 - Buttons are created only when the authoritative visible state allows their action. An unowned ability can be inspected but cannot expose assignment, toggle, or activation actions.
 
-**Tree screen:**
+**Embedded skill trees:**
 
-- The Tree screen behaves like Minecraft's advancements screen. Every live progression tree is a root tab with its own remembered pan position, selected node, node graph, connectors, background, and tooltip state.
-- Tree tabs move between the top, bottom, left, and right edges as needed using advancement style tab shapes. Mouse click, keyboard traversal, and accessible next and previous tree actions select roots without leaving the screen.
-- The canvas supports bounded click drag panning, centered initial layout, owned, available, locked, suspended, and selected node frames, connection lines, item icons, rank text, hover tooltips, and a selected node detail panel.
+- Skill trees are part of the Skills page. The separate Tree screen, its `K` key mapping, and the Open Tree route are removed.
+- Selecting or hovering a skill displays its bound tree in the central graph region. Every tree retains its own remembered pan position, zoom, selected node, connectors, background, and tooltip state while the Progression screen remains open.
+- Pointer input is scoped to the graph region. Dragging empty graph space pans, the mouse wheel zooms around the pointer, and Space recenters when the pointer is over the graph. The same inputs outside the graph continue to control their normal page widgets.
+- The canvas supports bounded panning, centered initial layout, owned, available, locked, suspended, and selected node frames, connection lines, item icons, rank text, hover tooltips, and a selected node detail panel.
 - Purchase and refund controls show only for valid current player states. Every mutation uses the current definition generation, player revision, and preview digest. Stale or invalid actions disable safely and request resynchronization rather than throwing from an input callback.
 
 **Ability wheel:**
@@ -3060,41 +3061,48 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 **Phase 20 Option B, expanded progression hub and tree workspace:**
 
 - Option B replaces the small fixed advancement window with a responsive advancement inspired workbench. The frame grows to the available GUI area while preserving room for tabs and footer controls at every supported GUI scale.
-- Skills, classes, abilities, trees, claims, guide entries, and diagnostic pages use original ProgressiveSkills card layouts informed by the dense overview pattern of RPG character menus. No third party source, texture, sprite, or other bundled asset is copied into ProgressiveSkills.
+- Main Menu, Skills, Classes, and Abilities use original ProgressiveSkills card layouts informed by the dense overview pattern of RPG character menus. No third party source, texture, sprite, or other bundled asset is copied into ProgressiveSkills.
 - Definition cards show their configured item icon, display name, concise state summary, selected state, and a separate wrapped detail panel. Large windows show multiple card columns. Narrow windows reduce the column count before reducing readable content.
 - Skills use a dedicated character dashboard instead of the generic definition browser. The dashboard places the local player preview between aggregate progression totals and the selected skill summary, then presents every skill as an icon selector with its current level badge in a separate lower grid.
 - Classes use a dedicated slot selector instead of the generic definition browser. Pack defined class slots form their own selector rail with used capacity, the middle grid shows only classes belonging to the selected slot, and the detail rail shows selection state, weight, requirements, costs, and authoritative select or respec actions.
 - Hovering a skill or class selector previews it without changing the authoritative selection. Clicking changes only the inspected entry. Class mutation controls remain derived from the current synchronized definition and player state and still route through the existing server intent boundary.
 - Dedicated selectors page safely when a pack contains more entries or slots than the current GUI scale can display. The player preview, selector grids, slot rail, details, actions, tabs, and footer retain separate layout regions so none can overlap another.
-- Every Progression root tab icon is resource pack configurable through `assets/progressiveskills/ui/progression.json`. The default file covers skills, trees, classes, abilities, claims, guide, compare, tests, sync, and Studio. A missing or invalid override falls back to the built in vanilla item for that page.
+- Every visible Progression root tab icon is resource pack configurable through `assets/progressiveskills/ui/progression.json`. The default file covers Main Menu, Skills, Classes, and Abilities. A missing or invalid override falls back to the built in vanilla item for that page.
 - Definition and tree root icons remain definition driven. Resource packs may also replace the shared background and other declared ProgressiveSkills presentation resources without altering authoritative gameplay data.
-- The tree becomes a larger workspace with a graph canvas and a separate selected node panel. The selected icon, status, cost, and description never occupy graph space, so nodes cannot overlap the selected node text.
-- Tree movement uses click drag panning, mouse wheel zoom centered on the pointer, per tree remembered pan and zoom, and Space to recenter. Connections render below nodes and the canvas clips nodes and lines before the selected detail panel.
+- Each embedded tree uses a graph canvas and a separate selected node panel. The selected icon, status, cost, and description never occupy graph space, so nodes cannot overlap the selected node text.
+- Embedded tree movement uses click drag panning, mouse wheel zoom centered on the pointer, per tree remembered pan and zoom, and Space to recenter. Connections render below nodes and the canvas clips nodes and lines before the selected detail panel.
 - Tree node tooltips use a resource pack configurable ordered line template. The default template is `&l&c{name}`, `&c{state}`, `Cost {cost} {currency}`, and `{description}`. Templates support line breaks, placeholders, and legacy `&` color and style codes.
 - Tooltip currency and other stable ids use the synchronized definition display when available. Otherwise namespaces are removed, separators become spaces, and words are title cased, so `progressiveskills:global_points` displays as `Global Points`.
 - Every tooltip is wrapped to a configurable maximum width, positioned beside the pointer when possible, and clamped inside the current screen. Its opaque backing panel separates it from the graph without allowing text to extend beyond the screen.
 - The exact resource format, fallback behavior, examples, accessibility requirements, and player verification steps are maintained in `docs/guides/UI-CUSTOMIZATION.md` and `docs/verification/PHASE-20.md`.
 
-**Phase 20 Option B, sketch driven Progression workbench refinement:**
+**Phase 20 Option B, unified Progression workbench refinement:**
 
-- Pressing `P` opens the Skills page as a large two panel workbench. The redesign remains client presentation over the current synchronized snapshot and does not change server authority, persistence, transactions, or Protocol 7.
-- The left player panel contains a readable selected skill level meter, a compact set of no more than three relevant spendable progression balances, and a large live player model preview. Missing definitions, balances, or player state render a safe empty state instead of overlapping or throwing.
-- The right skill workspace contains a compact vertical skill selector rail, a selected skill header with its definition icon and level, a central skill bound tree preview, and a separate selected node card. Hovering a selector previews its name and data. Clicking changes only the locally inspected skill.
+- Pressing `P` opens Main Menu in one large responsive workbench. Main Menu, Skills, Classes, and Abilities are the only player pages. The redesign remains client presentation over the current synchronized snapshot and does not change server authority, persistence, transactions, or the Protocol 7 packet envelope.
+- The Main Menu contains three large entry cards for Skills, Classes, and Abilities plus a compact authoritative progression summary. It does not duplicate hidden diagnostic or administrator tools.
+- The Skills workspace contains a compact skill selector rail, a selected skill header with its definition icon and level, a progress bar for active experience toward that skill's next level, a central bound tree, and a separate selected node card. Hovering a selector previews its name and data. Clicking changes only the locally inspected skill.
+- The next level requirement is published as an additive owner visible balance entry derived from the authoritative skill curve. It does not add a new packet field, trust the client with curve evaluation, or expose another player's private progression data. Max level and missing skill states render a complete or unavailable state without division by zero.
 - A skill bound tree uses its real synchronized node rows, columns, prerequisites, alternative prerequisites, ownership, costs, currency, display text, description, and icons. The workbench never invents dependency or exclusivity behavior that is absent from the authoritative definition.
 - The bound tree preview draws connectors below nodes. Required paths, alternative choice paths, owned paths, available nodes, locked nodes, owned nodes, hovered nodes, and the inspected major node use distinct accessible colors and shapes. Resource pack theme data can override these colors while invalid values fall back safely.
 - Hovering a node previews it. Clicking a node pins its card. The card remains outside graph space and shows the node icon, display name, state, cost, currency icon, current balance, wrapped description, and whether the node uses required or alternative choice prerequisites.
-- Purchase, refund, respec, and mutation authority remain in the full Tree workspace reached through the existing contextual action. The Progression workbench is an inspection and navigation surface, so it cannot create a duplicate or stale mutation path.
+- Purchase and refund controls live in the selected node card. They reuse the existing server authoritative tree intents, refund preview digest, definition generation, player revision, validation, safe retry, and resynchronization boundaries. The removed standalone tree route does not leave a second mutation implementation.
 - When a skill has no bound tree, the right workspace keeps the selected skill summary and displays a clear no bound tree message without manufacturing nodes.
-- Selector paging, node fitting, player preview bounds, cost card wrapping, footer controls, global tabs, blur ordering, narration, GUI scale, text scale, resize, compact layout, high contrast, and reduced motion retain nonoverlapping regions.
-- Focused layout tests cover compact and maximum frames, selector capacity, left and right panel separation, graph and detail separation, fitted node bounds, hover selection precedence, and the no bound tree fallback.
+- Selector paging, node fitting, cost card wrapping, footer controls, global tabs, blur ordering, narration, GUI scale, text scale, resize, compact layout, high contrast, and reduced motion retain nonoverlapping regions.
+- The bundled starter pack contains at least fifteen editable skill TOML files. It includes Physique, Builder, Combat, Miner, Woodcutting, Farming, Fishing, Hunting, Archery, Defense, Agility, Endurance, Exploration, Alchemy, and Enchanting.
+- Every bundled starter skill has one bound tree with at least ten functional nodes, valid prerequisites, level gates, currency costs, icons, descriptions, and source owned attribute grants. The starter pack uses ordinary pack definitions rather than Java special cases.
+- Starter installation remains additive and operator safe. Missing bundled files are installed into a new or partial starter pack, but an existing file with the same path is never overwritten. Existing worlds therefore keep operator edits and are not forcibly migrated to the expanded examples.
+- Focused tests cover compact and maximum frames, selector capacity, graph and detail separation, graph scoped input, zoom anchoring, recentering, fitted node bounds, hover selection precedence, next level progress, the no bound tree fallback, starter skill count, tree binding, and the ten node minimum.
 
 **Phase 20 gate:**
 
 - all ProgressiveSkills screens compile on the physical client boundary and open without a second blur pass;
-- progression and tree screens pass mouse, keyboard, narrator, resize, GUI scale, high contrast, compact layout, and reduced motion checks;
-- the `P` menu Skills page matches the two panel workbench contract, keeps its player dossier separate from the skill workspace, and displays only authoritative bound tree relationships and costs;
-- every live tree can be selected and panned without closing the screen;
-- every live tree can be zoomed, recentered, and revisited with its prior pan and zoom restored;
+- the unified `P` menu exposes only Main Menu, Skills, Classes, and Abilities, and no standalone `K` tree route remains;
+- the Skills page displays only authoritative bound tree relationships, costs, mutation state, and per skill progress;
+- every bundled starter pack exposes at least fifteen skills, every starter skill binds to a tree, and every starter tree contains at least ten valid functional nodes;
+- existing operator edited starter files survive installation unchanged;
+- every live bound tree can be selected, purchased from, refunded from, and panned without leaving the Skills page;
+- every live bound tree can be zoomed, recentered, and revisited with its prior pan and zoom restored while input outside the graph remains unaffected;
+- each selected skill displays active experience against its authoritative next level requirement, including safe max level and missing state handling;
 - long localized and legacy formatted tooltips wrap and remain fully visible at every tested GUI scale;
 - all Progression tab icons can be replaced by a resource pack without changing the JAR or authoritative definitions;
 - the radial wheel appears only while held, movement remains active, release selects at most once, and the wheel never activates an ability implicitly;
@@ -3103,6 +3111,8 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 - the supplied unowned ability click crash has an automated regression test;
 - unit, property, architecture, schema, GameTest, dedicated server, headless client, and release JAR verification gates pass;
 - `docs/verification/PHASE-20.md`, an exact release JAR, and its SHA 256 are committed to the Phase 20 branch for the player checklist.
+
+The automated beta checkpoint is complete on the Phase 20 branch. Player rendering and input approval through the focused checklist remain required before merge and tagging.
 
 ### 49.6 Feature completion checklist
 

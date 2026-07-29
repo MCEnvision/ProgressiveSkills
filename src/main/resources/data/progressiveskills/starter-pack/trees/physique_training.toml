@@ -86,3 +86,117 @@ type = "attribute"
 attribute = "minecraft:generic.movement_speed"
 operation = "add_multiplied_base"
 value = 0.03
+
+[[nodes]]
+id = "progressiveskills:physique_training/power"
+display = { key = "node.progressiveskills.physique_training.power", fallback = "Power" }
+description = { key = "node.progressiveskills.physique_training.power.desc", fallback = "Turn practiced technique into stronger attacks." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Diamond sword" }
+cost = 1
+row = 1
+col = 3
+requires = ["progressiveskills:physique_training/technique"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/power/damage"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.01
+
+[[nodes]]
+id = "progressiveskills:physique_training/balance"
+display = { key = "node.progressiveskills.physique_training.balance", fallback = "Balance" }
+description = { key = "node.progressiveskills.physique_training.balance.desc", fallback = "Stay planted when force would move you." }
+icon = { type = "item", value = "minecraft:iron_boots", fallback = "minecraft:barrier", alt = "Iron boots" }
+cost = 1
+row = 2
+col = -1
+requires = ["progressiveskills:physique_training/resilience"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/balance/knockback"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.01
+
+[[nodes]]
+id = "progressiveskills:physique_training/fortitude"
+display = { key = "node.progressiveskills.physique_training.fortitude", fallback = "Fortitude" }
+description = { key = "node.progressiveskills.physique_training.fortitude.desc", fallback = "Combine power and momentum into lasting health." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Golden apple" }
+cost = 2
+row = 3
+col = 2
+requires = ["progressiveskills:physique_training/power", "progressiveskills:physique_training/momentum"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/fortitude/health"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.5
+
+[[nodes]]
+id = "progressiveskills:physique_training/discipline"
+display = { key = "node.progressiveskills.physique_training.discipline", fallback = "Discipline" }
+description = { key = "node.progressiveskills.physique_training.discipline.desc", fallback = "Combine balance and momentum into controlled speed." }
+icon = { type = "item", value = "minecraft:feather", fallback = "minecraft:barrier", alt = "Feather" }
+cost = 2
+row = 3
+col = 0
+requires = ["progressiveskills:physique_training/balance", "progressiveskills:physique_training/momentum"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/discipline/speed"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.01
+
+[[nodes]]
+id = "progressiveskills:physique_training/peak_form"
+display = { key = "node.progressiveskills.physique_training.peak_form", fallback = "Peak Form" }
+description = { key = "node.progressiveskills.physique_training.peak_form.desc", fallback = "Unify both advanced disciplines." }
+icon = { type = "item", value = "minecraft:netherite_chestplate", fallback = "minecraft:barrier", alt = "Netherite chestplate" }
+cost = 2
+row = 4
+col = 1
+requires = ["progressiveskills:physique_training/fortitude", "progressiveskills:physique_training/discipline"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/peak_form/armor"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.5
+
+[[nodes]]
+id = "progressiveskills:physique_training/unbreakable"
+display = { key = "node.progressiveskills.physique_training.unbreakable", fallback = "Unbreakable" }
+description = { key = "node.progressiveskills.physique_training.unbreakable.desc", fallback = "Reach the summit of physical conditioning." }
+icon = { type = "item", value = "minecraft:nether_star", fallback = "minecraft:barrier", alt = "Nether star" }
+cost = 2
+row = 5
+col = 1
+requires = ["progressiveskills:physique_training/peak_form"]
+requires_any = []
+min_level = { "progressiveskills:physique" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:physique_training/unbreakable/health"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 1.0

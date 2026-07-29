@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:combat_mastery"
+display = { key = "tree.progressiveskills.combat_mastery", fallback = "Combat Mastery" }
+description = { key = "tree.progressiveskills.combat_mastery.desc", fallback = "Develop every branch of combat." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Combat" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:combat"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/root"
+display = { key = "node.progressiveskills.combat_mastery.root", fallback = "Footwork" }
+description = { key = "node.progressiveskills.combat_mastery.root.desc", fallback = "Develop footwork through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Footwork" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:combat" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/left_path"
+display = { key = "node.progressiveskills.combat_mastery.left_path", fallback = "Weapon Drill" }
+description = { key = "node.progressiveskills.combat_mastery.left_path.desc", fallback = "Develop weapon drill through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Weapon Drill" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:combat_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/right_path"
+display = { key = "node.progressiveskills.combat_mastery.right_path", fallback = "Guard Break" }
+description = { key = "node.progressiveskills.combat_mastery.right_path.desc", fallback = "Develop guard break through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Guard Break" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:combat_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/left_focus"
+display = { key = "node.progressiveskills.combat_mastery.left_focus", fallback = "Battle Rhythm" }
+description = { key = "node.progressiveskills.combat_mastery.left_focus.desc", fallback = "Develop battle rhythm through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Battle Rhythm" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:combat_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/center_focus"
+display = { key = "node.progressiveskills.combat_mastery.center_focus", fallback = "Counterstrike" }
+description = { key = "node.progressiveskills.combat_mastery.center_focus.desc", fallback = "Develop counterstrike through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Counterstrike" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:combat_mastery/left_path", "progressiveskills:combat_mastery/right_path"]
+min_level = { "progressiveskills:combat" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/right_focus"
+display = { key = "node.progressiveskills.combat_mastery.right_focus", fallback = "Pressure" }
+description = { key = "node.progressiveskills.combat_mastery.right_focus.desc", fallback = "Develop pressure through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Pressure" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:combat_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/left_mastery"
+display = { key = "node.progressiveskills.combat_mastery.left_mastery", fallback = "Veteran Instinct" }
+description = { key = "node.progressiveskills.combat_mastery.left_mastery.desc", fallback = "Develop veteran instinct through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Veteran Instinct" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:combat_mastery/left_focus", "progressiveskills:combat_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/right_mastery"
+display = { key = "node.progressiveskills.combat_mastery.right_mastery", fallback = "Execution" }
+description = { key = "node.progressiveskills.combat_mastery.right_mastery.desc", fallback = "Develop execution through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Execution" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:combat_mastery/center_focus", "progressiveskills:combat_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/mastery"
+display = { key = "node.progressiveskills.combat_mastery.mastery", fallback = "War Mastery" }
+description = { key = "node.progressiveskills.combat_mastery.mastery.desc", fallback = "Develop war mastery through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "War Mastery" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:combat_mastery/left_mastery", "progressiveskills:combat_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_damage"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:combat_mastery/capstone"
+display = { key = "node.progressiveskills.combat_mastery.capstone", fallback = "Conqueror" }
+description = { key = "node.progressiveskills.combat_mastery.capstone.desc", fallback = "Develop conqueror through dedicated combat training." }
+icon = { type = "item", value = "minecraft:diamond_sword", fallback = "minecraft:barrier", alt = "Conqueror" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:combat_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:combat" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:combat_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.attack_speed"
+operation = "add_multiplied_base"
+value = 0.005

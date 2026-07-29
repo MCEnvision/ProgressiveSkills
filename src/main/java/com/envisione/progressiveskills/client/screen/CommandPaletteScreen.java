@@ -15,11 +15,8 @@ import java.util.Locale;
 public final class CommandPaletteScreen extends ProgressiveScreen {
     private static final List<Action> ACTIONS = List.of(
             new Action("Open progression", () -> open(new ProgressionScreen())),
-            new Action("Open skill trees", () -> open(new TreeScreen())),
             new Action("Run doctor", () -> command("pskills doctor")),
             new Action("Explain latest decision", () -> command("pskills why latest")),
-            new Action("Open test center", () -> open(new ProgressionScreen(ProgressionScreen.Tab.TESTS))),
-            new Action("Open sync doctor", () -> open(new ProgressionScreen(ProgressionScreen.Tab.SYNC))),
             new Action("Open authoring Studio", () -> open(new StudioScreen())),
             new Action("Edit progression HUD", () -> open(new HudEditorScreen())),
             new Action("Retry safe action", SafeRetryTray::retry),

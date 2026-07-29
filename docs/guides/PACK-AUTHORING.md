@@ -61,6 +61,34 @@ my-training-pack/
 
 You do not need every directory. Start with the manifest, one currency, one skill, and one award rule. Add references only after their targets exist.
 
+## Bundled starter catalog
+
+A fresh installation seeds fifteen editable skills:
+
+- Physique
+- Builder
+- Combat
+- Miner
+- Woodcutting
+- Farming
+- Fishing
+- Hunting
+- Archery
+- Defense
+- Agility
+- Endurance
+- Exploration
+- Alchemy
+- Enchanting
+
+Every starter skill is defined under `skills/`, awards Global Points from lifetime highest levels, exposes a unique custom XP route, and binds to one tree under `trees/`. Each bundled tree contains at least ten nodes with explicit layout positions, prerequisites, level requirements, costs, descriptions, icons, and source owned attribute grants.
+
+These files demonstrate the normal pack schema. They are not Java special cases. Operators may edit, replace, disable, or extend them like any other definitions.
+
+Starter installation is additive. The installer copies a bundled file only when that relative path is absent. Updating the mod never overwrites an existing file. An established world therefore keeps its current Physique definition and tree unless the operator deliberately copies or adapts the newer examples. Back up the pack directory, add the desired missing files, run `/pskills reload dry-run`, inspect the diagnostics and diff, then publish the reviewed candidate.
+
+The custom XP route in each starter skill makes the skill available to commands and authored rules. Only a rule that references that route awards gameplay XP. The bundled Physique examples demonstrate block origin filtering and repeat protection. Create matching rules for the other skills according to the activities and anti exploit policy of the server.
+
 ## Manifest
 
 File: `pack.toml`

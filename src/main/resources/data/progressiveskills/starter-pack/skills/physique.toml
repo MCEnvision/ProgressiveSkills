@@ -4,7 +4,7 @@ schema_version = 2
 id = "progressiveskills:physique"
 display = { key = "skill.progressiveskills.physique", fallback = "Physique" }
 description = { key = "skill.progressiveskills.physique.desc", fallback = "Raw physical conditioning." }
-icon = { type = "item", value = "minecraft:iron_chestplate", fallback = "minecraft:barrier", alt = "Iron chestplate" }
+icon = { type = "item", value = "minecraft:iron_chestplate", fallback = "minecraft:barrier", alt = "Physique" }
 max_level = 10
 enabled = true
 overflow = "bank"

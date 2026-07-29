@@ -109,16 +109,6 @@ final class ProgressionWorkbenchLayout {
         return Map.copyOf(result);
     }
 
-    static double activeShare(long activeXp, long bankedXp) {
-        if (activeXp <= 0) {
-            return 0.0D;
-        }
-        if (bankedXp <= 0) {
-            return 1.0D;
-        }
-        return activeXp / ((double) activeXp + bankedXp);
-    }
-
     static <T> T inspectedValue(
             Optional<T> hovered,
             T pinned,
@@ -132,6 +122,28 @@ final class ProgressionWorkbenchLayout {
             return hovered.orElseThrow();
         }
         return pinned != null && available.contains(pinned) ? pinned : fallback;
+    }
+
+    static Viewport zoomAround(
+            Viewport viewport,
+            double scroll,
+            double pointerX,
+            double pointerY,
+            double centerX,
+            double centerY,
+            double minimumZoom,
+            double maximumZoom
+    ) {
+        Objects.requireNonNull(viewport, "viewport");
+        double previous = viewport.zoom();
+        double zoom = Math.clamp(previous + scroll * 0.1D, minimumZoom, maximumZoom);
+        double relativeX = pointerX - centerX;
+        double relativeY = pointerY - centerY;
+        return new Viewport(
+                viewport.panX() + relativeX / zoom - relativeX / previous,
+                viewport.panY() + relativeY / zoom - relativeY / previous,
+                zoom
+        );
     }
 
     record Layout(
@@ -184,5 +196,14 @@ final class ProgressionWorkbenchLayout {
     }
 
     record Point(int x, int y) {
+    }
+
+    record Viewport(double panX, double panY, double zoom) {
+        Viewport {
+            if (!Double.isFinite(panX) || !Double.isFinite(panY)
+                    || !Double.isFinite(zoom) || zoom <= 0.0D) {
+                throw new IllegalArgumentException("Tree viewport values must be finite and positive");
+            }
+        }
     }
 }

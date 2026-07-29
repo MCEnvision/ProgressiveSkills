@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:endurance_mastery"
+display = { key = "tree.progressiveskills.endurance_mastery", fallback = "Endurance Mastery" }
+description = { key = "tree.progressiveskills.endurance_mastery.desc", fallback = "Develop every branch of endurance." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Endurance" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:endurance"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/root"
+display = { key = "node.progressiveskills.endurance_mastery.root", fallback = "Breath Control" }
+description = { key = "node.progressiveskills.endurance_mastery.root.desc", fallback = "Develop breath control through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Breath Control" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:endurance" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/left_path"
+display = { key = "node.progressiveskills.endurance_mastery.left_path", fallback = "Pacing" }
+description = { key = "node.progressiveskills.endurance_mastery.left_path.desc", fallback = "Develop pacing through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Pacing" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:endurance_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/right_path"
+display = { key = "node.progressiveskills.endurance_mastery.right_path", fallback = "Recovery" }
+description = { key = "node.progressiveskills.endurance_mastery.right_path.desc", fallback = "Develop recovery through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Recovery" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:endurance_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/left_focus"
+display = { key = "node.progressiveskills.endurance_mastery.left_focus", fallback = "Long Haul" }
+description = { key = "node.progressiveskills.endurance_mastery.left_focus.desc", fallback = "Develop long haul through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Long Haul" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:endurance_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/center_focus"
+display = { key = "node.progressiveskills.endurance_mastery.center_focus", fallback = "Second Wind" }
+description = { key = "node.progressiveskills.endurance_mastery.center_focus.desc", fallback = "Develop second wind through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Second Wind" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:endurance_mastery/left_path", "progressiveskills:endurance_mastery/right_path"]
+min_level = { "progressiveskills:endurance" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/right_focus"
+display = { key = "node.progressiveskills.endurance_mastery.right_focus", fallback = "Tireless" }
+description = { key = "node.progressiveskills.endurance_mastery.right_focus.desc", fallback = "Develop tireless through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Tireless" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:endurance_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/left_mastery"
+display = { key = "node.progressiveskills.endurance_mastery.left_mastery", fallback = "Pain Tolerance" }
+description = { key = "node.progressiveskills.endurance_mastery.left_mastery.desc", fallback = "Develop pain tolerance through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Pain Tolerance" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:endurance_mastery/left_focus", "progressiveskills:endurance_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/right_mastery"
+display = { key = "node.progressiveskills.endurance_mastery.right_mastery", fallback = "Iron Lungs" }
+description = { key = "node.progressiveskills.endurance_mastery.right_mastery.desc", fallback = "Develop iron lungs through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Iron Lungs" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:endurance_mastery/center_focus", "progressiveskills:endurance_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.knockback_resistance"
+operation = "add_value"
+value = 0.002
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/mastery"
+display = { key = "node.progressiveskills.endurance_mastery.mastery", fallback = "Master Endurance" }
+description = { key = "node.progressiveskills.endurance_mastery.mastery.desc", fallback = "Develop master endurance through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Master Endurance" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:endurance_mastery/left_mastery", "progressiveskills:endurance_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:endurance_mastery/capstone"
+display = { key = "node.progressiveskills.endurance_mastery.capstone", fallback = "Unyielding" }
+description = { key = "node.progressiveskills.endurance_mastery.capstone.desc", fallback = "Develop unyielding through dedicated endurance training." }
+icon = { type = "item", value = "minecraft:golden_apple", fallback = "minecraft:barrier", alt = "Unyielding" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:endurance_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:endurance" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:endurance_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15

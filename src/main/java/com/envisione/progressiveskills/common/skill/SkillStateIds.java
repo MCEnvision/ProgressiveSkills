@@ -24,6 +24,14 @@ public final class SkillStateIds {
         return state("skill_highest", skillId);
     }
 
+    public static ResourceLocation nextLevelXp(ResourceLocation skillId) {
+        return state("skill_next", skillId);
+    }
+
+    public static ResourceLocation intoLevelXp(ResourceLocation skillId) {
+        return state("skill_into", skillId);
+    }
+
     private static ResourceLocation state(String prefix, ResourceLocation skillId) {
         Objects.requireNonNull(skillId, "skillId");
         return ResourceLocation.fromNamespaceAndPath(

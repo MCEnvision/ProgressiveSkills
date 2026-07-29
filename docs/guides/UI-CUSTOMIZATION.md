@@ -11,16 +11,10 @@ Create this resource in a resource pack.
 ```json
 {
   "tab_icons": {
+    "main": "minecraft:compass",
     "skills": "minecraft:experience_bottle",
-    "trees": "minecraft:oak_sapling",
     "classes": "minecraft:armor_stand",
-    "abilities": "minecraft:blaze_powder",
-    "claims": "minecraft:chest",
-    "guide": "minecraft:knowledge_book",
-    "compare": "minecraft:compass",
-    "tests": "minecraft:writable_book",
-    "sync": "minecraft:redstone",
-    "studio": "minecraft:crafting_table"
+    "abilities": "minecraft:blaze_powder"
   },
   "tree_tooltip": {
     "max_width": 220,
@@ -83,7 +77,9 @@ Supported legacy formatting codes are `&0` through `&9`, `&a` through `&f`, `&k`
 
 ## Skills workbench
 
-The Skills page uses a two panel workbench. The left dossier contains the synchronized selected skill level meter, up to three relevant tree currency balances, and the live local player preview. The right workspace contains a vertical skill selector rail, selected skill heading, fitted skill bound tree, and separate node detail card. A narrow window stacks the graph and detail card instead of allowing them to overlap.
+Pressing `P` opens Main Menu. Main Menu, Skills, Classes, and Abilities are the only player pages. Main Menu provides direct cards for the other three pages and a compact authoritative progression summary.
+
+The Skills page uses one condensed workbench. The left dossier contains the total level, number of visible skills, up to three relevant tree currency balances, and the live local player preview. The right workspace contains a vertical skill selector rail, selected skill heading, progress toward that skill's next level, embedded skill tree, and separate node detail card. A narrow window stacks the graph and detail card instead of allowing them to overlap.
 
 `background` is a full texture resource id. The default is Minecraft's End advancement background. A missing or invalid replacement keeps the default. `max_point_balances` is clamped from one through five. It limits only the compact balance list and never changes the actual balances.
 
@@ -91,11 +87,13 @@ Each workbench color accepts `#RRGGBB` or `#AARRGGBB`. Six digit colors receive 
 
 The graph uses only synchronized skill scoped trees whose `bind` field matches the inspected skill. Node rows, columns, required prerequisites, alternative prerequisites, costs, currency, ownership, icons, display text, and descriptions remain authoritative. Required paths use the required path color. `requires_any` paths use the alternative path color and appear as alternative choice paths in the card. The client never invents mutually exclusive behavior when the definition does not provide it.
 
-Hovering a skill or node changes the preview. Clicking pins local inspection. The Open tree action enters that exact full tree workspace when there is enough room for the contextual button. Compact layouts retain the normal Trees tab as the full mutation path. Buying, refunding, and respeccing never occur through the dashboard preview.
+Hovering a skill or node changes the preview. Clicking pins local inspection. Drag empty graph space to pan, use the mouse wheel over the graph to zoom around the pointer, and press Space while the pointer is over the graph to recenter. Each tree remembers its pan and zoom while the Progression screen remains open. Scrolling outside the graph continues to control the normal page widgets.
+
+The selected node card exposes Buy, Preview Refund, or Confirm Refund only when the synchronized state permits that action. These controls use the existing server authoritative tree transactions and refund preview digest. There is no separate Tree screen or `K` key mapping.
 
 ## Definition icons and text
 
-Skills, trees, classes, abilities, and tree nodes continue to use their definition `display`, `description`, and `icon` fields. The root tree tab uses the tree definition icon. The Progression cards use the matching definition icon. This keeps server supplied pack identity visible while the theme file controls only shared navigation.
+Skills, trees, classes, abilities, and tree nodes continue to use their definition `display`, `description`, and `icon` fields. The Progression cards, selectors, embedded graph, and node details use the matching definition icons. This keeps server supplied pack identity visible while the theme file controls only shared navigation.
 
 The dedicated Skills dashboard uses each skill definition icon as its vertical selector and its synchronized level as the badge. Its graph uses each bound tree node icon, and its point list uses the matching currency definition icon. The dedicated Classes dashboard uses each class definition icon as its selector and each class slot definition icon in the slot rail. Changing these definition icons changes the dashboards without a client code change.
 
@@ -107,7 +105,7 @@ When no synchronized display exists for a referenced id, the UI removes its name
 
 ## Resource reload
 
-Apply the resource pack and use the normal Minecraft resource reload. Reopen the Progression or Tree screen after the reload. Invalid theme JSON, missing items, missing backgrounds, or invalid colors cannot block the screen. ProgressiveSkills logs structural theme errors and continues with defaults.
+Apply the resource pack and use the normal Minecraft resource reload. Reopen the Progression screen after the reload. Invalid theme JSON, missing items, missing backgrounds, or invalid colors cannot block the screen. ProgressiveSkills logs structural theme errors and continues with defaults.
 
 ## Accessibility contract
 

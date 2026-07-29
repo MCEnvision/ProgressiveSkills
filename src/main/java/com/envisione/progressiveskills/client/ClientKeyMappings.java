@@ -19,12 +19,6 @@ public final class ClientKeyMappings {
             GLFW.GLFW_KEY_P,
             "key.categories.progressiveskills"
     );
-    public static final KeyMapping OPEN_TREE = new KeyMapping(
-            "key.progressiveskills.open_tree",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_K,
-            "key.categories.progressiveskills"
-    );
     public static final KeyMapping ABILITY_WHEEL = mapping(
             "key.progressiveskills.ability_wheel", GLFW.GLFW_KEY_LEFT_ALT);
     public static final KeyMapping PREVIOUS_ABILITY = mapping(
@@ -52,7 +46,6 @@ public final class ClientKeyMappings {
     @SubscribeEvent
     static void register(RegisterKeyMappingsEvent event) {
         event.register(OPEN_PROGRESS);
-        event.register(OPEN_TREE);
         event.register(ABILITY_WHEEL);
         event.register(PREVIOUS_ABILITY);
         event.register(NEXT_ABILITY);

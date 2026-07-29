@@ -451,8 +451,8 @@ public final class ProgressiveSkillsGameTests {
             double treeHealthBefore = player.getAttributeValue(Attributes.MAX_HEALTH);
             double treeArmorBefore = player.getAttributeValue(Attributes.ARMOR);
             helper.assertTrue(
-                    server.getCommands().getDispatcher().execute("pskills tree list", playerSource) == 1,
-                    "The live Core tree catalog must be listed"
+                    server.getCommands().getDispatcher().execute("pskills tree list", playerSource) == 15,
+                    "The live Core tree catalog must list all fifteen starter trees"
             );
             helper.assertTrue(
                     server.getCommands().getDispatcher().execute(

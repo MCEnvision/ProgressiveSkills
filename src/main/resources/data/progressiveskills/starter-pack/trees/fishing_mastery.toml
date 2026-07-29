@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:fishing_mastery"
+display = { key = "tree.progressiveskills.fishing_mastery", fallback = "Fishing Mastery" }
+description = { key = "tree.progressiveskills.fishing_mastery.desc", fallback = "Develop every branch of fishing." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Fishing" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:fishing"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/root"
+display = { key = "node.progressiveskills.fishing_mastery.root", fallback = "Cast Control" }
+description = { key = "node.progressiveskills.fishing_mastery.root.desc", fallback = "Develop cast control through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Cast Control" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:fishing" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/left_path"
+display = { key = "node.progressiveskills.fishing_mastery.left_path", fallback = "Patient Angler" }
+description = { key = "node.progressiveskills.fishing_mastery.left_path.desc", fallback = "Develop patient angler through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Patient Angler" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:fishing_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/right_path"
+display = { key = "node.progressiveskills.fishing_mastery.right_path", fallback = "Current Reading" }
+description = { key = "node.progressiveskills.fishing_mastery.right_path.desc", fallback = "Develop current reading through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Current Reading" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:fishing_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/left_focus"
+display = { key = "node.progressiveskills.fishing_mastery.left_focus", fallback = "Strong Line" }
+description = { key = "node.progressiveskills.fishing_mastery.left_focus.desc", fallback = "Develop strong line through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Strong Line" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:fishing_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/center_focus"
+display = { key = "node.progressiveskills.fishing_mastery.center_focus", fallback = "Lure Craft" }
+description = { key = "node.progressiveskills.fishing_mastery.center_focus.desc", fallback = "Develop lure craft through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Lure Craft" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:fishing_mastery/left_path", "progressiveskills:fishing_mastery/right_path"]
+min_level = { "progressiveskills:fishing" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/right_focus"
+display = { key = "node.progressiveskills.fishing_mastery.right_focus", fallback = "River Sense" }
+description = { key = "node.progressiveskills.fishing_mastery.right_focus.desc", fallback = "Develop river sense through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "River Sense" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:fishing_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/left_mastery"
+display = { key = "node.progressiveskills.fishing_mastery.left_mastery", fallback = "Deep Water" }
+description = { key = "node.progressiveskills.fishing_mastery.left_mastery.desc", fallback = "Develop deep water through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Deep Water" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:fishing_mastery/left_focus", "progressiveskills:fishing_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/right_mastery"
+display = { key = "node.progressiveskills.fishing_mastery.right_mastery", fallback = "Trophy Hunter" }
+description = { key = "node.progressiveskills.fishing_mastery.right_mastery.desc", fallback = "Develop trophy hunter through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Trophy Hunter" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:fishing_mastery/center_focus", "progressiveskills:fishing_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/mastery"
+display = { key = "node.progressiveskills.fishing_mastery.mastery", fallback = "Master Angler" }
+description = { key = "node.progressiveskills.fishing_mastery.mastery.desc", fallback = "Develop master angler through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Master Angler" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:fishing_mastery/left_mastery", "progressiveskills:fishing_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:fishing_mastery/capstone"
+display = { key = "node.progressiveskills.fishing_mastery.capstone", fallback = "Legendary Catch" }
+description = { key = "node.progressiveskills.fishing_mastery.capstone.desc", fallback = "Develop legendary catch through dedicated fishing training." }
+icon = { type = "item", value = "minecraft:fishing_rod", fallback = "minecraft:barrier", alt = "Legendary Catch" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:fishing_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:fishing" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:fishing_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05

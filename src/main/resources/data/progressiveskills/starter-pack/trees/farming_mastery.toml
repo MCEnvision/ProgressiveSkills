@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:farming_mastery"
+display = { key = "tree.progressiveskills.farming_mastery", fallback = "Farming Mastery" }
+description = { key = "tree.progressiveskills.farming_mastery.desc", fallback = "Develop every branch of farming." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Farming" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:farming"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/root"
+display = { key = "node.progressiveskills.farming_mastery.root", fallback = "Soil Care" }
+description = { key = "node.progressiveskills.farming_mastery.root.desc", fallback = "Develop soil care through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Soil Care" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:farming" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/left_path"
+display = { key = "node.progressiveskills.farming_mastery.left_path", fallback = "Seed Selection" }
+description = { key = "node.progressiveskills.farming_mastery.left_path.desc", fallback = "Develop seed selection through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Seed Selection" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:farming_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/right_path"
+display = { key = "node.progressiveskills.farming_mastery.right_path", fallback = "Gentle Harvest" }
+description = { key = "node.progressiveskills.farming_mastery.right_path.desc", fallback = "Develop gentle harvest through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Gentle Harvest" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:farming_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/left_focus"
+display = { key = "node.progressiveskills.farming_mastery.left_focus", fallback = "Crop Rotation" }
+description = { key = "node.progressiveskills.farming_mastery.left_focus.desc", fallback = "Develop crop rotation through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Crop Rotation" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:farming_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/center_focus"
+display = { key = "node.progressiveskills.farming_mastery.center_focus", fallback = "Green Thumb" }
+description = { key = "node.progressiveskills.farming_mastery.center_focus.desc", fallback = "Develop green thumb through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Green Thumb" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:farming_mastery/left_path", "progressiveskills:farming_mastery/right_path"]
+min_level = { "progressiveskills:farming" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/right_focus"
+display = { key = "node.progressiveskills.farming_mastery.right_focus", fallback = "Field Rhythm" }
+description = { key = "node.progressiveskills.farming_mastery.right_focus.desc", fallback = "Develop field rhythm through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Field Rhythm" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:farming_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/left_mastery"
+display = { key = "node.progressiveskills.farming_mastery.left_mastery", fallback = "Weather Sense" }
+description = { key = "node.progressiveskills.farming_mastery.left_mastery.desc", fallback = "Develop weather sense through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Weather Sense" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:farming_mastery/left_focus", "progressiveskills:farming_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/right_mastery"
+display = { key = "node.progressiveskills.farming_mastery.right_mastery", fallback = "Homestead" }
+description = { key = "node.progressiveskills.farming_mastery.right_mastery.desc", fallback = "Develop homestead through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Homestead" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:farming_mastery/center_focus", "progressiveskills:farming_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/mastery"
+display = { key = "node.progressiveskills.farming_mastery.mastery", fallback = "Master Farmer" }
+description = { key = "node.progressiveskills.farming_mastery.mastery.desc", fallback = "Develop master farmer through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Master Farmer" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:farming_mastery/left_mastery", "progressiveskills:farming_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:farming_mastery/capstone"
+display = { key = "node.progressiveskills.farming_mastery.capstone", fallback = "Bountiful Harvest" }
+description = { key = "node.progressiveskills.farming_mastery.capstone.desc", fallback = "Develop bountiful harvest through dedicated farming training." }
+icon = { type = "item", value = "minecraft:wheat", fallback = "minecraft:barrier", alt = "Bountiful Harvest" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:farming_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:farming" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:farming_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005

@@ -1,15 +1,9 @@
 {
   "tab_icons": {
+    "main": "minecraft:compass",
     "skills": "minecraft:experience_bottle",
-    "trees": "minecraft:oak_sapling",
     "classes": "minecraft:armor_stand",
-    "abilities": "minecraft:blaze_powder",
-    "claims": "minecraft:chest",
-    "guide": "minecraft:knowledge_book",
-    "compare": "minecraft:compass",
-    "tests": "minecraft:writable_book",
-    "sync": "minecraft:redstone",
-    "studio": "minecraft:crafting_table"
+    "abilities": "minecraft:blaze_powder"
   },
   "tree_tooltip": {
     "max_width": 220,

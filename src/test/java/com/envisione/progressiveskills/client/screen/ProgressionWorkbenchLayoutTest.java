@@ -55,14 +55,6 @@ class ProgressionWorkbenchLayoutTest {
     }
 
     @Test
-    void activeShareHandlesEmptyAndLargeBalances() {
-        assertEquals(0.0D, ProgressionWorkbenchLayout.activeShare(0, 0));
-        assertEquals(1.0D, ProgressionWorkbenchLayout.activeShare(5, 0));
-        assertEquals(0.25D, ProgressionWorkbenchLayout.activeShare(5, 15));
-        assertTrue(ProgressionWorkbenchLayout.activeShare(Long.MAX_VALUE, Long.MAX_VALUE) > 0.49D);
-    }
-
-    @Test
     void hoverTakesPrecedenceAndStalePinnedNodesFallBack() {
         List<String> nodes = List.of("major", "left", "right");
 
@@ -72,5 +64,43 @@ class ProgressionWorkbenchLayoutTest {
                 Optional.empty(), "left", "major", nodes));
         assertEquals("major", ProgressionWorkbenchLayout.inspectedValue(
                 Optional.empty(), "removed", "major", nodes));
+    }
+
+    @Test
+    void progressionNavigationContainsOnlyTheFourPlayerPages() {
+        assertEquals(
+                List.of(
+                        ProgressionScreen.Tab.MAIN,
+                        ProgressionScreen.Tab.SKILLS,
+                        ProgressionScreen.Tab.CLASSES,
+                        ProgressionScreen.Tab.ABILITIES
+                ),
+                ProgressionScreen.navigationTabs()
+        );
+    }
+
+    @Test
+    void treeZoomKeepsThePointerAnchoredAndHonorsBounds() {
+        var original = new ProgressionWorkbenchLayout.Viewport(12.0D, -8.0D, 1.0D);
+        double worldX = 48.0D / original.zoom() - original.panX();
+        double worldY = -24.0D / original.zoom() - original.panY();
+
+        var zoomed = ProgressionWorkbenchLayout.zoomAround(
+                original,
+                2.0D,
+                148.0D,
+                76.0D,
+                100.0D,
+                100.0D,
+                0.65D,
+                1.65D
+        );
+
+        assertEquals(48.0D, (worldX + zoomed.panX()) * zoomed.zoom(), 0.000001D);
+        assertEquals(-24.0D, (worldY + zoomed.panY()) * zoomed.zoom(), 0.000001D);
+        assertEquals(1.65D, ProgressionWorkbenchLayout.zoomAround(
+                zoomed, 100.0D, 100.0D, 100.0D, 100.0D, 100.0D, 0.65D, 1.65D).zoom());
+        assertEquals(0.65D, ProgressionWorkbenchLayout.zoomAround(
+                zoomed, -100.0D, 100.0D, 100.0D, 100.0D, 100.0D, 0.65D, 1.65D).zoom());
     }
 }

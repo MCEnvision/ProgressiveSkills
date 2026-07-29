@@ -1,0 +1,31 @@
+schema_version = 2
+
+[skill]
+id = "progressiveskills:hunting"
+display = { key = "skill.progressiveskills.hunting", fallback = "Hunting" }
+description = { key = "skill.progressiveskills.hunting.desc", fallback = "Tracking, pursuit, and wilderness discipline." }
+icon = { type = "item", value = "minecraft:bow", fallback = "minecraft:barrier", alt = "Hunting" }
+max_level = 10
+enabled = true
+overflow = "bank"
+negative_xp_policy = "deny"
+
+[curve]
+type = "linear"
+base = 100
+step = 25
+rounding = "ceil"
+
+[[level_currency_awards]]
+id = "progressiveskills:hunting/level_points"
+amount_per_level = 2
+currency = "progressiveskills:global_points"
+award_basis = "lifetime_highest_level"
+award_scope = "character"
+
+[[xp_sources]]
+id = "progressiveskills:hunting/training"
+action = "custom"
+key = "progressiveskills:hunting_training"
+amount = 25
+repeat_policy = "always"

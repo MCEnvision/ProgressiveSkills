@@ -1,7 +1,6 @@
 package com.envisione.progressiveskills.client;
 
 import com.envisione.progressiveskills.ProjectIdentity;
-import com.envisione.progressiveskills.client.screen.TreeScreen;
 import com.envisione.progressiveskills.client.screen.CommandPaletteScreen;
 import com.envisione.progressiveskills.client.screen.ProgressionScreen;
 import com.envisione.progressiveskills.common.network.PsNetworking;
@@ -25,12 +24,6 @@ public final class ClientInputEvents {
             var snapshot = PsNetworking.clientSnapshot();
             if (minecraft.player != null && minecraft.screen == null && ProgressionScreen.isAvailable(snapshot)) {
                 minecraft.setScreen(new ProgressionScreen());
-            }
-        }
-        while (ClientKeyMappings.OPEN_TREE.consumeClick()) {
-            var snapshot = PsNetworking.clientSnapshot();
-            if (minecraft.player != null && minecraft.screen == null && TreeScreen.isAvailable(snapshot)) {
-                minecraft.setScreen(new TreeScreen());
             }
         }
         if (minecraft.screen != null || AbilityWheelOverlay.isActive()) {

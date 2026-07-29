@@ -6,10 +6,57 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 /** Seeds the enabled dependency-free Core pack once without overwriting operator edits. */
 public final class StarterPackInstaller {
     private static final String RESOURCE_ROOT = "data/progressiveskills/starter-pack/";
+    private static final List<String> RESOURCES = List.of(
+            "pack.toml",
+            "component_specs/engine_name.toml",
+            "currencies/global_points.toml",
+            "skills/physique.toml",
+            "skills/builder.toml",
+            "skills/combat.toml",
+            "skills/miner.toml",
+            "skills/woodcutting.toml",
+            "skills/farming.toml",
+            "skills/fishing.toml",
+            "skills/hunting.toml",
+            "skills/archery.toml",
+            "skills/defense.toml",
+            "skills/agility.toml",
+            "skills/endurance.toml",
+            "skills/exploration.toml",
+            "skills/alchemy.toml",
+            "skills/enchanting.toml",
+            "rules/physique_stone_training.toml",
+            "rules/physique_first_log.toml",
+            "trees/physique_training.toml",
+            "trees/builder_mastery.toml",
+            "trees/combat_mastery.toml",
+            "trees/miner_mastery.toml",
+            "trees/woodcutting_mastery.toml",
+            "trees/farming_mastery.toml",
+            "trees/fishing_mastery.toml",
+            "trees/hunting_mastery.toml",
+            "trees/archery_mastery.toml",
+            "trees/defense_mastery.toml",
+            "trees/agility_mastery.toml",
+            "trees/endurance_mastery.toml",
+            "trees/exploration_mastery.toml",
+            "trees/alchemy_mastery.toml",
+            "trees/enchanting_mastery.toml",
+            "class_slots/combat.toml",
+            "classes/warrior.toml",
+            "classes/scholar.toml",
+            "abilities/warrior_guard.toml",
+            "abilities/combat_insight.toml",
+            "abilities/second_wind.toml",
+            "items/tome_of_physique.toml",
+            "items/physique_level_token.toml",
+            "items/physique_respec_token.toml"
+    );
 
     private StarterPackInstaller() {}
 
@@ -26,22 +73,9 @@ public final class StarterPackInstaller {
         } else {
             Files.createDirectory(pack);
         }
-        copyIfMissing(pack, "pack.toml");
-        copyIfMissing(pack, "component_specs/engine_name.toml");
-        copyIfMissing(pack, "currencies/global_points.toml");
-        copyIfMissing(pack, "skills/physique.toml");
-        copyIfMissing(pack, "rules/physique_stone_training.toml");
-        copyIfMissing(pack, "rules/physique_first_log.toml");
-        copyIfMissing(pack, "trees/physique_training.toml");
-        copyIfMissing(pack, "class_slots/combat.toml");
-        copyIfMissing(pack, "classes/warrior.toml");
-        copyIfMissing(pack, "classes/scholar.toml");
-        copyIfMissing(pack, "abilities/warrior_guard.toml");
-        copyIfMissing(pack, "abilities/combat_insight.toml");
-        copyIfMissing(pack, "abilities/second_wind.toml");
-        copyIfMissing(pack, "items/tome_of_physique.toml");
-        copyIfMissing(pack, "items/physique_level_token.toml");
-        copyIfMissing(pack, "items/physique_respec_token.toml");
+        for (String resource : RESOURCES) {
+            copyIfMissing(pack, resource);
+        }
         return pack;
     }
 

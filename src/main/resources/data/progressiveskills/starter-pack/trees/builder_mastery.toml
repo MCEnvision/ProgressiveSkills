@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:builder_mastery"
+display = { key = "tree.progressiveskills.builder_mastery", fallback = "Builder Mastery" }
+description = { key = "tree.progressiveskills.builder_mastery.desc", fallback = "Develop every branch of builder." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Builder" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:builder"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/root"
+display = { key = "node.progressiveskills.builder_mastery.root", fallback = "Foundation" }
+description = { key = "node.progressiveskills.builder_mastery.root.desc", fallback = "Develop foundation through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Foundation" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:builder" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/left_path"
+display = { key = "node.progressiveskills.builder_mastery.left_path", fallback = "Scaffolding" }
+description = { key = "node.progressiveskills.builder_mastery.left_path.desc", fallback = "Develop scaffolding through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Scaffolding" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:builder_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/right_path"
+display = { key = "node.progressiveskills.builder_mastery.right_path", fallback = "Reach" }
+description = { key = "node.progressiveskills.builder_mastery.right_path.desc", fallback = "Develop reach through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Reach" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:builder_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/left_focus"
+display = { key = "node.progressiveskills.builder_mastery.left_focus", fallback = "Masonry" }
+description = { key = "node.progressiveskills.builder_mastery.left_focus.desc", fallback = "Develop masonry through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Masonry" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:builder_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/center_focus"
+display = { key = "node.progressiveskills.builder_mastery.center_focus", fallback = "Framing" }
+description = { key = "node.progressiveskills.builder_mastery.center_focus.desc", fallback = "Develop framing through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Framing" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:builder_mastery/left_path", "progressiveskills:builder_mastery/right_path"]
+min_level = { "progressiveskills:builder" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/right_focus"
+display = { key = "node.progressiveskills.builder_mastery.right_focus", fallback = "Precision" }
+description = { key = "node.progressiveskills.builder_mastery.right_focus.desc", fallback = "Develop precision through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Precision" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:builder_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/left_mastery"
+display = { key = "node.progressiveskills.builder_mastery.left_mastery", fallback = "Reinforcement" }
+description = { key = "node.progressiveskills.builder_mastery.left_mastery.desc", fallback = "Develop reinforcement through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Reinforcement" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:builder_mastery/left_focus", "progressiveskills:builder_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/right_mastery"
+display = { key = "node.progressiveskills.builder_mastery.right_mastery", fallback = "Planning" }
+description = { key = "node.progressiveskills.builder_mastery.right_mastery.desc", fallback = "Develop planning through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Planning" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:builder_mastery/center_focus", "progressiveskills:builder_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.movement_speed"
+operation = "add_multiplied_base"
+value = 0.005
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/mastery"
+display = { key = "node.progressiveskills.builder_mastery.mastery", fallback = "Master Builder" }
+description = { key = "node.progressiveskills.builder_mastery.mastery.desc", fallback = "Develop master builder through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Master Builder" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:builder_mastery/left_mastery", "progressiveskills:builder_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:builder_mastery/capstone"
+display = { key = "node.progressiveskills.builder_mastery.capstone", fallback = "Monument" }
+description = { key = "node.progressiveskills.builder_mastery.capstone.desc", fallback = "Develop monument through dedicated builder training." }
+icon = { type = "item", value = "minecraft:bricks", fallback = "minecraft:barrier", alt = "Monument" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:builder_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:builder" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:builder_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor"
+operation = "add_value"
+value = 0.15

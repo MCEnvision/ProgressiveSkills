@@ -34,7 +34,7 @@ Phase 19 is the current approved release on `main`.
 
 ## Player quick start
 
-1. Install the Phase 19 JAR on both the server and every client.
+1. Install the same ProgressiveSkills JAR on the server and every client. Use the Phase 20 branch JAR only for the Phase 20 beta checklist.
 2. Remove every older ProgressiveSkills JAR. Two versions must never be loaded together.
 3. Start a new cheats enabled test world. The dependency free starter pack is installed once on first launch.
 4. Run `/pskills status`. A healthy result reports a live generation, pack count, definition count, and content digest.
@@ -42,10 +42,12 @@ Phase 19 is the current approved release on `main`.
 6. Press `P` to open the Progression screen.
 7. Break one natural stone block. Run `/pskills explain xp last` to see why the rule did or did not award XP.
 8. Run `/pskills skill get progressiveskills:physique` to inspect level, XP, banked XP, and Global Points.
-9. Use the Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio tabs from the same screen.
+9. Use Main Menu, Skills, Classes, and Abilities from the same screen.
 10. Run `/pskills check start` when ready to begin the persistent final mass test.
 
 The starter stone rule awards XP only for natural blocks and blocks placed by a creative player. Survival placed protected blocks are excluded, so silk touch placement loops cannot farm XP. Its cooldown and repeat decay are pack configuration. A pack can set both to their disabled values when full XP without a timeout is desired. See the [anti exploit examples](docs/guides/PACK-AUTHORING.md#block-origin-and-repeat-protection).
+
+The bundled starter pack provides Physique, Builder, Combat, Miner, Woodcutting, Farming, Fishing, Hunting, Archery, Defense, Agility, Endurance, Exploration, Alchemy, and Enchanting. Each skill is an ordinary editable TOML definition bound to a tree with at least ten functional nodes. The installer copies only missing starter files. It never replaces an existing operator file, so established worlds retain their current definitions and can opt into new examples selectively.
 
 ## Pack developer quick start
 
@@ -140,7 +142,6 @@ Every phase has a full description, commands, expected results, failure behavior
 | Action | Default key | Notes |
 | --- | --- | --- |
 | Open Progression | `P` | Available after synchronization becomes active. |
-| Open tree screen | `K` | Opens the focused tree view. |
 | Ability wheel | Left Alt | Displays assigned slots. |
 | Previous ability | Left bracket | Selects the previous assigned slot. |
 | Next ability | Right bracket | Selects the next assigned slot. |
@@ -148,9 +149,11 @@ Every phase has a full description, commands, expected results, failure behavior
 | Command palette | Grave accent | Opens keyboard first navigation and safe command actions. |
 | Direct ability slots one through eight | Unbound | Bind only the slots you want in Minecraft Controls. |
 
-The Progression screen has ten tabs: Skills, Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio. High contrast, reduced motion, compact layout, text scaling, HUD position, HUD scale, and HUD opacity are local client preferences. They are stored in `config/progressiveskills-client.properties` and never alter server authority.
+The Progression screen exposes only Main Menu, Skills, Classes, and Abilities. High contrast, reduced motion, compact layout, text scaling, HUD position, HUD scale, and HUD opacity are local client preferences. They are stored in `config/progressiveskills-client.properties` and never alter server authority. Administrator diagnostics, tests, claims, and Studio functions remain available through their commands or dedicated entry points rather than occupying player tabs.
 
-The `P` menu Skills page is a two panel workbench. Its left dossier renders the selected skill level and XP meter, a bounded list of relevant tree currency balances, and the local player model. Its vertical skill rail previews definitions on hover and pins inspection on click. The right workspace fits the authoritative skill scoped tree whose `bind` matches the selected skill into a clipped graph and keeps node state, cost, currency balance, path type, and description in a separate card. The default uses Minecraft's End advancement background. Resource packs can replace that background, the balance limit, and named workbench colors through `assets/progressiveskills/ui/progression.json`. The dashboard is inspection only. It opens the exact full Tree workspace for purchases, refunds, and respecs.
+The `P` menu Skills page is one condensed workbench. Its left dossier renders total progression, a bounded list of relevant tree currency balances, and the local player model. Its vertical skill rail previews definitions on hover and pins inspection on click. The selected skill header shows the current level and active XP toward the server supplied next level requirement. The right workspace renders the authoritative skill scoped tree whose `bind` matches the selected skill, keeps node state and costs in a separate card, and performs purchases and digest confirmed refunds through the existing server intent boundary.
+
+Drag empty graph space to pan. Use the mouse wheel while the pointer is inside the graph to zoom around that pointer. Press Space while the pointer is inside the graph to recenter. Each tree retains its view while the screen remains open. Input outside the graph continues to control the surrounding page. The default uses Minecraft's End advancement background. Resource packs can replace that background, the balance limit, tooltip templates, visible tab icons, and named workbench colors through `assets/progressiveskills/ui/progression.json`.
 
 The held ability wheel renders each configured ability item directly. It does not place advancement frames or token backgrounds behind slot items. The slot under the pointer receives a gold circular outline, including an empty slot, while the previously selected slot keeps a quieter blue outline. Empty slots retain a neutral placeholder, slot number, and unavailable status. Cooldown and charge labels remain outside the item outline.
 

@@ -1,0 +1,202 @@
+schema_version = 2
+
+[tree]
+id = "progressiveskills:enchanting_mastery"
+display = { key = "tree.progressiveskills.enchanting_mastery", fallback = "Enchanting Mastery" }
+description = { key = "tree.progressiveskills.enchanting_mastery.desc", fallback = "Develop every branch of enchanting." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Enchanting" }
+enabled = true
+scope = "skill"
+bind = "progressiveskills:enchanting"
+currency = "progressiveskills:global_points"
+dependency_policy = "cascade_refund"
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/root"
+display = { key = "node.progressiveskills.enchanting_mastery.root", fallback = "Rune Reading" }
+description = { key = "node.progressiveskills.enchanting_mastery.root.desc", fallback = "Develop rune reading through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Rune Reading" }
+cost = 1
+row = 0
+col = 0
+requires = []
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 1 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/root/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/left_path"
+display = { key = "node.progressiveskills.enchanting_mastery.left_path", fallback = "Focused Infusion" }
+description = { key = "node.progressiveskills.enchanting_mastery.left_path.desc", fallback = "Develop focused infusion through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Focused Infusion" }
+cost = 1
+row = 1
+col = -2
+requires = ["progressiveskills:enchanting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 2 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/left_path/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/right_path"
+display = { key = "node.progressiveskills.enchanting_mastery.right_path", fallback = "Stable Glyph" }
+description = { key = "node.progressiveskills.enchanting_mastery.right_path.desc", fallback = "Develop stable glyph through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Stable Glyph" }
+cost = 1
+row = 1
+col = 2
+requires = ["progressiveskills:enchanting_mastery/root"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 3 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/right_path/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/left_focus"
+display = { key = "node.progressiveskills.enchanting_mastery.left_focus", fallback = "Arcane Measure" }
+description = { key = "node.progressiveskills.enchanting_mastery.left_focus.desc", fallback = "Develop arcane measure through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Arcane Measure" }
+cost = 1
+row = 2
+col = -2
+requires = ["progressiveskills:enchanting_mastery/left_path"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 4 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/left_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/center_focus"
+display = { key = "node.progressiveskills.enchanting_mastery.center_focus", fallback = "Resonance" }
+description = { key = "node.progressiveskills.enchanting_mastery.center_focus.desc", fallback = "Develop resonance through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Resonance" }
+cost = 1
+row = 2
+col = 0
+requires = []
+requires_any = ["progressiveskills:enchanting_mastery/left_path", "progressiveskills:enchanting_mastery/right_path"]
+min_level = { "progressiveskills:enchanting" = 5 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/center_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/right_focus"
+display = { key = "node.progressiveskills.enchanting_mastery.right_focus", fallback = "Deep Imbuement" }
+description = { key = "node.progressiveskills.enchanting_mastery.right_focus.desc", fallback = "Develop deep imbuement through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Deep Imbuement" }
+cost = 1
+row = 2
+col = 2
+requires = ["progressiveskills:enchanting_mastery/right_path"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 6 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/right_focus/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/left_mastery"
+display = { key = "node.progressiveskills.enchanting_mastery.left_mastery", fallback = "Runic Insight" }
+description = { key = "node.progressiveskills.enchanting_mastery.left_mastery.desc", fallback = "Develop runic insight through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Runic Insight" }
+cost = 2
+row = 3
+col = -1
+requires = ["progressiveskills:enchanting_mastery/left_focus", "progressiveskills:enchanting_mastery/center_focus"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 7 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/left_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:player.block_interaction_range"
+operation = "add_value"
+value = 0.05
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/right_mastery"
+display = { key = "node.progressiveskills.enchanting_mastery.right_mastery", fallback = "Grand Enchantment" }
+description = { key = "node.progressiveskills.enchanting_mastery.right_mastery.desc", fallback = "Develop grand enchantment through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Grand Enchantment" }
+cost = 2
+row = 3
+col = 1
+requires = ["progressiveskills:enchanting_mastery/center_focus", "progressiveskills:enchanting_mastery/right_focus"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 8 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/right_mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.armor_toughness"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/mastery"
+display = { key = "node.progressiveskills.enchanting_mastery.mastery", fallback = "Master Enchanter" }
+description = { key = "node.progressiveskills.enchanting_mastery.mastery.desc", fallback = "Develop master enchanter through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Master Enchanter" }
+cost = 2
+row = 4
+col = 0
+requires = ["progressiveskills:enchanting_mastery/left_mastery", "progressiveskills:enchanting_mastery/right_mastery"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 9 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/mastery/attribute"
+type = "attribute"
+attribute = "minecraft:generic.luck"
+operation = "add_value"
+value = 0.10
+
+[[nodes]]
+id = "progressiveskills:enchanting_mastery/capstone"
+display = { key = "node.progressiveskills.enchanting_mastery.capstone", fallback = "Arcane Savant" }
+description = { key = "node.progressiveskills.enchanting_mastery.capstone.desc", fallback = "Develop arcane savant through dedicated enchanting training." }
+icon = { type = "item", value = "minecraft:enchanting_table", fallback = "minecraft:barrier", alt = "Arcane Savant" }
+cost = 2
+row = 5
+col = 0
+requires = ["progressiveskills:enchanting_mastery/mastery"]
+requires_any = []
+min_level = { "progressiveskills:enchanting" = 10 }
+
+[[nodes.grants]]
+id = "progressiveskills:enchanting_mastery/capstone/attribute"
+type = "attribute"
+attribute = "minecraft:generic.max_health"
+operation = "add_value"
+value = 0.25
