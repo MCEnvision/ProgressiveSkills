@@ -73,6 +73,8 @@ The dedicated Skills dashboard uses each skill definition icon as its selector a
 
 Class slot capacity and class slot weight are gameplay data rather than theme data. Their displayed values always come from the synchronized server projection and cannot be replaced by a resource pack.
 
+The ability wheel also uses each ability definition icon. It renders the item directly without an advancement frame or token background. The slot under the pointer receives a gold circular outline, and the synchronized selected slot uses a quieter blue outline. Empty slots show the built in neutral placeholder item and slot number. Resource packs can change assigned ability items through the existing definition icon field, but they cannot replace synchronized cooldown, charge, readiness, assignment, or selection state.
+
 When no synchronized display exists for a referenced id, the UI removes its namespace, replaces underscores, slashes, periods, and hyphens with spaces, and title cases the result. For example, `progressiveskills:global_points` becomes `Global Points`.
 
 ## Resource reload

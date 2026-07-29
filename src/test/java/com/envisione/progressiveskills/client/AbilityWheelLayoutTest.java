@@ -21,4 +21,20 @@ class AbilityWheelLayoutTest {
     void leavesTheCenterUnselected() {
         assertEquals(-1, AbilityWheelLayout.slotForDirection(2, 2, 4));
     }
+
+    @Test
+    void pointedSlotUsesTheHoverCircleEvenWhenItIsEmpty() {
+        assertEquals(AbilityWheelOverlay.SlotHighlight.HOVERED,
+                AbilityWheelOverlay.slotHighlight(4, 4, 1));
+    }
+
+    @Test
+    void selectedSlotKeepsAQuieterCircleUntilAnotherSlotIsPointed() {
+        assertEquals(AbilityWheelOverlay.SlotHighlight.SELECTED,
+                AbilityWheelOverlay.slotHighlight(1, -1, 1));
+        assertEquals(AbilityWheelOverlay.SlotHighlight.HOVERED,
+                AbilityWheelOverlay.slotHighlight(1, 1, 1));
+        assertEquals(AbilityWheelOverlay.SlotHighlight.NONE,
+                AbilityWheelOverlay.slotHighlight(2, 4, 1));
+    }
 }

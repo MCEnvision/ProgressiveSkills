@@ -11,13 +11,13 @@ The supplied Phase 19 crash is fixed at both relevant boundaries. The Progressio
 | Check | Status | Evidence |
 | --- | --- | --- |
 | Clean build | pass | `./gradlew clean build verifySchemaArtifacts --no-daemon --stacktrace` completed with no failure. |
-| Unit and property tests | pass | 387 tests completed with zero failures and zero errors. |
+| Unit and property tests | pass | 389 tests completed with zero failures and zero errors. |
 | Phase 20 regression tests | pass | Eight direction radial selection, center dead zone, invalid action containment, Safe Retry behavior, compact and maximum frame bounds, dedicated selector region bounds and capacity, legacy formatting, ampersand escaping, reset formatting, and stable id prettifying passed. |
 | Architecture and schema | pass | Physical side boundaries passed and both generated schema artifacts match fresh generation byte for byte. |
 | NeoForge GameTest | pass | All 2 required cumulative GameTests passed. |
 | Dedicated server | pass | Dedicated server startup and forbidden error scan passed. |
 | Physical client | pass | Headless client reached the title screen and passed the forbidden error scan. |
-| Release JAR | pass | `progressiveskills-phase-20.jar`, 2130753 bytes, SHA 256 `aab060518f16be9ec1af810ffd3bb99bf669c8143e2f51fedbfcbacd73574fcd`. Archive verification passed. |
+| Release JAR | pass | `progressiveskills-phase-20.jar`, 2131998 bytes, SHA 256 `a6c7e87fdcf4801c7a296bf68a1475f0183e76b3d24f2453b29a917393bcd465`. Archive verification passed. |
 
 ## Focused player interface checklist
 
@@ -46,7 +46,7 @@ Use only `releases/phase-20/progressiveskills-phase-20.jar`. Back up the test wo
 21. Temporarily set one tab icon to an invalid item id and make one tooltip description very long. Reload resources and confirm the invalid icon falls back safely and the long tooltip remains bounded. Confirm the log contains no crash.
 22. Buy an available node, preview an owned node refund, and confirm only valid contextual buttons appear. Verify the separate detail rail updates immediately after the synchronized state changes.
 23. Hold Left Alt while walking forward, sprinting, jumping, and sneaking. Confirm the radial wheel appears only while the key is held and none of those movement inputs stop.
-24. Move the mouse through all eight directions. Confirm equal radial slots, item icons, empty slot frames, selected slot highlight, center dead zone, ability name, type, charge count, cooldown, and readiness are legible.
+24. Move the mouse through all eight directions. Confirm each slot renders only its configured item or neutral empty placeholder with no advancement frame or token background. Confirm the pointed slot receives a gold circular outline, including an empty slot, while the synchronized selected slot keeps a quieter blue outline. Confirm slot numbers, ability name, type, charge count, cooldown, readiness, and the center dead zone remain legible.
 25. Release Left Alt over an assigned slot. Confirm the wheel closes and changes the selected slot exactly once without activating the ability. Press `R` separately and confirm only that key activates the selected ability.
 26. Open the wheel and release it in the center, over an empty slot, after opening another screen, after tabbing away from the game, and while disconnecting. Confirm the previous selection is preserved and no activation or duplicate selection occurs.
 27. Open the command palette, HUD editor, Studio, Studio graph, and Studio curve preview. Confirm each uses the new Minecraft styled shell, keeps every control reachable, and returns to its parent screen correctly.

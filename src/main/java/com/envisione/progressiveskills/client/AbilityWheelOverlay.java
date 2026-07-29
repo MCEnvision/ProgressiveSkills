@@ -16,12 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 
 public final class AbilityWheelOverlay {
-    private static final ResourceLocation READY_FRAME = ResourceLocation.withDefaultNamespace(
-            "advancements/task_frame_obtained");
-    private static final ResourceLocation WAITING_FRAME = ResourceLocation.withDefaultNamespace(
-            "advancements/task_frame_unobtained");
-    private static final ResourceLocation EMPTY_FRAME = ResourceLocation.withDefaultNamespace(
-            "advancements/goal_frame_unobtained");
     private static final double POINTER_LIMIT = 58.0D;
     private static final double DEAD_ZONE = 12.0D;
 
@@ -190,14 +184,13 @@ public final class AbilityWheelOverlay {
         AbilityWheelLayout.Point point = AbilityWheelLayout.slotCenter(slot, centerX, centerY, radius);
         ResourceLocation abilityId = slots.get(slot);
         VisiblePlayerState.AbilityState abilityState = abilityId == null ? null : state.abilities().get(abilityId);
-        ResourceLocation frame = abilityId == null ? EMPTY_FRAME
-                : abilityState != null && abilityState.ready() ? READY_FRAME : WAITING_FRAME;
-        if (slot == hoveredSlot) {
-            fillCircle(graphics, point.x(), point.y(), 17, 0xD0FFD966);
-        } else if (slot == state.selectedAbilitySlot()) {
-            fillCircle(graphics, point.x(), point.y(), 16, 0xA080C8FF);
+        SlotHighlight highlight = slotHighlight(slot, pointedSlot, state.selectedAbilitySlot());
+        if (highlight == SlotHighlight.HOVERED) {
+            drawCircleRing(graphics, point.x(), point.y(), 14, 0xFFFFD966);
+            drawCircleRing(graphics, point.x(), point.y(), 13, 0xD0FFD966);
+        } else if (highlight == SlotHighlight.SELECTED) {
+            drawCircleRing(graphics, point.x(), point.y(), 13, 0xC080C8FF);
         }
-        graphics.blitSprite(frame, point.x() - 13, point.y() - 13, 26, 26);
         ItemStack icon = abilityId == null ? new ItemStack(Items.GRAY_DYE) : abilityIcon(snapshot, abilityId);
         graphics.renderItem(icon, point.x() - 8, point.y() - 8);
         graphics.drawCenteredString(minecraft.font, Component.literal(Integer.toString(slot + 1)),
@@ -209,6 +202,16 @@ public final class AbilityWheelOverlay {
             graphics.drawCenteredString(minecraft.font, Component.literal(status),
                     point.x(), point.y() - 23, abilityState.ready() ? 0x7CFC98 : 0xFFCC66);
         }
+    }
+
+    static SlotHighlight slotHighlight(int slot, int pointedSlot, int selectedSlot) {
+        if (slot == pointedSlot) {
+            return SlotHighlight.HOVERED;
+        }
+        if (slot == selectedSlot) {
+            return SlotHighlight.SELECTED;
+        }
+        return SlotHighlight.NONE;
     }
 
     private static Component hoveredLabel(
@@ -280,6 +283,50 @@ public final class AbilityWheelOverlay {
         }
     }
 
+    private static void drawCircleRing(
+            GuiGraphics graphics,
+            int centerX,
+            int centerY,
+            int radius,
+            int color
+    ) {
+        int x = radius;
+        int y = 0;
+        int error = 1 - radius;
+        while (x >= y) {
+            plotCirclePoints(graphics, centerX, centerY, x, y, color);
+            y++;
+            if (error < 0) {
+                error += 2 * y + 1;
+            } else {
+                x--;
+                error += 2 * (y - x) + 1;
+            }
+        }
+    }
+
+    private static void plotCirclePoints(
+            GuiGraphics graphics,
+            int centerX,
+            int centerY,
+            int x,
+            int y,
+            int color
+    ) {
+        plot(graphics, centerX + x, centerY + y, color);
+        plot(graphics, centerX + y, centerY + x, color);
+        plot(graphics, centerX - y, centerY + x, color);
+        plot(graphics, centerX - x, centerY + y, color);
+        plot(graphics, centerX - x, centerY - y, color);
+        plot(graphics, centerX - y, centerY - x, color);
+        plot(graphics, centerX + y, centerY - x, color);
+        plot(graphics, centerX + x, centerY - y, color);
+    }
+
+    private static void plot(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x, y, x + 1, y + 1, color);
+    }
+
     private static void drawLine(
             GuiGraphics graphics,
             int startX,
@@ -310,5 +357,11 @@ public final class AbilityWheelOverlay {
                 y += sy;
             }
         }
+    }
+
+    enum SlotHighlight {
+        NONE,
+        SELECTED,
+        HOVERED
     }
 }

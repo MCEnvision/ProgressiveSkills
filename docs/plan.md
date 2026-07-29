@@ -3045,6 +3045,7 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 - The ability wheel is a nonpausing HUD overlay rather than a `Screen`. Holding the configured Ability Wheel key displays it. Releasing the key closes it. A click does not latch it open.
 - Because no screen is installed, movement, sprinting, jumping, sneaking, and normal world ticking continue while the wheel is visible.
 - Assigned abilities occupy equally sized radial wedges. Mouse direction selects a wedge, the center is a dead zone, the current selection is highlighted, and empty slots remain visibly distinct.
+- Ability slots render their configured item directly without an advancement frame or token background. The hovered slot uses a clean circular highlight behind the item, while the previously selected slot uses a quieter circle. Empty slots retain a neutral placeholder item and slot number without restoring the token background.
 - Releasing the wheel key commits only the selected slot. The existing Use Selected Ability key performs activation. Closing with no radial selection preserves the previous slot.
 - The overlay shows the selected ability name, slot number, type, charges, cooldown, readiness, and a clear unavailable reason without exposing server private data.
 - Opening and closing the wheel cannot send duplicate selection or activation intents. Disconnect, loss of synchronization, screen opening, focus loss, and key remapping cancel the overlay safely.
@@ -3083,6 +3084,7 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 - long localized and legacy formatted tooltips wrap and remain fully visible at every tested GUI scale;
 - all Progression tab icons can be replaced by a resource pack without changing the JAR or authoritative definitions;
 - the radial wheel appears only while held, movement remains active, release selects at most once, and the wheel never activates an ability implicitly;
+- wheel slots display only their item or neutral empty placeholder, no token frame remains, and hover and selected circles remain readable without covering cooldown, charge, or slot labels;
 - owned, unowned, disabled, stale, cooling down, empty slot, and disconnected ability cases are nonfatal;
 - the supplied unowned ability click crash has an automated regression test;
 - unit, property, architecture, schema, GameTest, dedicated server, headless client, and release JAR verification gates pass;
