@@ -3075,10 +3075,24 @@ Phase 20 replaces the Phase 14 baseline screens with one cohesive vanilla advanc
 - Every tooltip is wrapped to a configurable maximum width, positioned beside the pointer when possible, and clamped inside the current screen. Its opaque backing panel separates it from the graph without allowing text to extend beyond the screen.
 - The exact resource format, fallback behavior, examples, accessibility requirements, and player verification steps are maintained in `docs/guides/UI-CUSTOMIZATION.md` and `docs/verification/PHASE-20.md`.
 
+**Phase 20 Option B, sketch driven Progression workbench refinement:**
+
+- Pressing `P` opens the Skills page as a large two panel workbench. The redesign remains client presentation over the current synchronized snapshot and does not change server authority, persistence, transactions, or Protocol 7.
+- The left player panel contains a readable selected skill level meter, a compact set of no more than three relevant spendable progression balances, and a large live player model preview. Missing definitions, balances, or player state render a safe empty state instead of overlapping or throwing.
+- The right skill workspace contains a compact vertical skill selector rail, a selected skill header with its definition icon and level, a central skill bound tree preview, and a separate selected node card. Hovering a selector previews its name and data. Clicking changes only the locally inspected skill.
+- A skill bound tree uses its real synchronized node rows, columns, prerequisites, alternative prerequisites, ownership, costs, currency, display text, description, and icons. The workbench never invents dependency or exclusivity behavior that is absent from the authoritative definition.
+- The bound tree preview draws connectors below nodes. Required paths, alternative choice paths, owned paths, available nodes, locked nodes, owned nodes, hovered nodes, and the inspected major node use distinct accessible colors and shapes. Resource pack theme data can override these colors while invalid values fall back safely.
+- Hovering a node previews it. Clicking a node pins its card. The card remains outside graph space and shows the node icon, display name, state, cost, currency icon, current balance, wrapped description, and whether the node uses required or alternative choice prerequisites.
+- Purchase, refund, respec, and mutation authority remain in the full Tree workspace reached through the existing contextual action. The Progression workbench is an inspection and navigation surface, so it cannot create a duplicate or stale mutation path.
+- When a skill has no bound tree, the right workspace keeps the selected skill summary and displays a clear no bound tree message without manufacturing nodes.
+- Selector paging, node fitting, player preview bounds, cost card wrapping, footer controls, global tabs, blur ordering, narration, GUI scale, text scale, resize, compact layout, high contrast, and reduced motion retain nonoverlapping regions.
+- Focused layout tests cover compact and maximum frames, selector capacity, left and right panel separation, graph and detail separation, fitted node bounds, hover selection precedence, and the no bound tree fallback.
+
 **Phase 20 gate:**
 
 - all ProgressiveSkills screens compile on the physical client boundary and open without a second blur pass;
 - progression and tree screens pass mouse, keyboard, narrator, resize, GUI scale, high contrast, compact layout, and reduced motion checks;
+- the `P` menu Skills page matches the two panel workbench contract, keeps its player dossier separate from the skill workspace, and displays only authoritative bound tree relationships and costs;
 - every live tree can be selected and panned without closing the screen;
 - every live tree can be zoomed, recentered, and revisited with its prior pan and zoom restored;
 - long localized and legacy formatted tooltips wrap and remain fully visible at every tested GUI scale;

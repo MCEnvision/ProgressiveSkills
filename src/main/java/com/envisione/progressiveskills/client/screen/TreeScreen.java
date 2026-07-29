@@ -30,6 +30,7 @@ public final class TreeScreen extends ProgressiveScreen {
     private static final double MIN_ZOOM = 0.65D;
     private static final double MAX_ZOOM = 1.65D;
 
+    private final ResourceLocation initialTree;
     private List<TreeModel> trees = List.of();
     private int treeIndex;
     private ResourceLocation selectedNode;
@@ -44,7 +45,12 @@ public final class TreeScreen extends ProgressiveScreen {
     private ProgressionUiTheme theme;
 
     public TreeScreen() {
+        this(null);
+    }
+
+    public TreeScreen(ResourceLocation initialTree) {
         super(Component.translatable("screen.progressiveskills.tree.title"));
+        this.initialTree = initialTree;
     }
 
     public static boolean isAvailable(ClientNetworkState.Snapshot snapshot) {
@@ -529,7 +535,7 @@ public final class TreeScreen extends ProgressiveScreen {
     }
 
     private void refreshModels(ClientNetworkState.Snapshot snapshot) {
-        ResourceLocation previous = trees.isEmpty() ? null : currentTree().id();
+        ResourceLocation previous = trees.isEmpty() ? initialTree : currentTree().id();
         var next = new ArrayList<TreeModel>();
         snapshot.activeDefinitions().ifPresent(projection -> projection.definitions().forEach((key, entry) ->
                 entry.tree().ifPresent(tree -> next.add(new TreeModel(

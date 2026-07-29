@@ -24,6 +24,7 @@ import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,6 +47,9 @@ public final class ProgressionScreen extends ProgressiveScreen {
     private String fingerprint = "";
     private String query = "";
     private ProgressionUiTheme theme;
+    private Map<ResourceLocation, ProgressionWorkbenchLayout.Point> skillNodeCenters = Map.of();
+    private ResourceLocation inspectedSkillNode;
+    private int renderedSkillIndex = -1;
 
     public ProgressionScreen() {
         this(Tab.SKILLS);
@@ -166,22 +170,19 @@ public final class ProgressionScreen extends ProgressiveScreen {
     }
 
     private void addSkillSelectors(ClientNetworkState.Snapshot snapshot, AdvancementUi.Frame frame) {
-        int gridLeft = frame.contentX() + 5;
-        int gridTop = skillGridTop(frame);
-        int buttonSize = 32;
-        int gap = 5;
-        int columns = skillColumns(frame);
+        ProgressionWorkbenchLayout.Layout layout = ProgressionWorkbenchLayout.calculate(frame);
+        int buttonSize = 26;
+        int gap = 3;
         int visible = visibleEntries(frame);
         int first = page * visible;
         int last = Math.min(rows.size(), first + visible);
         for (int index = first; index < last; index++) {
             Row row = rows.get(index);
-            int cell = index - first;
             int rowIndex = index;
             long level = row.id().map(id -> skillLevel(snapshot, id)).orElse(0L);
             ProgressionSelectorButton button = addRenderableWidget(new ProgressionSelectorButton(
-                    gridLeft + cell % columns * (buttonSize + gap),
-                    gridTop + cell / columns * (buttonSize + gap),
+                    layout.selector().left() + 2,
+                    layout.selector().top() + 4 + (index - first) * (buttonSize + gap),
                     buttonSize,
                     buttonSize,
                     rowIndex,
@@ -192,6 +193,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
                     index == selected,
                     () -> {
                         selected = rowIndex;
+                        inspectedSkillNode = null;
                         rebuildWidgets();
                     }
             ));
@@ -315,6 +317,30 @@ public final class ProgressionScreen extends ProgressiveScreen {
     }
 
     @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (tab == Tab.SKILLS && button == 0) {
+            Optional<ResourceLocation> clicked = skillNodeCenters.entrySet().stream()
+                    .filter(entry -> {
+                        double x = mouseX - entry.getValue().x();
+                        double y = mouseY - entry.getValue().y();
+                        return x * x + y * y <= 15.0D * 15.0D;
+                    })
+                    .map(Map.Entry::getKey)
+                    .findFirst();
+            if (clicked.isPresent()) {
+                inspectedSkillNode = clicked.orElseThrow();
+                if (renderedSkillIndex >= 0 && renderedSkillIndex < rows.size()
+                        && renderedSkillIndex != selected) {
+                    selected = renderedSkillIndex;
+                    rebuildWidgets();
+                }
+                return true;
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
     public boolean isPauseScreen() {
         return false;
     }
@@ -322,11 +348,33 @@ public final class ProgressionScreen extends ProgressiveScreen {
     @Override
     public Component getNarrationMessage() {
         String detail = rows.isEmpty() ? "No entries." : rows.get(selected).detail();
+        if (tab == Tab.SKILLS && inspectedSkillNode != null) {
+            ClientNetworkState.Snapshot snapshot = PsNetworking.clientSnapshot();
+            Optional<DefinitionProjection.NodeView> node = selectedRow().flatMap(Row::id)
+                    .flatMap(id -> boundTree(snapshot, id))
+                    .flatMap(tree -> tree.tree().nodes().stream()
+                            .filter(value -> value.id().equals(inspectedSkillNode)).findFirst());
+            if (node.isPresent()) {
+                DefinitionProjection.NodeView value = node.orElseThrow();
+                detail += ". " + ProjectionPresentation.component(value.display()).getString();
+                detail += value.description().map(ProjectionPresentation::component)
+                        .map(Component::getString).map(text -> ". " + text).orElse("");
+            }
+        }
         return Component.literal(title.getString() + ". " + tab.label + ". " + detail);
     }
 
     private void addActions(ClientNetworkState.Snapshot snapshot, int y) {
-        if (tab == Tab.TREES) {
+        if (tab == Tab.SKILLS) {
+            ProgressionWorkbenchLayout.Rect details = ProgressionWorkbenchLayout.calculate(
+                    AdvancementUi.largeFrame(width, height)).details();
+            if (details.height() >= 80) {
+                selectedRow().flatMap(Row::id).flatMap(id -> boundTree(snapshot, id)).ifPresent(tree ->
+                        addAction(details.left() + 3, details.bottom() - 21, "Open tree", () ->
+                                        Minecraft.getInstance().setScreen(new TreeScreen(tree.id())),
+                                Math.max(48, details.width() - 6)));
+            }
+        } else if (tab == Tab.TREES) {
             addActionSlot(0, y, "Open tree", () -> Minecraft.getInstance().setScreen(new TreeScreen()));
         } else if (tab == Tab.CLASSES && selectedRow().flatMap(Row::id).isPresent()) {
             ResourceLocation id = selectedRow().flatMap(Row::id).orElseThrow();
@@ -457,83 +505,537 @@ public final class ProgressionScreen extends ProgressiveScreen {
             int mouseX,
             int mouseY
     ) {
-        int top = frame.contentY() + 2;
-        int dashboardBottom = skillGridTop(frame) - 3;
-        int left = frame.contentX() + 2;
-        int right = frame.contentRight() - 2;
-        int leftWidth = Math.clamp(frame.contentWidth() / 4, 78, 104);
-        int centerWidth = Math.clamp(frame.contentWidth() / 5, 54, 78);
-        int centerLeft = left + leftWidth + 3;
-        int centerRight = centerLeft + centerWidth;
-        int detailLeft = centerRight + 3;
-        AdvancementUi.renderInset(graphics, left, top, centerLeft - 3, dashboardBottom);
-        AdvancementUi.renderInset(graphics, centerLeft, top, centerRight, dashboardBottom);
-        AdvancementUi.renderInset(graphics, detailLeft, top, right, dashboardBottom);
-        AdvancementUi.renderInset(graphics, left, skillGridTop(frame) - 1,
-                right, frame.contentBottom() - 2);
+        ProgressionWorkbenchLayout.Layout layout = ProgressionWorkbenchLayout.calculate(frame);
+        renderTiledBackground(graphics, layout.content(), theme.workbenchBackground());
+        AdvancementUi.renderInset(graphics, layout.dossier().left(), layout.dossier().top(),
+                layout.dossier().right(), layout.dossier().bottom());
+        AdvancementUi.renderInset(graphics, layout.selector().left(), layout.selector().top(),
+                layout.selector().right(), layout.selector().bottom());
+        AdvancementUi.renderInset(graphics, layout.header().left(), layout.header().top(),
+                layout.header().right(), layout.header().bottom());
+        AdvancementUi.renderInset(graphics, layout.graph().left(), layout.graph().top(),
+                layout.graph().right(), layout.graph().bottom());
+        AdvancementUi.renderInset(graphics, layout.details().left(), layout.details().top(),
+                layout.details().right(), layout.details().bottom());
+        skillNodeCenters = Map.of();
+        renderedSkillIndex = -1;
+        if (rows.isEmpty()) {
+            renderSkillDossier(graphics, layout, snapshot, Optional.empty(), Optional.empty(), mouseX, mouseY);
+            graphics.drawCenteredString(font,
+                    Component.translatable("screen.progressiveskills.skills.none"),
+                    layout.graph().centerX(), layout.graph().centerY(), 0xFFAAAAAA);
+            return;
+        }
+        int preview = previewEntryIndex();
+        renderedSkillIndex = preview;
+        Row row = rows.get(preview);
+        ResourceLocation skillId = row.id().orElseThrow();
+        Optional<SkillTreeModel> tree = boundTree(snapshot, skillId);
+        renderSkillDossier(graphics, layout, snapshot, Optional.of(skillId), tree, mouseX, mouseY);
+        renderSkillHeader(graphics, layout.header(), snapshot, row, skillId, tree);
+        if (tree.isEmpty() || snapshot.visibleState().isEmpty()) {
+            renderSkillWithoutTree(graphics, layout, row, snapshot.visibleState().isPresent());
+            return;
+        }
+        renderBoundSkillTree(
+                graphics,
+                layout,
+                snapshot,
+                tree.orElseThrow(),
+                snapshot.visibleState().orElseThrow(),
+                mouseX,
+                mouseY
+        );
+    }
+
+    private void renderSkillDossier(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Layout layout,
+            ClientNetworkState.Snapshot snapshot,
+            Optional<ResourceLocation> selectedSkill,
+            Optional<SkillTreeModel> selectedTree,
+            int mouseX,
+            int mouseY
+    ) {
+        ProgressionWorkbenchLayout.Rect meter = layout.meter();
         long totalLevel = rows.stream().flatMap(row -> row.id().stream())
                 .mapToLong(id -> skillLevel(snapshot, id)).sum();
-        long highest = rows.stream().flatMap(row -> row.id().stream())
-                .mapToLong(id -> skillLevel(snapshot, id)).max().orElse(0L);
-        int textX = left + 5;
-        int textY = top + 5;
-        graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.total_level"),
-                textX, textY, 0xFFFFD65C, false);
-        graphics.drawString(font, Long.toString(totalLevel), textX, textY + 11, 0xFFFFFFFF, true);
-        graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.tracks"),
-                textX, textY + 25, 0xFFB8B8B8, false);
-        graphics.drawString(font, Integer.toString(rows.size()), textX, textY + 36, 0xFFFFFFFF, true);
-        if (dashboardBottom - top >= 78) {
-            graphics.drawString(font, Component.translatable("screen.progressiveskills.skills.highest"),
-                    textX, textY + 50, 0xFFB8B8B8, false);
-            graphics.drawString(font, Long.toString(highest), textX, textY + 61, 0xFFFFFFFF, true);
+        long level = selectedSkill.map(id -> skillLevel(snapshot, id)).orElse(0L);
+        long activeXp = selectedSkill.map(id -> skillBalance(snapshot, id, true)).orElse(0L);
+        long bankedXp = selectedSkill.map(id -> skillBalance(snapshot, id, false)).orElse(0L);
+        int textX = meter.left() + 2;
+        int textWidth = Math.max(8, meter.width() - 4);
+        Component total = Component.translatable(
+                "screen.progressiveskills.skills.total_level_value", totalLevel);
+        graphics.drawString(font, font.plainSubstrByWidth(total.getString(), textWidth),
+                textX, meter.top() + 1, 0xFFFFD65C, false);
+        Component levelText = Component.translatable("screen.progressiveskills.skills.level", level);
+        graphics.drawString(font, font.plainSubstrByWidth(levelText.getString(), textWidth),
+                textX, meter.top() + 12, 0xFFFFFFFF, false);
+        int barLeft = textX;
+        int barRight = meter.right() - 2;
+        int barTop = meter.top() + 23;
+        graphics.fill(barLeft, barTop, barRight, barTop + 6, 0xD0181818);
+        double share = ProgressionWorkbenchLayout.activeShare(activeXp, bankedXp);
+        int fill = (int) Math.round((barRight - barLeft) * share);
+        if (fill > 0) {
+            graphics.fill(barLeft, barTop, barLeft + fill, barTop + 6,
+                    theme.workbenchColor("meter_fill"));
         }
-        if (minecraft != null && minecraft.player != null) {
-            int scale = Math.clamp((dashboardBottom - top) / 3, 18, 30);
+        if (meter.height() >= 40) {
+            String xp = Component.translatable(
+                    "screen.progressiveskills.skills.xp_balance", activeXp, bankedXp).getString();
+            graphics.drawString(font, font.plainSubstrByWidth(xp, textWidth),
+                    textX, barTop + 8, 0xFFB8B8B8, false);
+        }
+
+        ProgressionWorkbenchLayout.Rect balances = layout.balances();
+        graphics.drawString(font,
+                Component.translatable("screen.progressiveskills.skills.unspent_points"),
+                balances.left() + 1, balances.top(), theme.workbenchColor("point_text"), false);
+        List<PointBalance> points = pointBalances(snapshot, selectedTree);
+        int pointY = balances.top() + 12;
+        if (points.isEmpty()) {
+            graphics.drawString(font,
+                    Component.translatable("screen.progressiveskills.skills.no_points"),
+                    balances.left() + 1, pointY, 0xFF888888, false);
+        } else {
+            for (PointBalance point : points) {
+                if (pointY + 16 > balances.bottom()) {
+                    break;
+                }
+                graphics.renderItem(point.icon(), balances.left() + 1, pointY - 3);
+                String value = point.display().getString() + "  " + point.balance();
+                graphics.drawString(font, font.plainSubstrByWidth(
+                                value, Math.max(8, balances.width() - 21)),
+                        balances.left() + 20, pointY + 1,
+                        theme.workbenchColor("point_text"), false);
+                pointY += 17;
+            }
+        }
+
+        ProgressionWorkbenchLayout.Rect player = layout.player();
+        if (minecraft != null && minecraft.player != null && player.height() >= 24) {
+            int scale = Math.clamp(Math.min(player.width(), player.height()) / 3, 14, 34);
             InventoryScreen.renderEntityInInventoryFollowsMouse(
                     graphics,
-                    centerLeft + 2,
-                    top + 2,
-                    centerRight - 2,
-                    dashboardBottom - 2,
+                    player.left(),
+                    player.top(),
+                    player.right(),
+                    player.bottom(),
                     scale,
                     0.0F,
                     mouseX,
                     mouseY,
                     minecraft.player
             );
+        } else {
+            graphics.drawCenteredString(font,
+                    Component.translatable("screen.progressiveskills.skills.player_unavailable"),
+                    player.centerX(), player.centerY(), 0xFF888888);
         }
-        if (rows.isEmpty()) {
-            graphics.drawString(font, Component.literal("No skills are available."),
-                    detailLeft + 5, top + 5, 0xFFAAAAAA, false);
-            return;
+    }
+
+    private void renderSkillHeader(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Rect header,
+            ClientNetworkState.Snapshot snapshot,
+            Row row,
+            ResourceLocation skillId,
+            Optional<SkillTreeModel> tree
+    ) {
+        int iconX = header.left() + 5;
+        int iconY = header.top() + Math.max(2, (header.height() - 16) / 2);
+        graphics.renderItem(rowIcon(snapshot, row), iconX, iconY);
+        int textX = iconX + 21;
+        int availableWidth = Math.max(20, header.right() - textX - 5);
+        String name = font.plainSubstrByWidth(UiText.legacy(row.label()).getString(), availableWidth);
+        graphics.drawString(font, name, textX, header.top() + 4, 0xFFFFFFFF, false);
+        String subtitle = Component.translatable(
+                "screen.progressiveskills.skills.level", skillLevel(snapshot, skillId)).getString();
+        if (tree.isPresent()) {
+            subtitle += ". " + tree.orElseThrow().display().getString();
         }
-        int preview = previewEntryIndex();
-        Row row = rows.get(preview);
-        int x = detailLeft + 5;
-        int y = top + 5;
-        int maxWidth = Math.max(36, right - x - 4);
-        graphics.renderItem(rowIcon(snapshot, row), x, y);
-        x += 21;
-        var nameLines = font.split(UiText.legacy(row.label()), Math.max(20, maxWidth - 21));
-        for (int lineIndex = 0; lineIndex < Math.min(2, nameLines.size()); lineIndex++) {
-            graphics.drawString(font, nameLines.get(lineIndex), x, y + 3, 0xFFFFFFFF, false);
+        graphics.drawString(font, font.plainSubstrByWidth(subtitle, availableWidth),
+                textX, header.top() + 14, 0xFFB8B8B8, false);
+    }
+
+    private void renderSkillWithoutTree(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Layout layout,
+            Row row,
+            boolean hasPlayerState
+    ) {
+        Component message = hasPlayerState
+                ? Component.translatable("screen.progressiveskills.skills.no_bound_tree")
+                : Component.translatable("screen.progressiveskills.skills.state_unavailable");
+        graphics.drawCenteredString(font, message,
+                layout.graph().centerX(), layout.graph().centerY(), 0xFFAAAAAA);
+        int x = layout.details().left() + 5;
+        int y = layout.details().top() + 5;
+        drawWrapped(graphics, Component.literal(row.detail()), x, y,
+                Math.max(20, layout.details().width() - 10),
+                layout.details().bottom() - 5, 0xFFB8B8B8);
+    }
+
+    private void renderBoundSkillTree(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Layout layout,
+            ClientNetworkState.Snapshot snapshot,
+            SkillTreeModel tree,
+            VisiblePlayerState state,
+            int mouseX,
+            int mouseY
+    ) {
+        List<ProgressionWorkbenchLayout.NodeAnchor<ResourceLocation>> anchors = tree.tree().nodes().stream()
+                .map(node -> new ProgressionWorkbenchLayout.NodeAnchor<>(
+                        node.id(), node.row(), node.column())).toList();
+        skillNodeCenters = ProgressionWorkbenchLayout.fitNodes(anchors, layout.graph());
+        graphics.enableScissor(layout.graph().left() + 1, layout.graph().top() + 1,
+                layout.graph().right() - 1, layout.graph().bottom() - 1);
+        for (DefinitionProjection.NodeView node : tree.tree().nodes()) {
+            ProgressionWorkbenchLayout.Point target = skillNodeCenters.get(node.id());
+            SkillNodeStatus targetStatus = skillNodeStatus(tree.tree(), node, state);
+            for (ResourceLocation requirement : node.requires()) {
+                drawWorkbenchConnector(
+                        graphics,
+                        skillNodeCenters.get(requirement),
+                        target,
+                        targetStatus == SkillNodeStatus.OWNED
+                                ? theme.workbenchColor("owned_path")
+                                : theme.workbenchColor("required_path")
+                );
+            }
+            for (ResourceLocation requirement : node.requiresAny()) {
+                drawWorkbenchConnector(
+                        graphics,
+                        skillNodeCenters.get(requirement),
+                        target,
+                        targetStatus == SkillNodeStatus.OWNED
+                                ? theme.workbenchColor("owned_path")
+                                : theme.workbenchColor("alternative_path")
+                );
+            }
+        }
+        Optional<DefinitionProjection.NodeView> hovered = hoveredSkillNode(tree.tree(), mouseX, mouseY);
+        DefinitionProjection.NodeView inspected = displayedSkillNode(tree.tree(), hovered);
+        for (DefinitionProjection.NodeView node : tree.tree().nodes()) {
+            ProgressionWorkbenchLayout.Point point = skillNodeCenters.get(node.id());
+            SkillNodeStatus status = skillNodeStatus(tree.tree(), node, state);
+            boolean selectedNode = node.id().equals(inspected.id());
+            boolean hoveredNode = hovered.stream().anyMatch(value -> value.id().equals(node.id()));
+            boolean major = node.requires().isEmpty() && node.requiresAny().isEmpty();
+            if (major) {
+                drawDiamondOutline(graphics, point.x(), point.y(), 17,
+                        theme.workbenchColor("selected_node"));
+            }
+            int stateColor = theme.workbenchColor(status.colorKey);
+            graphics.fill(point.x() - 15, point.y() - 15, point.x() + 15, point.y() + 15,
+                    withAlpha(stateColor, 0x70));
+            if (selectedNode || hoveredNode) {
+                int outline = hoveredNode
+                        ? theme.workbenchColor("hovered_node")
+                        : theme.workbenchColor("selected_node");
+                drawRectOutline(graphics, point.x() - 16, point.y() - 16,
+                        point.x() + 16, point.y() + 16, outline);
+            }
+            AdvancementUi.renderNodeFrame(
+                    graphics, point.x(), point.y(), status.frame, false);
+            graphics.renderItem(ProjectionPresentation.icon(node.icon(), Items.BARRIER),
+                    point.x() - 8, point.y() - 8);
+            Integer rank = state.nodeRanks().get(node.id());
+            if (rank != null) {
+                graphics.drawString(font, Integer.toString(rank),
+                        point.x() + 7, point.y() + 6, 0xFFFFFFFF, true);
+            }
+        }
+        graphics.disableScissor();
+        renderSkillNodeDetails(graphics, layout.details(), snapshot, tree, inspected, state);
+    }
+
+    private void renderSkillNodeDetails(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Rect details,
+            ClientNetworkState.Snapshot snapshot,
+            SkillTreeModel tree,
+            DefinitionProjection.NodeView node,
+            VisiblePlayerState state
+    ) {
+        int contentBottom = details.bottom() - (details.height() >= 80 ? 24 : 4);
+        graphics.enableScissor(details.left() + 1, details.top() + 1,
+                details.right() - 1, contentBottom);
+        int x = details.left() + 5;
+        int y = details.top() + 5;
+        int width = Math.max(20, details.width() - 10);
+        graphics.renderItem(ProjectionPresentation.icon(node.icon(), Items.BARRIER), x, y);
+        Component name = ProjectionPresentation.component(node.display());
+        int nameX = x + 21;
+        int nameWidth = Math.max(12, details.right() - nameX - 4);
+        graphics.drawString(font, font.plainSubstrByWidth(name.getString(), nameWidth),
+                nameX, y + 3, 0xFFFFFFFF, false);
+        y += 20;
+        SkillNodeStatus status = skillNodeStatus(tree.tree(), node, state);
+        y = drawWrapped(graphics, status.label(), x, y, width,
+                contentBottom, theme.workbenchColor(status.colorKey));
+        ItemStack currencyIcon = currencyIcon(snapshot, tree.tree().currency());
+        if (y + 16 < contentBottom) {
+            graphics.renderItem(currencyIcon, x, y - 2);
+            long balance = tree.tree().visibleCurrencyBalance(state.balances());
+            Component cost = Component.translatable(
+                    "screen.progressiveskills.skills.node_cost",
+                    node.cost(),
+                    displayName(snapshot, tree.tree().currency()),
+                    balance
+            );
+            y = drawWrapped(graphics, cost, x + 20, y + 1,
+                    Math.max(20, width - 20), contentBottom, 0xFFD0D0D0);
+            y += 3;
+        }
+        if (!node.requiresAny().isEmpty()) {
+            y = drawWrapped(graphics,
+                    Component.translatable("screen.progressiveskills.skills.choice_path"),
+                    x, y, width, contentBottom,
+                    theme.workbenchColor("alternative_path"));
+        } else if (!node.requires().isEmpty()) {
+            y = drawWrapped(graphics,
+                    Component.translatable("screen.progressiveskills.skills.required_path"),
+                    x, y, width, contentBottom,
+                    theme.workbenchColor("required_path"));
+        }
+        if (node.description().isPresent()) {
+            y += 3;
+            drawWrapped(graphics,
+                    ProjectionPresentation.component(node.description().orElseThrow()),
+                    x, y, width, contentBottom, 0xFFB8B8B8);
+        }
+        graphics.disableScissor();
+    }
+
+    private List<PointBalance> pointBalances(
+            ClientNetworkState.Snapshot snapshot,
+            Optional<SkillTreeModel> selectedTree
+    ) {
+        if (snapshot.visibleState().isEmpty() || snapshot.activeDefinitions().isEmpty()) {
+            return List.of();
+        }
+        var currencies = new LinkedHashMap<ResourceLocation, DefinitionProjection.TreeView>();
+        selectedTree.ifPresent(tree -> currencies.put(tree.tree().currency(), tree.tree()));
+        snapshot.activeDefinitions().orElseThrow().definitions().entrySet().stream()
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.TREE))
+                .flatMap(entry -> entry.getValue().tree().stream())
+                .filter(tree -> tree.boundSkill().isPresent())
+                .forEach(tree -> currencies.putIfAbsent(tree.currency(), tree));
+        VisiblePlayerState state = snapshot.visibleState().orElseThrow();
+        return currencies.entrySet().stream().limit(theme.pointBalanceLimit())
+                .map(entry -> new PointBalance(
+                        entry.getKey(),
+                        displayName(snapshot, entry.getKey()),
+                        currencyIcon(snapshot, entry.getKey()),
+                        entry.getValue().visibleCurrencyBalance(state.balances())
+                ))
+                .toList();
+    }
+
+    private static Optional<SkillTreeModel> boundTree(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation skillId
+    ) {
+        return snapshot.activeDefinitions().stream()
+                .flatMap(projection -> projection.definitions().entrySet().stream())
+                .filter(entry -> entry.getKey().kind().equals(DefinitionKinds.TREE))
+                .filter(entry -> entry.getValue().tree().stream()
+                        .flatMap(tree -> tree.boundSkill().stream())
+                        .anyMatch(skillId::equals))
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> new SkillTreeModel(
+                        entry.getKey().id(),
+                        ProjectionPresentation.display(entry.getValue(), UiText.prettyId(entry.getKey().id())),
+                        entry.getValue(),
+                        entry.getValue().tree().orElseThrow()
+                ))
+                .findFirst();
+    }
+
+    private static ItemStack currencyIcon(
+            ClientNetworkState.Snapshot snapshot,
+            ResourceLocation currencyId
+    ) {
+        return definitionEntry(snapshot, DefinitionKinds.CURRENCY, currencyId)
+                .map(entry -> ProjectionPresentation.icon(entry, Items.EMERALD))
+                .orElseGet(() -> new ItemStack(Items.EMERALD));
+    }
+
+    private static Optional<DefinitionProjection.Entry> definitionEntry(
+            ClientNetworkState.Snapshot snapshot,
+            com.envisione.progressiveskills.common.id.DefinitionKind kind,
+            ResourceLocation id
+    ) {
+        return snapshot.activeDefinitions().stream()
+                .flatMap(projection -> projection.definitions().entrySet().stream())
+                .filter(entry -> entry.getKey().kind().equals(kind) && entry.getKey().id().equals(id))
+                .map(Map.Entry::getValue)
+                .findFirst();
+    }
+
+    private Optional<DefinitionProjection.NodeView> hoveredSkillNode(
+            DefinitionProjection.TreeView tree,
+            int mouseX,
+            int mouseY
+    ) {
+        return tree.nodes().stream().filter(node -> {
+            ProgressionWorkbenchLayout.Point point = skillNodeCenters.get(node.id());
+            if (point == null) {
+                return false;
+            }
+            int x = mouseX - point.x();
+            int y = mouseY - point.y();
+            return x * x + y * y <= 15 * 15;
+        }).findFirst();
+    }
+
+    private DefinitionProjection.NodeView displayedSkillNode(
+            DefinitionProjection.TreeView tree,
+            Optional<DefinitionProjection.NodeView> hovered
+    ) {
+        DefinitionProjection.NodeView fallback = tree.nodes().stream()
+                .filter(node -> node.requires().isEmpty() && node.requiresAny().isEmpty())
+                .min(Comparator.comparingInt(DefinitionProjection.NodeView::row)
+                        .thenComparingInt(DefinitionProjection.NodeView::column)
+                        .thenComparing(DefinitionProjection.NodeView::id, ResourceLocation::compareNamespaced))
+                .orElse(tree.nodes().getFirst());
+        List<ResourceLocation> available = tree.nodes().stream()
+                .map(DefinitionProjection.NodeView::id).toList();
+        ResourceLocation chosen = ProgressionWorkbenchLayout.inspectedValue(
+                hovered.map(DefinitionProjection.NodeView::id),
+                inspectedSkillNode,
+                fallback.id(),
+                available
+        );
+        return tree.nodes().stream().filter(node -> node.id().equals(chosen))
+                .findFirst().orElse(fallback);
+    }
+
+    private static SkillNodeStatus skillNodeStatus(
+            DefinitionProjection.TreeView tree,
+            DefinitionProjection.NodeView node,
+            VisiblePlayerState state
+    ) {
+        if (state.nodeRanks().containsKey(node.id())) {
+            return SkillNodeStatus.OWNED;
+        }
+        if (!tree.enabled() || state.quarantined()) {
+            return SkillNodeStatus.SUSPENDED;
+        }
+        boolean required = node.requires().stream().allMatch(state.nodeRanks()::containsKey);
+        boolean any = node.requiresAny().isEmpty()
+                || node.requiresAny().stream().anyMatch(state.nodeRanks()::containsKey);
+        boolean levels = node.minimumSkillLevels().entrySet().stream().allMatch(entry ->
+                state.balances().getOrDefault(SkillStateIds.level(entry.getKey()).toString(), 0L)
+                        >= entry.getValue());
+        long balance = tree.visibleCurrencyBalance(state.balances());
+        boolean currency;
+        try {
+            currency = Math.subtractExact(balance, node.cost()) >= tree.currencyMinimum();
+        } catch (ArithmeticException exception) {
+            currency = false;
+        }
+        return required && any && levels && currency
+                ? SkillNodeStatus.AVAILABLE : SkillNodeStatus.LOCKED;
+    }
+
+    private int drawWrapped(
+            GuiGraphics graphics,
+            Component text,
+            int x,
+            int y,
+            int width,
+            int bottom,
+            int color
+    ) {
+        for (var line : font.split(text, Math.max(8, width))) {
+            if (y + font.lineHeight > bottom) {
+                break;
+            }
+            graphics.drawString(font, line, x, y, color, false);
             y += font.lineHeight + 1;
         }
-        x = detailLeft + 5;
-        y = Math.max(y + 3, top + 24);
-        ResourceLocation id = row.id().orElseThrow();
-        graphics.drawString(font, Component.translatable(
-                        "screen.progressiveskills.skills.level", skillLevel(snapshot, id)),
-                x, y, 0xFFFFD65C, false);
-        y += 12;
-        graphics.drawString(font, Component.translatable(
-                        "screen.progressiveskills.skills.active_xp", skillBalance(snapshot, id, true)),
-                x, y, 0xFF80C8FF, false);
-        y += 11;
-        graphics.drawString(font, Component.translatable(
-                        "screen.progressiveskills.skills.banked_xp", skillBalance(snapshot, id, false)),
-                x, y, 0xFFB8B8B8, false);
+        return y;
+    }
+
+    private static void drawWorkbenchConnector(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Point source,
+            ProgressionWorkbenchLayout.Point target,
+            int color
+    ) {
+        if (source == null || target == null) {
+            return;
+        }
+        int middleY = (source.y() + target.y()) / 2;
+        graphics.vLine(source.x(), Math.min(source.y(), middleY), Math.max(source.y(), middleY), color);
+        graphics.hLine(Math.min(source.x(), target.x()), Math.max(source.x(), target.x()), middleY, color);
+        graphics.vLine(target.x(), Math.min(middleY, target.y()), Math.max(middleY, target.y()), color);
+    }
+
+    private static void drawDiamondOutline(
+            GuiGraphics graphics,
+            int centerX,
+            int centerY,
+            int radius,
+            int color
+    ) {
+        for (int offset = 0; offset <= radius; offset++) {
+            plot(graphics, centerX - offset, centerY - radius + offset, color);
+            plot(graphics, centerX + offset, centerY - radius + offset, color);
+            plot(graphics, centerX - offset, centerY + radius - offset, color);
+            plot(graphics, centerX + offset, centerY + radius - offset, color);
+        }
+    }
+
+    private static void drawRectOutline(
+            GuiGraphics graphics,
+            int left,
+            int top,
+            int right,
+            int bottom,
+            int color
+    ) {
+        graphics.hLine(left, right, top, color);
+        graphics.hLine(left, right, bottom, color);
+        graphics.vLine(left, top, bottom, color);
+        graphics.vLine(right, top, bottom, color);
+    }
+
+    private static void plot(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fill(x, y, x + 1, y + 1, color);
+    }
+
+    private static int withAlpha(int color, int alpha) {
+        return color & 0x00FFFFFF | alpha << 24;
+    }
+
+    private static void renderTiledBackground(
+            GuiGraphics graphics,
+            ProgressionWorkbenchLayout.Rect area,
+            ResourceLocation texture
+    ) {
+        graphics.enableScissor(area.left(), area.top(), area.right(), area.bottom());
+        for (int x = area.left(); x < area.right(); x += 16) {
+            for (int y = area.top(); y < area.bottom(); y += 16) {
+                graphics.blit(
+                        texture,
+                        x,
+                        y,
+                        0.0F,
+                        0.0F,
+                        Math.min(16, area.right() - x),
+                        Math.min(16, area.bottom() - y),
+                        16,
+                        16
+                );
+            }
+        }
+        graphics.disableScissor();
     }
 
     private void renderClassDashboard(
@@ -821,8 +1323,7 @@ public final class ProgressionScreen extends ProgressiveScreen {
 
     private int visibleEntries(AdvancementUi.Frame frame) {
         if (tab == Tab.SKILLS) {
-            int vertical = Math.max(1, (frame.contentBottom() - skillGridTop(frame) - 4) / 37);
-            return vertical * skillColumns(frame);
+            return ProgressionWorkbenchLayout.calculate(frame).selectorCapacity();
         }
         if (tab == Tab.CLASSES) {
             int vertical = Math.max(1, (frame.contentBottom() - frame.contentY() - 32) / 41);
@@ -831,14 +1332,6 @@ public final class ProgressionScreen extends ProgressiveScreen {
         int contentTop = frame.contentY() + (searchableTab() ? 27 : 5);
         int vertical = Math.max(1, (frame.contentBottom() - contentTop - 4) / 44);
         return vertical * cardColumns(frame);
-    }
-
-    static int skillGridTop(AdvancementUi.Frame frame) {
-        return frame.contentY() + Math.clamp(frame.contentHeight() * 45 / 100, 62, 82);
-    }
-
-    static int skillColumns(AdvancementUi.Frame frame) {
-        return Math.max(1, (frame.contentWidth() - 10) / 37);
     }
 
     static int classSlotWidth(AdvancementUi.Frame frame) {
@@ -1202,5 +1695,50 @@ public final class ProgressionScreen extends ProgressiveScreen {
             DefinitionProjection.Entry entry,
             DefinitionProjection.ClassSlotView view
     ) {
+    }
+
+    private record SkillTreeModel(
+            ResourceLocation id,
+            Component display,
+            DefinitionProjection.Entry entry,
+            DefinitionProjection.TreeView tree
+    ) {
+    }
+
+    private record PointBalance(
+            ResourceLocation id,
+            Component display,
+            ItemStack icon,
+            long balance
+    ) {
+    }
+
+    private enum SkillNodeStatus {
+        OWNED(AdvancementUi.NodeFrame.OWNED, "owned_node",
+                "screen.progressiveskills.tree.status.owned"),
+        AVAILABLE(AdvancementUi.NodeFrame.AVAILABLE, "available_node",
+                "screen.progressiveskills.tree.status.available"),
+        LOCKED(AdvancementUi.NodeFrame.LOCKED, "locked_node",
+                "screen.progressiveskills.tree.status.locked"),
+        SUSPENDED(AdvancementUi.NodeFrame.LOCKED, "locked_node",
+                "screen.progressiveskills.tree.status.suspended");
+
+        private final AdvancementUi.NodeFrame frame;
+        private final String colorKey;
+        private final String translationKey;
+
+        SkillNodeStatus(
+                AdvancementUi.NodeFrame frame,
+                String colorKey,
+                String translationKey
+        ) {
+            this.frame = frame;
+            this.colorKey = colorKey;
+            this.translationKey = translationKey;
+        }
+
+        Component label() {
+            return Component.translatable(translationKey);
+        }
     }
 }

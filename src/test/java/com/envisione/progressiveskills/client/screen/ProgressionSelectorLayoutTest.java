@@ -8,13 +8,13 @@ class ProgressionSelectorLayoutTest {
     @Test
     void compactScreenKeepsBothSelectorRegionsInsideTheWorkbench() {
         AdvancementUi.Frame frame = AdvancementUi.largeFrame(320, 240);
-        int skillTop = ProgressionScreen.skillGridTop(frame);
+        ProgressionWorkbenchLayout.Layout workbench = ProgressionWorkbenchLayout.calculate(frame);
         int visibleSlots = ProgressionScreen.visibleClassSlots(frame);
         int lastSlotBottom = frame.contentY() + 6 + (visibleSlots - 1) * 29 + 26;
 
-        assertTrue(skillTop >= frame.contentY() + 62);
-        assertTrue(skillTop + 32 <= frame.contentBottom() - 2);
-        assertTrue(ProgressionScreen.skillColumns(frame) >= 6);
+        assertTrue(workbench.selectorCapacity() >= 4);
+        assertTrue(workbench.dossier().right() < workbench.selector().left());
+        assertTrue(workbench.selector().right() < workbench.header().left());
         assertTrue(ProgressionScreen.classSlotWidth(frame) >= 68);
         assertTrue(ProgressionScreen.classColumns(frame) >= 1);
         assertTrue(lastSlotBottom < frame.contentBottom() - 22);
@@ -24,7 +24,7 @@ class ProgressionSelectorLayoutTest {
     void maximumScreenUsesTheExpandedSelectorCapacity() {
         AdvancementUi.Frame frame = AdvancementUi.largeFrame(1920, 1080);
 
-        assertTrue(ProgressionScreen.skillColumns(frame) >= 13);
+        assertTrue(ProgressionWorkbenchLayout.calculate(frame).selectorCapacity() >= 9);
         assertTrue(ProgressionScreen.classColumns(frame) >= 5);
         assertTrue(ProgressionScreen.visibleClassSlots(frame) >= 9);
     }

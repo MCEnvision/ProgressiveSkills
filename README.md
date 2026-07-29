@@ -26,7 +26,7 @@ bash .ci/smoke-client.sh
 bash .ci/verify-release-jar.sh releases/phase-19/progressiveskills-phase-19.jar
 ```
 
-The active Phase 20 beta branch uses `releases/phase-20/progressiveskills-phase-20.jar` and its matching verification record. Its ability wheel renders definition items directly with circular pointer and selection highlights instead of token frames. It is not an approved `main` release until the player checklist passes.
+The active Phase 20 beta branch uses `releases/phase-20/progressiveskills-phase-20.jar` and its matching verification record. Its `P` menu opens a two panel Skills workbench with a player dossier, vertical skill rail, authoritative skill bound tree preview, separate node cost card, and resource pack theme controls. Its ability wheel renders definition items directly with circular pointer and selection highlights instead of token frames. It is not an approved `main` release until the player checklist passes.
 
 The client smoke requires `xvfb-run` on headless Linux. Test reports are written below `build/reports/`; runtime logs are isolated below `run/<configuration>/logs/`.
 

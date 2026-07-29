@@ -30,6 +30,22 @@ Create this resource in a resource pack.
       "Cost {cost} {currency}",
       "{description}"
     ]
+  },
+  "skill_workbench": {
+    "background": "minecraft:textures/gui/advancements/backgrounds/end.png",
+    "max_point_balances": 3,
+    "colors": {
+      "meter_fill": "#78b84a",
+      "point_text": "#ffd65c",
+      "owned_node": "#5fa34a",
+      "available_node": "#ffc55c",
+      "locked_node": "#737373",
+      "hovered_node": "#ffffff",
+      "selected_node": "#80c8ff",
+      "required_path": "#777777",
+      "alternative_path": "#5d8fc7",
+      "owned_path": "#63a84f"
+    }
   }
 }
 ```
@@ -65,11 +81,23 @@ Supported legacy formatting codes are `&0` through `&9`, `&a` through `&f`, `&k`
 
 `max_width` is clamped to a safe client range. The renderer wraps longer text again when the current window is narrower and clamps the completed tooltip inside the screen.
 
+## Skills workbench
+
+The Skills page uses a two panel workbench. The left dossier contains the synchronized selected skill level meter, up to three relevant tree currency balances, and the live local player preview. The right workspace contains a vertical skill selector rail, selected skill heading, fitted skill bound tree, and separate node detail card. A narrow window stacks the graph and detail card instead of allowing them to overlap.
+
+`background` is a full texture resource id. The default is Minecraft's End advancement background. A missing or invalid replacement keeps the default. `max_point_balances` is clamped from one through five. It limits only the compact balance list and never changes the actual balances.
+
+Each workbench color accepts `#RRGGBB` or `#AARRGGBB`. Six digit colors receive full opacity. An invalid value falls back only that color to its default. Node frames, icons, labels, and connector shapes remain present, so ownership and path meaning never rely on color alone.
+
+The graph uses only synchronized skill scoped trees whose `bind` field matches the inspected skill. Node rows, columns, required prerequisites, alternative prerequisites, costs, currency, ownership, icons, display text, and descriptions remain authoritative. Required paths use the required path color. `requires_any` paths use the alternative path color and appear as alternative choice paths in the card. The client never invents mutually exclusive behavior when the definition does not provide it.
+
+Hovering a skill or node changes the preview. Clicking pins local inspection. The Open tree action enters that exact full tree workspace when there is enough room for the contextual button. Compact layouts retain the normal Trees tab as the full mutation path. Buying, refunding, and respeccing never occur through the dashboard preview.
+
 ## Definition icons and text
 
 Skills, trees, classes, abilities, and tree nodes continue to use their definition `display`, `description`, and `icon` fields. The root tree tab uses the tree definition icon. The Progression cards use the matching definition icon. This keeps server supplied pack identity visible while the theme file controls only shared navigation.
 
-The dedicated Skills dashboard uses each skill definition icon as its selector and its synchronized level as the badge. The dedicated Classes dashboard uses each class definition icon as its selector and each class slot definition icon in the slot rail. Changing these definition icons changes the dashboards without a client code change.
+The dedicated Skills dashboard uses each skill definition icon as its vertical selector and its synchronized level as the badge. Its graph uses each bound tree node icon, and its point list uses the matching currency definition icon. The dedicated Classes dashboard uses each class definition icon as its selector and each class slot definition icon in the slot rail. Changing these definition icons changes the dashboards without a client code change.
 
 Class slot capacity and class slot weight are gameplay data rather than theme data. Their displayed values always come from the synchronized server projection and cannot be replaced by a resource pack.
 
@@ -79,7 +107,7 @@ When no synchronized display exists for a referenced id, the UI removes its name
 
 ## Resource reload
 
-Apply the resource pack and use the normal Minecraft resource reload. Reopen the Progression or Tree screen after the reload. Invalid theme JSON or missing items cannot block the screen. ProgressiveSkills logs the problem and continues with defaults.
+Apply the resource pack and use the normal Minecraft resource reload. Reopen the Progression or Tree screen after the reload. Invalid theme JSON, missing items, missing backgrounds, or invalid colors cannot block the screen. ProgressiveSkills logs structural theme errors and continues with defaults.
 
 ## Accessibility contract
 

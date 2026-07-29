@@ -150,6 +150,8 @@ Every phase has a full description, commands, expected results, failure behavior
 
 The Progression screen has ten tabs: Skills, Trees, Classes, Abilities, Claims, Guide, Compare, Tests, Sync, and Studio. High contrast, reduced motion, compact layout, text scaling, HUD position, HUD scale, and HUD opacity are local client preferences. They are stored in `config/progressiveskills-client.properties` and never alter server authority.
 
+The `P` menu Skills page is a two panel workbench. Its left dossier renders the selected skill level and XP meter, a bounded list of relevant tree currency balances, and the local player model. Its vertical skill rail previews definitions on hover and pins inspection on click. The right workspace fits the authoritative skill scoped tree whose `bind` matches the selected skill into a clipped graph and keeps node state, cost, currency balance, path type, and description in a separate card. The default uses Minecraft's End advancement background. Resource packs can replace that background, the balance limit, and named workbench colors through `assets/progressiveskills/ui/progression.json`. The dashboard is inspection only. It opens the exact full Tree workspace for purchases, refunds, and respecs.
+
 The held ability wheel renders each configured ability item directly. It does not place advancement frames or token backgrounds behind slot items. The slot under the pointer receives a gold circular outline, including an empty slot, while the previously selected slot keeps a quieter blue outline. Empty slots retain a neutral placeholder, slot number, and unavailable status. Cooldown and charge labels remain outside the item outline.
 
 ## Authority and safety model
