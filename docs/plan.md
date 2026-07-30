@@ -3072,3 +3072,26 @@ By the end of the roadmap, pack developers can customize:
 ### 50.3 Product principle
 
 **Maximum customization means maximum composition and inspectability, not maximum hardcoded special cases.** The winning core is: stable ids + content packs + typed predicates/formulas + transactions/lifecycles + source-owned effects + provider APIs + excellent authoring/diagnostics. Every flashy feature above should be expressible by those primitives or justify a new primitive with the full §49.5 completion contract.
+
+---
+
+## 51. Workflow Migration Maintenance
+
+### Current Evidence
+
+The shared workflow migration is complete at the caller layer, but the repository-specific foundation workflow still used mutable major-version action references. The organization action policy requires every action reference to use a full commit SHA. GitHub rejected the workflow before any build, test, GameTest, smoke test, or artifact verification step could start.
+
+### Integration
+
+- Preserve the existing foundation verification sequence and its 35 minute job timeout.
+- Pin checkout, Java setup, Gradle setup, and artifact upload to the exact commits currently represented by their reviewed version 4 release lines.
+- Keep Java 21, Gradle tasks, GameTests, server smoke, client smoke, release JAR inspection, and artifact evidence unchanged.
+- Keep the shared organization callers pinned to their reviewed central workflow commit.
+- Treat future action pin changes as dependency updates that require upstream review and the complete deterministic verification gate.
+
+### Acceptance Criteria
+
+- The organization action policy accepts every repository workflow action reference.
+- Foundation verification reaches the build and test steps instead of failing during workflow setup.
+- The complete foundation workflow and shared quality workflow pass.
+- No test, smoke test, security check, or release verification step is removed or weakened.
