@@ -175,6 +175,8 @@ bash .ci/verify-release-jar.sh releases/phase-19/progressiveskills-phase-19.jar
 
 The full gate covers Java compilation, architecture boundaries, unit tests, property tests, schema freshness, real rule performance fixtures, NeoForge GameTests, dedicated server startup, headless client startup, and runtime JAR contents.
 
+GitHub Actions in the repository-specific foundation workflow are pinned to reviewed full commit SHAs. The shared organization workflows remain pinned to one reviewed central workflow commit. Updating either pin requires reviewing the upstream change and rerunning the complete gate.
+
 The release JAR is:
 
 ```text
